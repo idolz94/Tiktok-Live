@@ -2,12 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { DEFAULT_WS_URL } from "../../../constants/config";
-
-function normalizeTikTokUsername(value: string) {
-  const cleanValue = String(value || "").trim();
-  if (!cleanValue) return "";
-  return cleanValue.startsWith("@") ? cleanValue : `@${cleanValue}`;
-}
+import { normalizeTikTokUsername } from "@/utils/comment";
 
 export default function SettingsView({
   username,

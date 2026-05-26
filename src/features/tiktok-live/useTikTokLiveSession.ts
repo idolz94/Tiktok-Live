@@ -1,152 +1,235 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MAX_COMMENTS } from "@/constants/config";
 import type { LiveComment } from "@/types";
-import { calcDurationSeconds } from "@/utils/date";
+import type { LiveHistoryItem } from "@/features/tiktok-live/types";
 import {
   clearLiveHistoryStorage,
   readLiveHistory,
   saveHistoryItem,
 } from "@/features/tiktok-live/liveHistoryStorage";
 import { normalizeLiveSession } from "@/features/tiktok-live/liveSessionMapper";
-import type { LiveHistoryItem } from "@/features/tiktok-live/types";
+import { calcDurationSeconds } from "@/utils/date";
+
+function formatNowText(nowMs: number) {
+  if (!nowMs) return "";
+
+  return new Date(nowMs).toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export function useTikTokLiveSession() {
-  const currentSessionRef = useRef<LiveHistoryItem | null>(null);
+  const currentLiveSessionRef = useRef<LiveHistoryItem | null>(null);
   const sessionCommentsRef = useRef<LiveComment[]>([]);
 
-  const [currentLiveSession, setCurrentLiveSession] = useState<LiveHistoryItem | null>(null);
-  const [liveHistory, setLiveHistory] = useState<LiveHistoryItem[]>([]);
+  const [currentLiveSession, setCurrentLiveSessionState] =
+    useState<LiveHistoryItem | null>(null);
 
-  const loadLiveHistory = useCallback(() => {
-    setLiveHistory(readLiveHistory());
-  }, []);
-
-  const resetCurrentSession = useCallback(() => {
-    currentSessionRef.current = null;
-    sessionCommentsRef.current = [];
-    setCurrentLiveSession(null);
-  }, []);
-
-  const finalizeCurrentSessionLocally = useCallback(
-    (reason: string) => {
-      const session = currentSessionRef.current;
-
-      if (!session?.startedAt) return;
-
-      const endedAt = new Date().toISOString();
-      const commentsOfSession = sessionCommentsRef.current;
-
-      const historyItem: LiveHistoryItem = {
-        ...session,
-        endedAt,
-        durationSeconds: calcDurationSeconds(session.startedAt, endedAt),
-        commentCount: commentsOfSession.length,
-        comments: commentsOfSession,
-        reason,
-      };
-
-      const nextHistory = saveHistoryItem(historyItem);
-
-      setLiveHistory(nextHistory);
-      resetCurrentSession();
-    },
-    [resetCurrentSession]
+  const [liveHistory, setLiveHistory] = useState<LiveHistoryItem[]>(() =>
+    readLiveHistory()
   );
 
-  const startSessionFromPayload = useCallback((payload: unknown) => {
-    const session = normalizeLiveSession(payload);
+  const [nowMs, setNowMs] = useState(0);
 
-    currentSessionRef.current = session;
-    sessionCommentsRef.current = [];
-
-    setCurrentLiveSession(session);
-
-    return session;
-  }, []);
-
-  const endSessionFromPayload = useCallback(
-    (payload: unknown) => {
-      const sessionFromPython = normalizeLiveSession(payload);
-
-      const commentsOfSession =
-        currentSessionRef.current?.sessionId === sessionFromPython.sessionId
-          ? sessionCommentsRef.current
-          : [];
-
-      const historyItem: LiveHistoryItem = {
-        ...sessionFromPython,
-        comments: commentsOfSession,
-        commentCount: Math.max(sessionFromPython.commentCount, commentsOfSession.length),
-      };
-
-      const nextHistory = saveHistoryItem(historyItem);
-
-      setLiveHistory(nextHistory);
-
-      if (currentSessionRef.current?.sessionId === sessionFromPython.sessionId) {
-        resetCurrentSession();
-      }
-
-      return sessionFromPython;
+  const setCurrentLiveSession = useCallback(
+    (session: LiveHistoryItem | null) => {
+      currentLiveSessionRef.current = session;
+      setCurrentLiveSessionState(session);
     },
-    [resetCurrentSession]
+    []
   );
 
-  const syncSessionStatus = useCallback(
-    (payload: Record<string, unknown>) => {
-      if (!payload || !payload.startedAt) {
-        resetCurrentSession();
-        return null;
-      }
-
-      const session = normalizeLiveSession(payload);
-
-      currentSessionRef.current = session;
-      setCurrentLiveSession(session);
-
-      return session;
-    },
-    [resetCurrentSession]
+  const isRunning = Boolean(
+    currentLiveSession?.startedAt && !currentLiveSession?.endedAt
   );
 
-  const appendCommentToCurrentSession = useCallback((comment: LiveComment) => {
-    const session = currentSessionRef.current;
-
-    if (!session) return;
-
-    const existed = sessionCommentsRef.current.some((item) => item.id === comment.id);
-
-    if (!existed) {
-      sessionCommentsRef.current = [comment, ...sessionCommentsRef.current].slice(0, MAX_COMMENTS);
+  useEffect(() => {
+    if (!isRunning) {
+      return;
     }
 
-    const nextSession: LiveHistoryItem = {
-      ...session,
-      commentCount: sessionCommentsRef.current.length,
-      comments: sessionCommentsRef.current,
-    };
+    const timer = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
 
-    currentSessionRef.current = nextSession;
-    setCurrentLiveSession(nextSession);
-  }, []);
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [isRunning, currentLiveSession?.sessionId, currentLiveSession?.startedAt]);
+
+  const liveDurationSeconds = useMemo(() => {
+    if (!currentLiveSession?.startedAt) {
+      return 0;
+    }
+
+    if (currentLiveSession.endedAt) {
+      return currentLiveSession.durationSeconds || 0;
+    }
+
+    if (!nowMs) {
+      return currentLiveSession.durationSeconds || 0;
+    }
+
+    const start = new Date(currentLiveSession.startedAt).getTime();
+
+    if (!start) {
+      return 0;
+    }
+
+    return Math.max(0, Math.floor((nowMs - start) / 1000));
+  }, [currentLiveSession, nowMs]);
+
+  const liveNowText = useMemo(() => {
+    if (!isRunning) {
+      return "";
+    }
+
+    return formatNowText(nowMs);
+  }, [isRunning, nowMs]);
 
   const clearLiveHistory = useCallback(() => {
     setLiveHistory([]);
     clearLiveHistoryStorage();
   }, []);
 
+  const resetCurrentSession = useCallback(() => {
+    sessionCommentsRef.current = [];
+    setCurrentLiveSession(null);
+    setNowMs(0);
+  }, [setCurrentLiveSession]);
+
+  const finalizeCurrentSessionLocally = useCallback(
+    (reason: string) => {
+      const session = currentLiveSessionRef.current;
+
+      if (!session?.startedAt) {
+        return;
+      }
+
+      const endedAt = new Date().toISOString();
+      const comments = sessionCommentsRef.current;
+
+      const historyItem: LiveHistoryItem = {
+        ...session,
+        endedAt,
+        durationSeconds: calcDurationSeconds(session.startedAt, endedAt),
+        commentCount: comments.length,
+        comments,
+        reason,
+      };
+
+      const nextHistory = saveHistoryItem(historyItem);
+
+      setLiveHistory(nextHistory);
+      sessionCommentsRef.current = [];
+      setCurrentLiveSession(null);
+      setNowMs(0);
+    },
+    [setCurrentLiveSession]
+  );
+
+  const startSessionFromPayload = useCallback(
+    (payload: unknown) => {
+      const session = normalizeLiveSession(payload);
+
+      sessionCommentsRef.current = [];
+      setCurrentLiveSession(session);
+      setNowMs(Date.now());
+    },
+    [setCurrentLiveSession]
+  );
+
+  const endSessionFromPayload = useCallback(
+    (payload: unknown) => {
+      const sessionFromPython = normalizeLiveSession(payload);
+      const comments = sessionCommentsRef.current;
+
+      const historyItem: LiveHistoryItem = {
+        ...sessionFromPython,
+        comments,
+        commentCount: Math.max(
+          sessionFromPython.commentCount || 0,
+          comments.length
+        ),
+      };
+
+      const nextHistory = saveHistoryItem(historyItem);
+
+      setLiveHistory(nextHistory);
+      sessionCommentsRef.current = [];
+      setCurrentLiveSession(null);
+      setNowMs(0);
+    },
+    [setCurrentLiveSession]
+  );
+
+  const updateSessionStatusFromPayload = useCallback(
+    (payload: unknown) => {
+      const data = payload as { startedAt?: string; started_at?: string } | null;
+
+      if (!data || (!data.startedAt && !data.started_at)) {
+        sessionCommentsRef.current = [];
+        setCurrentLiveSession(null);
+        setNowMs(0);
+        return;
+      }
+
+      const session = normalizeLiveSession(payload);
+
+      setCurrentLiveSession(session);
+    },
+    [setCurrentLiveSession]
+  );
+
+  const addCommentToCurrentSession = useCallback(
+    (comment: LiveComment) => {
+      const existed = sessionCommentsRef.current.some(
+        (item) => item.id === comment.id
+      );
+
+      if (existed) {
+        return;
+      }
+
+      const nextComments = [comment, ...sessionCommentsRef.current].slice(
+        0,
+        MAX_COMMENTS
+      );
+
+      sessionCommentsRef.current = nextComments;
+
+      const session = currentLiveSessionRef.current;
+
+      if (!session) {
+        return;
+      }
+
+      const nextSession: LiveHistoryItem = {
+        ...session,
+        commentCount: nextComments.length,
+        comments: nextComments,
+      };
+
+      setCurrentLiveSession(nextSession);
+    },
+    [setCurrentLiveSession]
+  );
+
   return {
     currentLiveSession,
     liveHistory,
+    liveDurationSeconds,
+    liveNowText,
 
-    loadLiveHistory,
+    clearLiveHistory,
     finalizeCurrentSessionLocally,
     startSessionFromPayload,
     endSessionFromPayload,
-    syncSessionStatus,
-    appendCommentToCurrentSession,
-    clearLiveHistory,
+    updateSessionStatusFromPayload,
+    addCommentToCurrentSession,
+    resetCurrentSession,
   };
 }

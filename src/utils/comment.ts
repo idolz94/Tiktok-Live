@@ -72,3 +72,9 @@ export function formatDate(dateString?: string | null) {
 export function removeAt(username: string) {
   return String(username || "").replace(/^@/, "");
 }
+
+export function normalizeTikTokUsername(value: string) {
+  const cleanValue = String(value || "").trim();
+  if (!cleanValue) return "";
+  return cleanValue.startsWith("@") ? cleanValue : `@${cleanValue}`;
+}
