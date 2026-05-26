@@ -1,0 +1,16 @@
+export const colors = {
+  lemon: "#d8ff35",
+  lemonSoft: "#efffd4",
+  mint: "#e9fffb",
+  yellow: "#f2c300",
+  yellowDark: "#d6aa00",
+  blue: "#2563eb",
+  sky: "#23c4f5",
+  text: "#273044",
+  muted: "#98a2b3",
+  border: "#e5e7eb",
+  white: "#ffffff",
+  bg: "#f4f7f8",
+  danger: "#ef4444",
+  green: "#16a34a",
+};
