@@ -1,4 +1,4 @@
-export const DEFAULT_WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://172.25.26.174:8765";
+export const DEFAULT_WS_URL = process.env.NEXT_PUBLIC_WS_URL || "https://python-tiktok-comment.onrender.com";
 
 export const MAX_COMMENTS = 500;
 export const RECONNECT_DELAY = 2000;
