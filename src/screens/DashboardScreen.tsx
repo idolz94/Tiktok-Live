@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import BottomNav from "../components/BottomNav";
 import { useAuth } from "../hooks/useAuth";
 import { useTikTokLiveSocket } from "../hooks/useTikTokLiveSocket";
-import { BottomTab, LiveComment, Order, TopTab } from "../types";
+import { BottomTab, LiveComment, TopTab } from "../types";
 import OrderOverviewScreen from "./OrderOverviewScreen";
 import CustomersView from "./dashboard/components/CustomersView";
 import HomeView from "./dashboard/components/HomeView";
@@ -14,9 +14,9 @@ import SettingsView from "./dashboard/components/SettingsView";
 import ShippingView from "./dashboard/components/ShippingView";
 import TopSegmentTabs from "./dashboard/components/TopSegmentTabs";
 import { useOrderManager } from "./dashboard/hooks/useOrderManager";
-import { buildCustomersFromOrders, OrderItem } from "@/features/customers/customerMapper";
 import { createOrderFromCommentApi } from "@/api/ordersApi";
-
+import { buildCustomersFromOrders } from "@/features/customers/customerMapper";
+import type { Order as DbOrder } from "@/types/database";
 export default function DashboardScreen() {
   const { user, logout } = useAuth();
  const registeredTikTokUsername = user?.tiktokUsername || "";
@@ -36,8 +36,7 @@ const {
 
   const [topTab, setTopTab] = useState<TopTab>("connect");
   const [bottomTab, setBottomTab] = useState<BottomTab>("home");
-  const [orders, setOrders] = useState<OrderItem[]>([]);
-
+  const [orders, setOrders] = useState<DbOrder[]>([]);
   const orderManager = useOrderManager({
     comments,
     onAfterCreateOrder: () => setBottomTab("home"),
@@ -57,33 +56,13 @@ const handleCreateOrder = async (comment: LiveComment) => {
 
     orderManager.createOrderFromComment(comment);
 
-    setOrders((prev: any) => {
-      const existed = prev.some(
-        (item: any) => item?.id === savedOrder.order.id,
-      );
+    setOrders((prev) => {
+  const existed = prev.some((item) => item.id === savedOrder.order.id);
 
-      if (existed) return prev;
+  if (existed) return prev;
 
-      return [
-        {
-          id: savedOrder.order.id,
-          dbId: savedOrder.order.id,
-          orderCode: savedOrder.order.order_code,
-          customerName: savedOrder.order.customer_name,
-          customerPhone: savedOrder.order.customer_phone,
-          customerAddress: savedOrder.order.customer_address,
-          productName: savedOrder.order.comment_text,
-          commentText: savedOrder.order.comment_text,
-          status: savedOrder.order.status,
-          depositStatus: savedOrder.order.deposit_status,
-          paymentStatus: savedOrder.order.payment_status,
-          shippingStatus: savedOrder.order.shipping_status,
-          totalAmount: savedOrder.order.total_amount,
-          createdAt: savedOrder.order.created_at,
-        },
-        ...prev,
-      ];
-    });
+  return [savedOrder.order, ...prev];
+});
 
     return true;
   } catch (error) {
@@ -93,7 +72,6 @@ const handleCreateOrder = async (comment: LiveComment) => {
   }
 };
 
-  console.log("orderManager.customers : ", orderManager.customers);
 
   const renderCurrentBottomView = useCallback(() => {
     if (bottomTab === "home") {

@@ -1,41 +1,8 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import { Profile, Shop, ShopLicense, ShopMember } from "@/types/database";
 
-type Profile = {
-  id: string;
-  full_name?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  status?: string | null;
-};
-
-type ShopMember = {
-  id: string;
-  shop_id: string;
-  user_id: string;
-  role: string;
-  status: string;
-};
-
-type Shop = {
-  id: string;
-  owner_id: string;
-  name: string;
-  phone?: string | null;
-  default_tiktok_username?: string | null;
-  status?: string | null;
-};
-
-type ShopLicense = {
-  id: string;
-  shop_id: string;
-  plan_code: string;
-  status: string;
-  expired_at?: string | null;
-  trial_ends_at?: string | null;
-  is_current?: boolean | null;
-};
 
 export function isLicenseUsable(license: ShopLicense | null) {
   if (!license) return false;
