@@ -10,7 +10,7 @@ export type OrderStatus =
   | 'canceled'
   | 'returned';
 
-export type DepositStatus = 'unpaid' | 'deposited' | 'refunded';
+export type DepositStatus = 'unpaid' | 'paid' | 'deposited' | 'refunded';
 
 export type PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'refunded';
 
@@ -196,6 +196,7 @@ export type Order = {
   customer_id: ID | null;
   live_session_id: ID | null;
   live_comment_id: ID | null;
+  customer_tiktok_username: string | null;
   order_code: string;
   source: 'live_comment' | 'manual' | 'import';
   customer_name: string | null;

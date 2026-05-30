@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import BottomNav from "../components/BottomNav";
 import { useAuth } from "../hooks/useAuth";
 import { useTikTokLiveSocket } from "../hooks/useTikTokLiveSocket";
@@ -14,9 +14,8 @@ import SettingsView from "./dashboard/components/SettingsView";
 import ShippingView from "./dashboard/components/ShippingView";
 import TopSegmentTabs from "./dashboard/components/TopSegmentTabs";
 import { useOrderManager } from "./dashboard/hooks/useOrderManager";
-import { createOrderFromCommentApi } from "@/api/ordersApi";
-import { buildCustomersFromOrders } from "@/features/customers/customerMapper";
-import type { Order as DbOrder } from "@/types/database";
+import { createOrderCommentKey } from "@/utils/comment";
+
 export default function DashboardScreen() {
   const { user, logout } = useAuth();
  const registeredTikTokUsername = user?.tiktokUsername || "";
@@ -36,42 +35,35 @@ const {
 
   const [topTab, setTopTab] = useState<TopTab>("connect");
   const [bottomTab, setBottomTab] = useState<BottomTab>("home");
-  const [orders, setOrders] = useState<DbOrder[]>([]);
+  const createdCommentKeysRef = useRef<Set<string>>(new Set());
   const orderManager = useOrderManager({
     comments,
     onAfterCreateOrder: () => setBottomTab("home"),
   });
 
-  const customers = useMemo(() => {
-    return buildCustomersFromOrders(orders);
-  }, [orders]);
-
 const handleCreateOrder = async (comment: LiveComment) => {
+  const commentKey = createOrderCommentKey(comment);
+
+  if (createdCommentKeysRef.current.has(commentKey)) {
+    alert("Comment này đã tạo đơn rồi.");
+    return false;
+  }
+
   try {
-    const savedOrder = await createOrderFromCommentApi({
-      comment,
-      price: 20,
-      quantity: 1,
-    });
+    createdCommentKeysRef.current.add(commentKey);
 
-    orderManager.createOrderFromComment(comment);
-
-    setOrders((prev) => {
-  const existed = prev.some((item) => item.id === savedOrder.order.id);
-
-  if (existed) return prev;
-
-  return [savedOrder.order, ...prev];
-});
+    await orderManager.createOrderFromComment(comment);
 
     return true;
   } catch (error) {
+    createdCommentKeysRef.current.delete(commentKey);
+
     console.log("CREATE ORDER ERROR:", error);
     alert(error instanceof Error ? error.message : "Tạo đơn thất bại");
+
     return false;
   }
 };
-
 
   const renderCurrentBottomView = useCallback(() => {
     if (bottomTab === "home") {
@@ -85,7 +77,6 @@ const handleCreateOrder = async (comment: LiveComment) => {
           orderFilter={orderManager.orderFilter}
           orderSearchText={orderManager.orderSearchText}
           buyingCount={orderManager.buyingCount}
-          unpaidOrders={orderManager.unpaidOrders}
           paidOrders={orderManager.paidOrders}
           draftOrders={orderManager.draftOrders}
           confirmedOrders={orderManager.confirmedOrders}

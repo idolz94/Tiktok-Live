@@ -8,7 +8,6 @@ export type CustomerSummary = {
 
 export type DashboardCounts = {
   buyingCount: number;
-  unpaidOrders: number;
   paidOrders: number;
   draftOrders: number;
   confirmedOrders: number;

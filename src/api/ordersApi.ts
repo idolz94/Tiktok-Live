@@ -2,7 +2,9 @@
 
 import { getMeBootstrapApi } from "@/api/meApi";
 import { createClient } from "@/lib/supabase/client";
-import type { LiveComment } from "@/types";
+import type { LiveComment, OrderWithTikTok } from "@/types";
+import { normalizeApiOrderForUi } from "@/utils/order";
+import { getCommentTikTokUsername } from "@/utils/tiktok";
 
 type CreateOrderFromCommentPayload = {
   comment: LiveComment;
@@ -25,16 +27,13 @@ function isUuid(value?: string | null) {
 
 function createOrderCode() {
   const now = new Date();
-
   const yyyy = now.getFullYear();
   const mm = String(now.getMonth() + 1).padStart(2, "0");
   const dd = String(now.getDate()).padStart(2, "0");
   const hh = String(now.getHours()).padStart(2, "0");
   const mi = String(now.getMinutes()).padStart(2, "0");
   const ss = String(now.getSeconds()).padStart(2, "0");
-  const random = Math.floor(Math.random() * 9999)
-    .toString()
-    .padStart(4, "0");
+  const random = Math.floor(Math.random() * 9999).toString().padStart(4, "0");
 
   return `DH${yyyy}${mm}${dd}${hh}${mi}${ss}${random}`;
 }
@@ -42,20 +41,7 @@ function createOrderCode() {
 function getCommentText(comment: LiveComment) {
   const data = comment as Record<string, any>;
 
-  return String(data.text || data.comment || data.message || "").trim();
-}
-
-function getCommentUsername(comment: LiveComment) {
-  const data = comment as Record<string, any>;
-
-  return String(
-    data.username ||
-      data.tiktokUsername ||
-      data.tiktok_username ||
-      data.uniqueId ||
-      data.unique_id ||
-      "",
-  ).trim();
+  return String(data.text || data.comment || data.message || data.raw_text || "").trim();
 }
 
 function getCommentDisplayName(comment: LiveComment) {
@@ -64,9 +50,10 @@ function getCommentDisplayName(comment: LiveComment) {
   return String(
     data.displayName ||
       data.display_name ||
+      data.username ||
       data.nickname ||
       data.name ||
-      getCommentUsername(comment) ||
+      getCommentTikTokUsername(comment) ||
       "Khách live",
   ).trim();
 }
@@ -74,7 +61,30 @@ function getCommentDisplayName(comment: LiveComment) {
 function getCommentAvatar(comment: LiveComment) {
   const data = comment as Record<string, any>;
 
-  return String(data.avatarUrl || data.avatar_url || data.profilePictureUrl || "");
+  return String(
+    data.avatar || data.avatarUrl || data.avatar_url || data.profilePictureUrl || "",
+  ).trim();
+}
+
+async function getCurrentShop() {
+  const me = await getMeBootstrapApi();
+
+  if (!me.user) {
+    throw new Error("Vui lòng đăng nhập lại.");
+  }
+
+  if (!me.shop?.id) {
+    throw new Error("Không tìm thấy shop.");
+  }
+
+  if (!me.canUseApp) {
+    throw new Error("Shop đã hết hạn dùng thử hoặc chưa có license.");
+  }
+
+  return {
+    shopId: me.shop.id,
+    userId: me.user.id,
+  };
 }
 
 async function findOrCreateCustomer({
@@ -90,9 +100,7 @@ async function findOrCreateCustomer({
 }) {
   const supabase = createClient();
 
-  if (!tiktokUsername) {
-    return null;
-  }
+  if (!tiktokUsername) return null;
 
   const { data: existedCustomer, error: findError } = await supabase
     .from("customers")
@@ -101,13 +109,8 @@ async function findOrCreateCustomer({
     .eq("tiktok_username", tiktokUsername)
     .maybeSingle();
 
-  if (findError) {
-    throw new Error(findError.message);
-  }
-
-  if (existedCustomer) {
-    return existedCustomer;
-  }
+  if (findError) throw new Error(findError.message);
+  if (existedCustomer) return existedCustomer;
 
   const { data: newCustomer, error: createError } = await supabase
     .from("customers")
@@ -125,9 +128,7 @@ async function findOrCreateCustomer({
     .select("*")
     .single();
 
-  if (createError) {
-    throw new Error(createError.message);
-  }
+  if (createError) throw new Error(createError.message);
 
   return newCustomer;
 }
@@ -147,10 +148,7 @@ async function updateCustomerAfterOrder({
     .eq("id", customerId)
     .maybeSingle();
 
-  if (findError) {
-    throw new Error(findError.message);
-  }
-
+  if (findError) throw new Error(findError.message);
   if (!customer) return;
 
   const { error } = await supabase
@@ -163,9 +161,7 @@ async function updateCustomerAfterOrder({
     })
     .eq("id", customerId);
 
-  if (error) {
-    throw new Error(error.message);
-  }
+  if (error) throw new Error(error.message);
 }
 
 async function updateLiveSessionOrderCount(liveSessionId?: string | null) {
@@ -179,10 +175,7 @@ async function updateLiveSessionOrderCount(liveSessionId?: string | null) {
     .eq("id", liveSessionId)
     .maybeSingle();
 
-  if (findError) {
-    throw new Error(findError.message);
-  }
-
+  if (findError) throw new Error(findError.message);
   if (!liveSession) return;
 
   const { error } = await supabase
@@ -193,9 +186,7 @@ async function updateLiveSessionOrderCount(liveSessionId?: string | null) {
     })
     .eq("id", liveSessionId);
 
-  if (error) {
-    throw new Error(error.message);
-  }
+  if (error) throw new Error(error.message);
 }
 
 async function updateLiveCommentOrder({
@@ -217,9 +208,47 @@ async function updateLiveCommentOrder({
     })
     .eq("id", commentId);
 
-  if (error) {
-    throw new Error(error.message);
-  }
+  if (error) throw new Error(error.message);
+}
+
+export async function getOrdersApi(): Promise<OrderWithTikTok[]> {
+  const supabase = createClient();
+  const { shopId } = await getCurrentShop();
+
+  const { data: orders, error: ordersError } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("shop_id", shopId)
+    .order("created_at", { ascending: false });
+
+  if (ordersError) throw new Error(ordersError.message);
+
+  const orderRows = orders || [];
+  if (!orderRows.length) return [];
+
+  const orderIds = orderRows.map((item: any) => item.id);
+
+  const { data: orderItems, error: orderItemsError } = await supabase
+    .from("order_items")
+    .select("*")
+    .in("order_id", orderIds);
+
+  if (orderItemsError) throw new Error(orderItemsError.message);
+
+  const itemsByOrderId = new Map<string, any[]>();
+
+  (orderItems || []).forEach((item: any) => {
+    const currentItems = itemsByOrderId.get(item.order_id) || [];
+    currentItems.push(item);
+    itemsByOrderId.set(item.order_id, currentItems);
+  });
+
+  return orderRows.map((order: any) =>
+    normalizeApiOrderForUi({
+      ...order,
+      products: itemsByOrderId.get(order.id) || [],
+    }),
+  );
 }
 
 export async function createOrderFromCommentApi({
@@ -230,26 +259,10 @@ export async function createOrderFromCommentApi({
   note = "",
 }: CreateOrderFromCommentPayload) {
   const supabase = createClient();
-
-  const me = await getMeBootstrapApi();
-
-  if (!me.user) {
-    throw new Error("Vui lòng đăng nhập lại.");
-  }
-
-  if (!me.shop?.id) {
-    throw new Error("Không tìm thấy shop.");
-  }
-
-  if (!me.canUseApp) {
-    throw new Error("Shop đã hết hạn dùng thử hoặc chưa có license.");
-  }
-
-  const shopId = me.shop.id;
-  const userId = me.user.id;
+  const { shopId, userId } = await getCurrentShop();
 
   const commentText = getCommentText(comment);
-  const tiktokUsername = getCommentUsername(comment);
+  const customerTikTokUsername = getCommentTikTokUsername(comment);
   const displayName = getCommentDisplayName(comment);
   const avatarUrl = getCommentAvatar(comment);
 
@@ -259,19 +272,19 @@ export async function createOrderFromCommentApi({
 
   const customer = await findOrCreateCustomer({
     shopId,
-    tiktokUsername,
+    tiktokUsername: customerTikTokUsername,
     displayName,
     avatarUrl,
   });
 
   const subtotalAmount = price * quantity;
-    const shippingFee = 0;
-    const discountAmount = 0;
-    const codAmount = subtotalAmount + shippingFee - discountAmount;
+  const shippingFee = 0;
+  const discountAmount = 0;
+  const codAmount = subtotalAmount + shippingFee - discountAmount;
 
   const commentRecord = comment as Record<string, any>;
   const liveCommentId = isUuid(commentRecord.id) ? commentRecord.id : null;
-  const dbLiveSessionId =  null;
+  const dbLiveSessionId = isUuid(liveSessionId) ? liveSessionId : null;
 
   const { data: order, error: orderError } = await supabase
     .from("orders")
@@ -282,23 +295,20 @@ export async function createOrderFromCommentApi({
       live_comment_id: liveCommentId,
       order_code: createOrderCode(),
       source: "live_comment",
-
       customer_name: displayName,
+      customer_tiktok_username: customerTikTokUsername,
       customer_phone: "",
       customer_address: "",
-
       comment_text: commentText,
-
       status: "draft",
       deposit_status: "unpaid",
       payment_status: "unpaid",
       shipping_status: "not_shipped",
-
       subtotal_amount: subtotalAmount,
       shipping_fee: shippingFee,
       discount_amount: discountAmount,
       deposit_amount: 0,
-
+      cod_amount: codAmount,
       note,
       created_by: userId,
       created_at: new Date().toISOString(),
@@ -307,25 +317,20 @@ export async function createOrderFromCommentApi({
     .select("*")
     .single();
 
-  if (orderError) {
-    throw new Error(orderError.message);
-  }
+  if (orderError) throw new Error(orderError.message);
 
   const { data: orderItem, error: orderItemError } = await supabase
     .from("order_items")
     .insert({
       order_id: order.id,
       shop_id: shopId,
-
       product_code: "",
       product_name: commentText,
       variant_name: "",
       color: "",
       size: "",
-
       quantity,
       price,
-
       raw_comment_text: commentText,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -333,9 +338,7 @@ export async function createOrderFromCommentApi({
     .select("*")
     .single();
 
-  if (orderItemError) {
-    throw new Error(orderItemError.message);
-  }
+  if (orderItemError) throw new Error(orderItemError.message);
 
   await updateLiveCommentOrder({
     commentId: liveCommentId,
@@ -347,13 +350,88 @@ export async function createOrderFromCommentApi({
   if (customer?.id) {
     await updateCustomerAfterOrder({
       customerId: customer.id,
-       totalAmount: codAmount,
+      totalAmount: codAmount,
     });
   }
+
+  const uiOrder = normalizeApiOrderForUi({
+    ...order,
+    avatar: customer?.avatar_url || avatarUrl,
+    products: [orderItem],
+  });
 
   return {
     order,
     orderItem,
     customer,
+    uiOrder,
   };
+}
+
+export async function updateOrderDepositStatusApi({
+  orderId,
+  depositStatus,
+}: {
+  orderId: string;
+  depositStatus: "unpaid" | "paid" | "deposited" | "refunded";
+}) {
+  const supabase = createClient();
+
+  const { data: order, error } = await supabase
+    .from("orders")
+    .update({
+      deposit_status: depositStatus,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", orderId)
+    .select("*")
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  return normalizeApiOrderForUi(order);
+}
+
+export async function updateOrderStatusApi({
+  orderId,
+  status,
+}: {
+  orderId: string;
+  status: "draft" | "confirmed" | "packed" | "shipping" | "completed" | "canceled" | "returned";
+}) {
+  const supabase = createClient();
+
+  const { data: order, error } = await supabase
+    .from("orders")
+    .update({
+      status,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", orderId)
+    .select("*")
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  return normalizeApiOrderForUi(order);
+}
+
+export async function deleteOrderApi(orderId: string) {
+  const supabase = createClient();
+
+  const { error: orderItemsError } = await supabase
+    .from("order_items")
+    .delete()
+    .eq("order_id", orderId);
+
+  if (orderItemsError) throw new Error(orderItemsError.message);
+
+  const { error: orderError } = await supabase
+    .from("orders")
+    .delete()
+    .eq("id", orderId);
+
+  if (orderError) throw new Error(orderError.message);
+
+  return { ok: true };
 }

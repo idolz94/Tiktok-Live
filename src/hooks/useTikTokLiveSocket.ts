@@ -310,21 +310,20 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     setStatus("Đã ngắt kết nối");
   }, [finalizeCurrentSessionLocally]);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+ useEffect(() => {
+  const timer = window.setTimeout(() => {
     connectSse();
+  }, 0);
 
-    return () => {
-      finalizeCurrentSessionLocally("component_unmount");
+  return () => {
+    window.clearTimeout(timer);
 
-      isManualCloseRef.current = true;
+    isManualCloseRef.current = true;
 
-      sendStopBeacon(clientIdRef.current);
-
-      eventSourceRef.current?.close();
-      eventSourceRef.current = null;
-    };
-  }, [connectSse, finalizeCurrentSessionLocally]);
+    eventSourceRef.current?.close();
+    eventSourceRef.current = null;
+  };
+}, []);
 
   useEffect(() => {
   const timer = window.setTimeout(() => {

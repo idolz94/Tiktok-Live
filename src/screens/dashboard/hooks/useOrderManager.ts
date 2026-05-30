@@ -1,57 +1,135 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { LiveComment, LiveTab, Order, OrderFilter, OrderProduct } from "../../../types";
-import { createId, createOrderCode } from "../../../utils/id";
-import {
-  createProductFromComment,
-  formatMoneyFromK,
-  getOrderTotal,
-  parseOrderFromComment,
-} from "../../../utils/order";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type {
+  LiveComment,
+  LiveTab,
+  Order,
+  OrderFilter,
+  OrderProduct,
+  OrderWithTikTok,
+} from "../../../types";
+import { getOrderTotal } from "../../../utils/order";
 import { CustomerSummary } from "../types";
-import { readOrders, writeOrders } from "@/features/oders/orderStorage";
+import {
+  createOrderFromCommentApi,
+  deleteOrderApi,
+  getOrdersApi,
+  updateOrderDepositStatusApi,
+  updateOrderStatusApi,
+} from "@/api/ordersApi";
+import { getCommentTikTokUsername, getOrderTikTokUsername } from "@/utils/tiktok";
+
 type UseOrderManagerParams = {
   comments: LiveComment[];
   onAfterCreateOrder?: () => void;
 };
 
-export function useOrderManager({ comments, onAfterCreateOrder }: UseOrderManagerParams) {
-  const [orders, setOrders] = useState<Order[]>(() => readOrders());
+type CustomerSummaryWithTikTok = CustomerSummary & {
+  customerTikTokUsername?: string;
+};
+
+function getCommentText(comment: LiveComment) {
+  return String(comment.comment || "").trim();
+}
+
+function getCommentDisplayName(comment: LiveComment) {
+  return String(comment.username || comment.displayName || "Khách live").trim();
+}
+
+function getCommentAvatar(comment: LiveComment) {
+  return String(comment.avatar || comment.avatarUrl || "").trim();
+}
+
+function getOrderRevenue(order: OrderWithTikTok) {
+  const totalAmount = Number(order.totalAmount || 0);
+
+  if (totalAmount > 0) return totalAmount;
+
+  return getOrderTotal(order.products);
+}
+
+export function useOrderManager({
+  comments,
+  onAfterCreateOrder,
+}: UseOrderManagerParams) {
+  const [orders, setOrders] = useState<OrderWithTikTok[]>([]);
+  const [orderLoading, setOrderLoading] = useState(false);
+  const [orderError, setOrderError] = useState("");
+
   const [liveTab, setLiveTab] = useState<LiveTab>("live");
   const [orderFilter, setOrderFilter] = useState<OrderFilter>("all");
   const [orderSearchText, setOrderSearchText] = useState("");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
+  const reloadOrders = useCallback(async () => {
+    try {
+      setOrderLoading(true);
+      setOrderError("");
+
+      const nextOrders = await getOrdersApi();
+
+      setOrders(nextOrders);
+    } catch (error) {
+      console.log("LOAD ORDERS ERROR:", error);
+      setOrderError(error instanceof Error ? error.message : "Không tải được đơn hàng.");
+    } finally {
+      setOrderLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void reloadOrders();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [reloadOrders]);
+
   const buyingCount = useMemo(
-    () => comments.filter((item) => item.intent === "buying").length,
-    [comments]
+    () =>
+      comments.filter((item) => {
+        const score = Number(item.finalScore || 0);
+
+        return (
+          score >= 50 ||
+          item.intent === "buying" ||
+          item.intent === "buy" ||
+          item.priorityLevel === "high" ||
+          item.priorityLevel === "medium"
+        );
+      }).length,
+    [comments],
   );
-  const unpaidOrders = useMemo(
-    () => orders.filter((item) => item.depositStatus === "unpaid").length,
-    [orders]
-  );
+
   const paidOrders = useMemo(
     () => orders.filter((item) => item.depositStatus === "paid").length,
-    [orders]
+    [orders],
   );
+
   const draftOrders = useMemo(
     () => orders.filter((item) => item.status === "draft").length,
-    [orders]
+    [orders],
   );
+
   const confirmedOrders = useMemo(
     () => orders.filter((item) => item.status === "confirmed").length,
-    [orders]
+    [orders],
   );
+
   const orderProductCount = useMemo(
-    () => orders.reduce((sum, order) => sum + (order.products?.length || 0), 0),
-    [orders]
+    () => orders.reduce((sum, order) => sum + order.products.length, 0),
+    [orders],
   );
 
   const filteredOrders = useMemo(() => {
     const keyword = orderSearchText.trim().toLowerCase();
 
     return orders.filter((order) => {
+      const tiktokUsername = getOrderTikTokUsername(order);
+
       const matchFilter =
         orderFilter === "all" ||
         (orderFilter === "unpaid" && order.depositStatus === "unpaid") ||
@@ -62,109 +140,128 @@ export function useOrderManager({ comments, onAfterCreateOrder }: UseOrderManage
       if (!matchFilter) return false;
       if (!keyword) return true;
 
-      const searchValue =
-        `${order.orderCode} ${order.username} ${order.comment} ${order.productName}`.toLowerCase();
+      const searchValue = [
+        order.orderCode,
+        order.username,
+        order.customerTikTokUsername,
+        tiktokUsername,
+        order.comment,
+        order.productName,
+      ]
+        .join(" ")
+        .toLowerCase();
+
       return searchValue.includes(keyword);
     });
   }, [orderFilter, orderSearchText, orders]);
 
   const selectedOrder = useMemo(() => {
     if (!selectedOrderId) return null;
+
     return orders.find((order) => order.id === selectedOrderId) || null;
   }, [orders, selectedOrderId]);
 
-  const customers = useMemo<CustomerSummary[]>(() => {
-    const map = new Map<string, CustomerSummary>();
+  const customers = useMemo<CustomerSummaryWithTikTok[]>(() => {
+    const map = new Map<string, CustomerSummaryWithTikTok>();
 
     comments.forEach((comment) => {
-      const username = comment.username || "Unknown user";
-      const current = map.get(username);
+      const displayName = getCommentDisplayName(comment);
+      const customerTikTokUsername = getCommentTikTokUsername(comment);
+      const username = displayName || customerTikTokUsername || "Unknown user";
+      const customerKey = customerTikTokUsername || username;
+      const current = map.get(customerKey);
 
       if (!current) {
-        map.set(username, {
+        map.set(customerKey, {
           username,
-          avatar: comment.avatar,
+          avatar: getCommentAvatar(comment),
+          customerTikTokUsername,
           totalComments: 1,
-          totalOrders: orders.filter((order) => order.username === username).length,
-          latestComment: comment.comment || comment.text || "",
+          totalOrders: orders.filter((order) => {
+            return (
+              getOrderTikTokUsername(order) === customerTikTokUsername ||
+              order.username === username
+            );
+          }).length,
+          latestComment: getCommentText(comment),
         });
+
         return;
       }
 
       current.totalComments += 1;
-      if (!current.latestComment) current.latestComment = comment.comment || comment.text || "";
+      if (!current.latestComment) current.latestComment = getCommentText(comment);
+      if (!current.customerTikTokUsername && customerTikTokUsername) {
+        current.customerTikTokUsername = customerTikTokUsername;
+      }
     });
 
     orders.forEach((order) => {
-      const current = map.get(order.username);
+      const customerTikTokUsername = getOrderTikTokUsername(order);
+      const username = order.username || customerTikTokUsername || "Khách live";
+      const customerKey = customerTikTokUsername || username;
+      const current = map.get(customerKey);
 
       if (!current) {
-        map.set(order.username, {
-          username: order.username,
+        map.set(customerKey, {
+          username,
           avatar: order.avatar,
+          customerTikTokUsername,
           totalComments: 0,
           totalOrders: 1,
           latestComment: order.comment,
         });
+
         return;
       }
 
-      current.totalOrders = orders.filter((item) => item.username === order.username).length;
+      current.totalOrders = orders.filter((item) => {
+        return (
+          getOrderTikTokUsername(item) === customerTikTokUsername || item.username === username
+        );
+      }).length;
+
+      if (!current.customerTikTokUsername && customerTikTokUsername) {
+        current.customerTikTokUsername = customerTikTokUsername;
+      }
     });
 
     return Array.from(map.values()).sort((a, b) => b.totalComments - a.totalComments);
   }, [comments, orders]);
 
   const createOrderFromComment = useCallback(
-    (item: LiveComment) => {
-      const commentText = item.comment || item.text || "";
-      const parsed = parseOrderFromComment(commentText);
-      const product = createProductFromComment(commentText);
+    async (item: LiveComment) => {
+      try {
+        const savedOrder = await createOrderFromCommentApi({
+          comment: item,
+          price: 20,
+          quantity: 1,
+        });
 
-      const order: Order = {
-        id: createId(),
-        orderCode: createOrderCode(),
-        commentId: item.id,
-        username: item.username,
-        avatar: item.avatar,
-        comment: commentText,
-        productName: commentText,
-        quantity: parsed.quantity,
-        size: parsed.size,
-        color: parsed.color,
-        price: parsed.price,
-        products: [product],
-        status: "draft",
-        depositStatus: "unpaid",
-        createdAt: new Date().toISOString(),
-      };
+        const nextOrder = savedOrder.uiOrder;
 
-      setOrders((prev) => {
-        const existed = prev.some((oldOrder) => oldOrder.commentId === item.id);
+        setOrders((prev) => {
+          const existed = prev.some((oldOrder) => oldOrder.id === nextOrder.id);
+          if (existed) return prev;
+          return [nextOrder, ...prev];
+        });
 
-        if (existed) {
-          console.log("Comment này đã tạo đơn rồi:", item.id);
-          return prev;
-        }
+        setLiveTab("orders");
+        onAfterCreateOrder?.();
 
-        const nextOrders = [order, ...prev];
-
-        writeOrders(nextOrders);
-
-        return nextOrders;
-      });
-
-      setLiveTab("orders");
-      onAfterCreateOrder?.();
-
-      console.log(
-        `Đã tạo đơn\n${order.orderCode}\nSản phẩm: ${commentText}\nGiá: ${formatMoneyFromK(product.price)} × 1`
-      );
+        return nextOrder;
+      } catch (error) {
+        console.log("CREATE ORDER ERROR:", error);
+        setOrderError(error instanceof Error ? error.message : "Tạo đơn thất bại.");
+        throw error;
+      }
     },
-    [onAfterCreateOrder]
+    [onAfterCreateOrder],
   );
 
-  const clearOrders = useCallback(() => setOrders([]), []);
+  const clearOrders = useCallback(() => {
+    setOrders([]);
+  }, []);
 
   const updateOrder = useCallback((id: string, field: keyof Order, value: string) => {
     setOrders((prev) =>
@@ -176,7 +273,7 @@ export function useOrderManager({ comments, onAfterCreateOrder }: UseOrderManage
         }
 
         return { ...order, [field]: value };
-      })
+      }),
     );
   }, []);
 
@@ -184,30 +281,51 @@ export function useOrderManager({ comments, onAfterCreateOrder }: UseOrderManage
     setOrders((prev) =>
       prev.map((order) => {
         if (order.id !== orderId) return order;
-        return { ...order, products: [...(order.products || []), product] };
-      })
+        return { ...order, products: [...order.products, product] };
+      }),
     );
   }, []);
 
-  const toggleDepositStatus = useCallback((orderId: string) => {
+  const toggleDepositStatus = useCallback(async (orderId: string) => {
+    const currentOrder = orders.find((order) => order.id === orderId);
+    if (!currentOrder) return;
+
+    const nextDepositStatus = currentOrder.depositStatus === "paid" ? "unpaid" : "paid";
+
+    await updateOrderDepositStatusApi({
+      orderId,
+      depositStatus: nextDepositStatus,
+    });
+
     setOrders((prev) =>
       prev.map((order) => {
         if (order.id !== orderId) return order;
-        return { ...order, depositStatus: order.depositStatus === "paid" ? "unpaid" : "paid" };
-      })
+        return { ...order, depositStatus: nextDepositStatus };
+      }),
     );
-  }, []);
+  }, [orders]);
 
-  const confirmOrder = useCallback((orderId: string) => {
+  const confirmOrder = useCallback(async (orderId: string) => {
+    const currentOrder = orders.find((order) => order.id === orderId);
+    if (!currentOrder) return;
+
+    const nextStatus = currentOrder.status === "confirmed" ? "draft" : "confirmed";
+
+    await updateOrderStatusApi({
+      orderId,
+      status: nextStatus,
+    });
+
     setOrders((prev) =>
       prev.map((order) => {
         if (order.id !== orderId) return order;
-        return { ...order, status: order.status === "confirmed" ? "draft" : "confirmed" };
-      })
+        return { ...order, status: nextStatus };
+      }),
     );
-  }, []);
+  }, [orders]);
 
-  const deleteOrder = useCallback((id: string) => {
+  const deleteOrder = useCallback(async (id: string) => {
+    await deleteOrderApi(id);
     setOrders((prev) => prev.filter((order) => order.id !== id));
   }, []);
 
@@ -215,8 +333,8 @@ export function useOrderManager({ comments, onAfterCreateOrder }: UseOrderManage
   const closeOrderOverview = useCallback(() => setSelectedOrderId(null), []);
 
   const totalRevenue = useMemo(
-    () => orders.reduce((sum, item) => sum + getOrderTotal(item.products || []), 0),
-    [orders]
+    () => orders.reduce((sum, item) => sum + getOrderRevenue(item), 0),
+    [orders],
   );
 
   return {
@@ -224,6 +342,9 @@ export function useOrderManager({ comments, onAfterCreateOrder }: UseOrderManage
     filteredOrders,
     customers,
     selectedOrder,
+    orderLoading,
+    orderError,
+    reloadOrders,
     liveTab,
     setLiveTab,
     orderFilter,
@@ -231,7 +352,6 @@ export function useOrderManager({ comments, onAfterCreateOrder }: UseOrderManage
     orderSearchText,
     setOrderSearchText,
     buyingCount,
-    unpaidOrders,
     paidOrders,
     draftOrders,
     confirmedOrders,

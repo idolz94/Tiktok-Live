@@ -14,7 +14,6 @@ export default function OrderFilterBar({
   activeFilter,
   onChangeFilter,
   productCount,
-  unpaidCount,
   paidCount,
   draftCount,
   confirmedCount,
@@ -24,13 +23,11 @@ export default function OrderFilterBar({
   activeFilter: OrderFilter;
   onChangeFilter: (value: OrderFilter) => void;
   productCount: number;
-  unpaidCount: number;
   paidCount: number;
   draftCount: number;
   confirmedCount: number;
 }) {
   const filters: FilterItem[] = [
-    { key: "unpaid", label: "Chưa Cọc", value: unpaidCount },
     { key: "paid", label: "Đã Cọc", value: paidCount },
     { key: "draft", label: "Đơn Nháp", value: draftCount },
     { key: "confirmed", label: "Đã Chốt", value: confirmedCount },

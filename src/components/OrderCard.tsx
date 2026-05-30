@@ -4,7 +4,7 @@ import { Order, OrderProduct } from "../types";
 import { createProductFromComment, formatMoneyFromK, getOrderTotal } from "../utils/order";
 import Avatar from "./Avatar";
 import ProductTable from "./ProductTable";
-
+import { getOrderTikTokUsername, openTikTokProfile } from "@/utils/tiktok";
 function createDisplayCode(orderCode: string) {
   const numbers = orderCode.replace(/\D/g, "");
   return `#${(numbers || orderCode).slice(-6).padStart(6, "0")}`;
@@ -31,6 +31,8 @@ export default function OrderCard({
   const isPaid = item.depositStatus === "paid";
   const isConfirmed = item.status === "confirmed";
 
+  const tiktokUsername = getOrderTikTokUsername(item);
+
   return (
     <article className="mb-2.5 border-b-[6px] border-slate-100 bg-white p-4 shadow-[0_8px_16px_rgba(15,23,42,0.08)]">
       <div className="flex items-start">
@@ -43,6 +45,16 @@ export default function OrderCard({
           <h3 className="mt-1 text-[19px] leading-[25px] font-black text-[#273044]">
             {item.username || "Unknown user"}
           </h3>
+
+          {tiktokUsername && (
+            <button
+              type="button"
+              onClick={() => openTikTokProfile(tiktokUsername)}
+              className="mt-0.5 block max-w-full truncate text-left text-sm font-black text-blue-600"
+            >
+              {tiktokUsername}
+            </button>
+          )}
 
           <div className="mt-2 flex items-center">
             <span className="mr-2 inline-flex min-w-14 items-center justify-center rounded-[5px] bg-[#e8b72e] px-2.5 py-[3px] text-[15px] font-black text-white">
@@ -58,6 +70,14 @@ export default function OrderCard({
         </div>
 
         <div className="ml-2 flex flex-col items-end">
+          <button
+          type="button"
+          onClick={() => openTikTokProfile(tiktokUsername)}
+          disabled={!tiktokUsername}
+          className="flex items-center justify-center rounded-xl bg-black px-4 py-3 text-sm font-black text-white disabled:bg-slate-200 disabled:text-slate-400"
+        >
+          Mở TikTok
+        </button>
           <span
             className={`rounded-md px-2.5 py-1 text-[15px] font-black whitespace-nowrap text-white ${isConfirmed ? "bg-green-500" : "bg-[#e6b936]"}`}
           >
