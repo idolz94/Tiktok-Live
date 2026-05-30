@@ -1,209 +1,120 @@
 "use client";
 
-import useSWR from "swr";
-import { AuthUser } from "../types";
-import { createId } from "../utils/id";
+import { useCallback, useEffect, useState } from "react";
+import { getMeBootstrapApi } from "@/api/meApi";
+import { signOutApi } from "@/api/authApi";
+import { createClient } from "@/lib/supabase/client";
 
-type Account = {
+type AuthUser = {
   id: string;
-  username: string;
-  password: string;
+  email?: string | null;
+  username?: string | null;
+  fullName?: string | null;
+  phone?: string | null;
+  shopId?: string | null;
+  shopName?: string | null;
+  tiktokUsername?: string | null;
+  role?: string | null;
+  canUseApp?: boolean;
 };
 
 type AuthState = {
-  accounts: Account[];
   user: AuthUser | null;
+  isLoading: boolean;
+  error: string | null;
+  refreshAuth: () => Promise<void>;
+  logout: () => Promise<void>;
 };
 
-type AuthResult = {
-  ok: boolean;
-  message?: string;
-};
+export function useAuth(): AuthState {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-const AUTH_SWR_KEY = "flive/auth";
-const ACCOUNT_STORAGE_KEY = "flive_accounts";
-const USER_STORAGE_KEY = "flive_user";
+  const refreshAuth = useCallback(async () => {
+    try {
+      const me = await getMeBootstrapApi();
 
-const DEFAULT_ACCOUNTS: Account[] = [
-  {
-    id: "admin",
-    username: "admin",
-    password: "123456",
-  },
-  {
-    id: "phone-demo",
-    username: "0816507286",
-    password: "123456",
-  },
-];
+      setError(null);
 
-function canUseStorage() {
-  return typeof window !== "undefined" && Boolean(window.localStorage);
-}
+      if (!me.user) {
+        setUser(null);
+        return;
+      }
 
-function safeParse<T>(value: string | null, fallback: T): T {
-  if (!value) return fallback;
+      setUser({
+        id: me.user.id,
+        email: me.user.email,
+        username:
+          me.profile?.full_name ||
+          me.profile?.phone ||
+          me.user.user_metadata?.full_name ||
+          "User",
+        fullName: me.profile?.full_name || me.user.user_metadata?.full_name || "",
+        phone: me.profile?.phone || me.user.user_metadata?.phone || "",
+        shopId: me.shop?.id || null,
+        shopName: me.shop?.name || null,
+        tiktokUsername:
+          me.shop?.default_tiktok_username ||
+          me.user.user_metadata?.default_tiktok_username ||
+          me.user.user_metadata?.tiktok_id ||
+          "",
+        role: me.shopMember?.role || null,
+        canUseApp: me.canUseApp,
+      });
+    } catch (authError) {
+      console.log("AUTH REFRESH ERROR:", authError);
 
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
-}
+      setUser(null);
+      setError(
+        authError instanceof Error
+          ? authError.message
+          : "Không thể kiểm tra đăng nhập",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-function mergeDefaultAccounts(accounts: Account[]) {
-  const map = new Map<string, Account>();
+  const logout = useCallback(async () => {
+    try {
+      setIsLoading(true);
 
-  DEFAULT_ACCOUNTS.forEach((account) => {
-    map.set(account.username.toLowerCase(), account);
-  });
+      await signOutApi();
 
-  accounts.forEach((account) => {
-    map.set(account.username.toLowerCase(), account);
-  });
+      setUser(null);
+      setError(null);
+    } catch (logoutError) {
+      alert(logoutError instanceof Error ? logoutError.message : "Đăng xuất thất bại");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  return Array.from(map.values());
-}
+  useEffect(() => {
+    const supabase = createClient();
 
-function readAuthState(): AuthState {
-  if (!canUseStorage()) {
-    return {
-      accounts: DEFAULT_ACCOUNTS,
-      user: null,
+    const timer = window.setTimeout(() => {
+      void refreshAuth();
+    }, 0);
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      void refreshAuth();
+    });
+
+    return () => {
+      window.clearTimeout(timer);
+      subscription.unsubscribe();
     };
-  }
-
-  const savedAccounts = safeParse<Account[]>(
-    window.localStorage.getItem(ACCOUNT_STORAGE_KEY),
-    DEFAULT_ACCOUNTS
-  );
-
-  const savedUser = safeParse<AuthUser | null>(window.localStorage.getItem(USER_STORAGE_KEY), null);
+  }, [refreshAuth]);
 
   return {
-    accounts: mergeDefaultAccounts(savedAccounts),
-    user: savedUser,
-  };
-}
-
-function writeAuthState(state: AuthState) {
-  if (!canUseStorage()) return;
-
-  window.localStorage.setItem(ACCOUNT_STORAGE_KEY, JSON.stringify(state.accounts));
-
-  if (state.user) {
-    window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(state.user));
-  } else {
-    window.localStorage.removeItem(USER_STORAGE_KEY);
-  }
-}
-
-export function useAuth() {
-  const { data, mutate, isLoading } = useSWR<AuthState>(AUTH_SWR_KEY, readAuthState, {
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
-  });
-
-  const state: AuthState = data ?? {
-    accounts: DEFAULT_ACCOUNTS,
-    user: null,
-  };
-
-  function updateAuthState(nextState: AuthState) {
-    writeAuthState(nextState);
-    mutate(nextState, false);
-  }
-
-  function login(username: string, password: string): AuthResult {
-    const cleanUsername = username.trim();
-
-    if (!cleanUsername || !password) {
-      return {
-        ok: false,
-        message: "Vui lòng nhập tài khoản và mật khẩu",
-      };
-    }
-
-    const account = state.accounts.find(
-      (item) =>
-        item.username.toLowerCase() === cleanUsername.toLowerCase() && item.password === password
-    );
-
-    if (!account) {
-      return {
-        ok: false,
-        message: "Sai tài khoản hoặc mật khẩu",
-      };
-    }
-
-    updateAuthState({
-      ...state,
-      user: {
-        id: account.id,
-        username: account.username,
-      },
-    });
-
-    return { ok: true };
-  }
-
-  function register(username: string, password: string): AuthResult {
-    const cleanUsername = username.trim();
-
-    if (cleanUsername.length < 3) {
-      return {
-        ok: false,
-        message: "Tài khoản cần ít nhất 3 ký tự",
-      };
-    }
-
-    if (password.length < 6) {
-      return {
-        ok: false,
-        message: "Mật khẩu cần ít nhất 6 ký tự",
-      };
-    }
-
-    const existed = state.accounts.some(
-      (item) => item.username.toLowerCase() === cleanUsername.toLowerCase()
-    );
-
-    if (existed) {
-      return {
-        ok: false,
-        message: "Tài khoản đã tồn tại",
-      };
-    }
-
-    const account: Account = {
-      id: createId(),
-      username: cleanUsername,
-      password,
-    };
-
-    updateAuthState({
-      accounts: [account, ...state.accounts],
-      user: {
-        id: account.id,
-        username: account.username,
-      },
-    });
-
-    return { ok: true };
-  }
-
-  function logout() {
-    updateAuthState({
-      ...state,
-      user: null,
-    });
-  }
-
-  return {
-    user: state.user,
+    user,
     isLoading,
-    login,
-    register,
+    error,
+    refreshAuth,
     logout,
   };
 }

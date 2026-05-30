@@ -15,20 +15,24 @@ import ShippingView from "./dashboard/components/ShippingView";
 import TopSegmentTabs from "./dashboard/components/TopSegmentTabs";
 import { useOrderManager } from "./dashboard/hooks/useOrderManager";
 import { buildCustomersFromOrders, OrderItem } from "@/features/customers/customerMapper";
+import { createOrderFromCommentApi } from "@/api/ordersApi";
 
 export default function DashboardScreen() {
   const { user, logout } = useAuth();
+ const registeredTikTokUsername = user?.tiktokUsername || "";
 
-  const {
-    status,
-    isConnected,
-    comments,
-    clearComments,
-    tiktokUsername,
-    changeTikTokUsername,
-    currentLiveSession,
-    liveHistory,
-  } = useTikTokLiveSocket();
+const {
+  status,
+  isConnected,
+  comments,
+  clearComments,
+  tiktokUsername,
+  changeTikTokUsername,
+  currentLiveSession,
+  liveHistory,
+} = useTikTokLiveSocket({
+  initialUsername: registeredTikTokUsername,
+});
 
   const [topTab, setTopTab] = useState<TopTab>("connect");
   const [bottomTab, setBottomTab] = useState<BottomTab>("home");
@@ -43,28 +47,51 @@ export default function DashboardScreen() {
     return buildCustomersFromOrders(orders);
   }, [orders]);
 
-  const handleCreateOrder = async (comment: LiveComment) => {
-    try {
-      // Sau này nếu có API thì await API ở đây.
-      // const result = await createOrderApi(comment);
-      // if (!result.success) return;
+const handleCreateOrder = async (comment: LiveComment) => {
+  try {
+    const savedOrder = await createOrderFromCommentApi({
+      comment,
+      price: 20,
+      quantity: 1,
+    });
 
-      const newOrder = orderManager.createOrderFromComment(comment);
-      console.log("newOrder : ", newOrder);
-      setOrders((prev: any) => {
-        const existed = prev.some((item: any) => item?.id === comment?.id);
+    orderManager.createOrderFromComment(comment);
 
-        if (existed) return prev;
+    setOrders((prev: any) => {
+      const existed = prev.some(
+        (item: any) => item?.id === savedOrder.order.id,
+      );
 
-        return [newOrder, ...prev];
-      });
+      if (existed) return prev;
 
-      return true;
-    } catch (error) {
-      console.log("CREATE ORDER ERROR:", error);
-      return false;
-    }
-  };
+      return [
+        {
+          id: savedOrder.order.id,
+          dbId: savedOrder.order.id,
+          orderCode: savedOrder.order.order_code,
+          customerName: savedOrder.order.customer_name,
+          customerPhone: savedOrder.order.customer_phone,
+          customerAddress: savedOrder.order.customer_address,
+          productName: savedOrder.order.comment_text,
+          commentText: savedOrder.order.comment_text,
+          status: savedOrder.order.status,
+          depositStatus: savedOrder.order.deposit_status,
+          paymentStatus: savedOrder.order.payment_status,
+          shippingStatus: savedOrder.order.shipping_status,
+          totalAmount: savedOrder.order.total_amount,
+          createdAt: savedOrder.order.created_at,
+        },
+        ...prev,
+      ];
+    });
+
+    return true;
+  } catch (error) {
+    console.log("CREATE ORDER ERROR:", error);
+    alert(error instanceof Error ? error.message : "Tạo đơn thất bại");
+    return false;
+  }
+};
 
   console.log("orderManager.customers : ", orderManager.customers);
 
@@ -118,8 +145,8 @@ export default function DashboardScreen() {
 
     return (
       <SettingsView
-        username={user?.username}
-        tiktokUsername={tiktokUsername}
+        username={user?.fullName || user?.phone || user?.username || "User"}
+        tiktokUsername={tiktokUsername || registeredTikTokUsername}
         isConnected={isConnected}
         status={status}
         onChangeTikTokUsername={changeTikTokUsername}

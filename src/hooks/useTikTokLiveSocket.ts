@@ -20,8 +20,11 @@ function createClientId() {
 
   return `${Date.now()}-${Math.random()}`;
 }
+type UseTikTokLiveSocketOptions = {
+  initialUsername?: string | null;
+};
 
-export function useTikTokLiveSocket() {
+export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
   const eventSourceRef = useRef<EventSource | null>(null);
   const clientIdRef = useRef(createClientId());
   const isManualCloseRef = useRef(false);
@@ -29,9 +32,9 @@ export function useTikTokLiveSocket() {
 
   const [status, setStatus] = useState("Đang kết nối server SSE...");
   const [isConnected, setIsConnected] = useState(false);
-  const [tiktokUsername, setTikTokUsername] = useState(
-    normalizeTikTokUsername(TIKTOK_USERNAME)
-  );
+  const [tiktokUsername, setTiktokUsername] = useState(
+  options.initialUsername || TIKTOK_USERNAME,
+);
 
   const {
     comments,
@@ -73,7 +76,7 @@ export function useTikTokLiveSocket() {
 
         if (username) {
           tiktokUsernameRef.current = username;
-          setTikTokUsername(username);
+          setTiktokUsername(username);
         }
 
         const snapshot = payload.comments || [];
@@ -237,7 +240,7 @@ export function useTikTokLiveSocket() {
       }
 
       tiktokUsernameRef.current = nextUsername;
-      setTikTokUsername(nextUsername);
+      setTiktokUsername(nextUsername);
       setComments([]);
       setStatus(`Đang subscribe LIVE ${nextUsername}...`);
 
@@ -322,6 +325,21 @@ export function useTikTokLiveSocket() {
       eventSourceRef.current = null;
     };
   }, [connectSse, finalizeCurrentSessionLocally]);
+
+  useEffect(() => {
+  const timer = window.setTimeout(() => {
+    const nextUsername = normalizeTikTokUsername(options.initialUsername || "");
+
+    if (!nextUsername) return;
+
+    tiktokUsernameRef.current = nextUsername;
+    setTiktokUsername(nextUsername);
+  }, 0);
+
+  return () => {
+    window.clearTimeout(timer);
+  };
+}, [options.initialUsername]);
 
   return {
     status,

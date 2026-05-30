@@ -20,6 +20,7 @@ export default function SettingsView({
   onLogout: () => void;
 }) {
   const [inputUsername, setInputUsername] = useState(() => tiktokUsername);
+  
 
   const submitTikTokUsername = () => {
     const nextUsername = normalizeTikTokUsername(inputUsername);
