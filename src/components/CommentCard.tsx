@@ -112,7 +112,6 @@ export default function CommentCard({
         <p className="mt-1.5 wrap-break-word text-base leading-6 text-slate-700">
           <TikTokEmojiText
             text={commentText}
-            size={20}
           />
         </p>
 
