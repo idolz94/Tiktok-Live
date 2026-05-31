@@ -45,9 +45,6 @@ export default function CustomersView({ customers }: { customers: CustomerWithTi
                 </p>
                 <div className="mt-2.5 flex">
                   <span className="mr-2 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-extrabold text-slate-600">
-                    {item.totalComments} comment
-                  </span>
-                  <span className="mr-2 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-extrabold text-slate-600">
                     {item.totalOrders} đơn
                   </span>
                 </div>

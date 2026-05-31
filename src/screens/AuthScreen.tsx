@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getMeBootstrapApi } from "@/api/meApi";
 import { signInApi, signUpApi } from "@/api/authApi";
+import { ForgotPasswordDrawer } from "@/features/auth/ForgotPassword";
 
 type Mode = "login" | "register";
 
@@ -261,12 +262,7 @@ export default function AuthScreen() {
             </button>
 
             {isLogin && (
-              <button
-                className="mt-5 ml-auto block text-[17px] font-extrabold text-[#273044] underline"
-                type="button"
-              >
-                Quên mật khẩu
-              </button>
+              <ForgotPasswordDrawer />
             )}
 
             <div className="mt-[30px] flex items-center">
