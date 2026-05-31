@@ -43,12 +43,21 @@ function getSessionDuration(item: LiveHistoryItem) {
   return Math.max(0, Math.floor((end - start) / 1000));
 }
 
+function shouldShowSession(item: LiveHistoryItem) {
+  const duration = getSessionDuration(item);
+  const commentCount = Number(item.commentCount || item.comments?.length || 0);
+  const orderCount = Number(item.orderCount || item.orders?.length || 0);
+
+  return duration > 0 || commentCount > 0 || orderCount > 0;
+}
+
 export default function PlaceholderView({ liveHistory }: { liveHistory: LiveHistoryItem[] }) {
   const groups = useMemo<GroupedLiveHistory[]>(() => {
     const map = new Map<string, GroupedLiveHistory>();
 
     liveHistory?.forEach((item) => {
       if (!item.startedAt) return;
+      if (!shouldShowSession(item)) return;
 
       const dateKey = getDateKey(item.startedAt);
       const oldGroup = map.get(dateKey);
@@ -125,6 +134,10 @@ export default function PlaceholderView({ liveHistory }: { liveHistory: LiveHist
                           <p className="truncate text-base font-semibold text-gray-700">
                             {removeAt(item.username)}
                           </p>
+                        </div>
+
+                        <div className="mt-1 text-sm font-semibold text-slate-400">
+                          {item.commentCount || item.comments?.length || 0} comment · {item.orderCount || item.orders?.length || 0} đơn
                         </div>
                       </div>
 

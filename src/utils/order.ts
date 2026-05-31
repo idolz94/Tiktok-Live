@@ -130,6 +130,7 @@ export function normalizeApiOrderForUi(order: any): OrderWithTikTok {
     ),
     customerName: String(order?.customerName || order?.customer_name || order?.username || ""),
     customerTikTokUsername,
+    customerTikTokName: customerTikTokUsername,
     uniqueId: cleanTikTokUsername(customerTikTokUsername),
     avatar: String(order?.avatar || order?.avatarUrl || order?.avatar_url || ""),
     avatarUrl: String(order?.avatarUrl || order?.avatar || order?.avatar_url || ""),

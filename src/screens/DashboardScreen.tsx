@@ -28,6 +28,7 @@ const {
   tiktokUsername,
   changeTikTokUsername,
   currentLiveSession,
+  currentLiveSessionId,
   liveHistory,
 } = useTikTokLiveSocket({
   initialUsername: registeredTikTokUsername,
@@ -38,8 +39,10 @@ const {
   const createdCommentKeysRef = useRef<Set<string>>(new Set());
   const orderManager = useOrderManager({
     comments,
+    liveSessionId: currentLiveSessionId,
     onAfterCreateOrder: () => setBottomTab("home"),
   });
+
 
 const handleCreateOrder = async (comment: LiveComment) => {
   const commentKey = createOrderCommentKey(comment);

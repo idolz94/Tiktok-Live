@@ -102,9 +102,9 @@ export default function OrderCard({
         </div>
       </div>
 
-      <div className="mt-[18px] flex items-end">
+      <div className="mt-4 flex items-end">
         <div className="flex-1">
-          <p className="m-0 text-lg leading-[25px] font-semibold text-gray-500">{item.comment}</p>
+          <p className="m-0 text-lg leading-6 font-semibold text-gray-500">{item.comment}</p>
           <span className="mt-1 block text-sm font-bold text-gray-500 italic">
             {new Date(item.createdAt).toLocaleTimeString("vi-VN", {
               hour: "2-digit",

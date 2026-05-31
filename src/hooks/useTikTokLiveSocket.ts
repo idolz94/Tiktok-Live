@@ -7,7 +7,6 @@ import { useTikTokComments } from "@/features/tiktok-live/useTikTokComments";
 import { useTikTokLiveSession } from "@/features/tiktok-live/useTikTokLiveSession";
 import {
   getSseBaseUrl,
-  sendStopBeacon,
   stopTikTokLiveApi,
   subscribeTikTokLiveApi,
 } from "@/features/tiktok-live/sseApi";
@@ -40,22 +39,24 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     comments,
     setComments,
     addCommentToList,
+    updateCommentInList,
     replaceSnapshot,
     clearComments,
   } = useTikTokComments();
 
   const {
     currentLiveSession,
+    currentLiveSessionId,
     liveHistory,
     liveDurationSeconds,
     liveNowText,
     clearLiveHistory,
+    reloadLiveHistory,
     finalizeCurrentSessionLocally,
     startSessionFromPayload,
     endSessionFromPayload,
     updateSessionStatusFromPayload,
     addCommentToCurrentSession,
-    resetCurrentSession,
   } = useTikTokLiveSession();
 
   const handleServerEvent = useCallback(
@@ -137,6 +138,21 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
         return;
       }
 
+      if (type === "COMMENT_UPDATED") {
+        const commentId = String(payload.commentId || payload.comment_id || "");
+        const patch = payload.patch || {};
+
+        if (!commentId) return;
+
+        const updatedComment = updateCommentInList(commentId, patch);
+
+        if (updatedComment) {
+          addCommentToCurrentSession(updatedComment);
+        }
+
+        return;
+      }
+
       if (type === "COMMENT") {
         const comment = addCommentToList(payload);
 
@@ -148,6 +164,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     [
       addCommentToCurrentSession,
       addCommentToList,
+      updateCommentInList,
       endSessionFromPayload,
       finalizeCurrentSessionLocally,
       replaceSnapshot,
@@ -203,6 +220,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
       "LIVE_ERROR",
       "SNAPSHOT",
       "COMMENT",
+      "COMMENT_UPDATED",
     ];
 
     eventTypes.forEach((eventType) => {
@@ -347,6 +365,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     tiktokUsername,
 
     currentLiveSession,
+    currentLiveSessionId,
     liveHistory,
     liveDurationSeconds,
     liveNowText,
@@ -354,6 +373,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     setComments,
     clearComments,
     clearLiveHistory,
+    reloadLiveHistory,
 
     reconnect,
     disconnect,

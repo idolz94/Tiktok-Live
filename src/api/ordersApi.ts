@@ -211,6 +211,37 @@ async function updateLiveCommentOrder({
   if (error) throw new Error(error.message);
 }
 
+async function findDbLiveCommentId({
+  shopId,
+  comment,
+}: {
+  shopId: string;
+  comment: LiveComment;
+}) {
+  const commentRecord = comment as Record<string, any>;
+
+  if (isUuid(commentRecord.dbId)) return String(commentRecord.dbId);
+  if (isUuid(commentRecord.liveCommentId)) return String(commentRecord.liveCommentId);
+  if (isUuid(commentRecord.id)) return String(commentRecord.id);
+
+  const externalCommentId = String(commentRecord.id || "").trim();
+  if (!externalCommentId) return null;
+
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from("live_comments")
+    .select("id")
+    .eq("shop_id", shopId)
+    .eq("external_comment_id", externalCommentId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+
+  return data?.id || null;
+}
+
+
 export async function getOrdersApi(): Promise<OrderWithTikTok[]> {
   const supabase = createClient();
   const { shopId } = await getCurrentShop();
@@ -225,6 +256,8 @@ export async function getOrdersApi(): Promise<OrderWithTikTok[]> {
 
   const orderRows = orders || [];
   if (!orderRows.length) return [];
+
+  console.log("orderRows :",orderRows);
 
   const orderIds = orderRows.map((item: any) => item.id);
 
@@ -282,8 +315,7 @@ export async function createOrderFromCommentApi({
   const discountAmount = 0;
   const codAmount = subtotalAmount + shippingFee - discountAmount;
 
-  const commentRecord = comment as Record<string, any>;
-  const liveCommentId = isUuid(commentRecord.id) ? commentRecord.id : null;
+  const liveCommentId = await findDbLiveCommentId({ shopId, comment });
   const dbLiveSessionId = isUuid(liveSessionId) ? liveSessionId : null;
 
   const { data: order, error: orderError } = await supabase

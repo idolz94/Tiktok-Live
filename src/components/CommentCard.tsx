@@ -4,7 +4,8 @@ import { LiveComment } from "../types";
 import { formatTime } from "../utils/date";
 import { isPriorityComment } from "../utils/comment";
 import Avatar from "./Avatar";
-
+import { useState } from "react";
+import { TikTokEmojiText } from "@/components/TikTokEmojiText";
 function getIntentText(intent?: string) {
   const map: Record<string, string> = {
     buying: "Muốn mua",
@@ -43,15 +44,29 @@ function getScoreColor(score: number) {
 
 export default function CommentCard({
   item,
-  onCreateOrder,
+  onCreateOrder
 }: {
   item: LiveComment;
   onCreateOrder: (item: LiveComment) => void;
+
 }) {
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const isPriority = isPriorityComment(item);
   const commentText = item.comment || "";
   const score = Number(item.finalScore || 0);
   const isCreatedOrder = Boolean(item.isOrderCreated || item.orderId);
+
+  const handleCreateOrder = async () => {
+  if (isCreatingOrder || item.isOrderCreated) return;
+
+  try {
+    setIsCreatingOrder(true);
+
+    await onCreateOrder?.(item);
+  } finally {
+    setIsCreatingOrder(false);
+  }
+};
 
   return (
     <article
@@ -95,7 +110,10 @@ export default function CommentCard({
         </div>
 
         <p className="mt-1.5 wrap-break-word text-base leading-6 text-slate-700">
-          {commentText}
+          <TikTokEmojiText
+            text={commentText}
+            size={20}
+          />
         </p>
 
         <div className="mt-3 flex flex-wrap gap-2 text-xs">
@@ -158,21 +176,23 @@ export default function CommentCard({
             {formatTime(item.createdAt)}
           </span>
 
-          <button
-            type="button"
-            disabled={isCreatedOrder}
-            onClick={() => onCreateOrder(item)}
-            className={[
-              "rounded-xl px-4 py-3 font-bold text-white",
-              isCreatedOrder
-                ? "bg-slate-300"
-                : isPriority
-                  ? "bg-orange-500"
-                  : "bg-blue-600",
-            ].join(" ")}
-          >
-            {isCreatedOrder ? "Đã tạo" : "Tạo đơn"}
-          </button>
+      <button
+        type="button"
+        disabled={isCreatingOrder || item.isOrderCreated}
+        onClick={handleCreateOrder}
+        className={[
+          "flex items-center justify-center gap-2 rounded-2xl px-6 py-4 text-base font-black text-white transition",
+          isCreatingOrder || item.isOrderCreated
+            ? "bg-slate-300 text-slate-500"
+            : "bg-blue-600 active:scale-95",
+        ].join(" ")}
+      >
+        {isCreatingOrder && (
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+        )}
+
+        {item.isOrderCreated ? "Đã tạo" : "Tạo đơn"}
+      </button>
         </div>
       </div>
     </article>

@@ -89,6 +89,7 @@ export function normalizeComment(input: any): LiveComment | null {
     missingInfo: toStringArray(input.missingInfo || input.missing_info),
     isOrderCreated: Boolean(input.isOrderCreated || input.is_order_created),
     orderId: input.orderId || input.order_id || "",
+    dbId: input.dbId || input.db_id || input.liveCommentId || input.live_comment_id || "",
     createdAt,
     raw: input,
   };

@@ -168,6 +168,29 @@ export function useTikTokComments() {
     setComments(dedupComments(normalized));
   }, []);
 
+  const updateCommentInList = useCallback((commentId: string, patch: Record<string, any>) => {
+    let updatedComment: LiveComment | null = null;
+
+    setComments((prev) =>
+      dedupComments(
+        prev.map((item) => {
+          if (item.id !== commentId) return item;
+
+          const nextComment = normalizeComment({
+            ...item,
+            ...patch,
+          });
+
+          updatedComment = nextComment || item;
+
+          return updatedComment;
+        }),
+      ),
+    );
+
+    return updatedComment;
+  }, []);
+
   const clearComments = useCallback(() => {
     setComments([]);
   }, []);
@@ -176,6 +199,7 @@ export function useTikTokComments() {
     comments,
     setComments,
     addCommentToList,
+    updateCommentInList,
     replaceSnapshot,
     clearComments,
   };

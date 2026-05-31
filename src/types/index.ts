@@ -23,6 +23,7 @@ export type LiveComment = {
   username: string;
   displayName?: string;
   customerTikTokUsername?: string;
+  customerTikTokName?: string;
   uniqueId?: string;
   avatar?: string;
   avatarUrl?: string;
@@ -39,6 +40,7 @@ export type LiveComment = {
   missingInfo?: string[];
   isOrderCreated?: boolean;
   orderId?: string;
+  dbId?: string;
   createdAt?: string;
   raw?: unknown;
 };
@@ -81,6 +83,7 @@ export type Order = {
   username: string;
   customerName?: string;
   customerTikTokUsername?: string;
+  customerTikTokName?: string;
   uniqueId?: string;
   avatar?: string;
   avatarUrl?: string;

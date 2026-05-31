@@ -22,6 +22,7 @@ import { getCommentTikTokUsername, getOrderTikTokUsername } from "@/utils/tiktok
 
 type UseOrderManagerParams = {
   comments: LiveComment[];
+  liveSessionId?: string | null;
   onAfterCreateOrder?: () => void;
 };
 
@@ -51,6 +52,7 @@ function getOrderRevenue(order: OrderWithTikTok) {
 
 export function useOrderManager({
   comments,
+  liveSessionId,
   onAfterCreateOrder,
 }: UseOrderManagerParams) {
   const [orders, setOrders] = useState<OrderWithTikTok[]>([]);
@@ -68,7 +70,7 @@ export function useOrderManager({
       setOrderError("");
 
       const nextOrders = await getOrdersApi();
-
+      console.log("nextOrders : ",nextOrders);
       setOrders(nextOrders);
     } catch (error) {
       console.log("LOAD ORDERS ERROR:", error);
@@ -234,6 +236,7 @@ export function useOrderManager({
       try {
         const savedOrder = await createOrderFromCommentApi({
           comment: item,
+          liveSessionId,
           price: 20,
           quantity: 1,
         });
@@ -256,7 +259,7 @@ export function useOrderManager({
         throw error;
       }
     },
-    [onAfterCreateOrder],
+    [liveSessionId, onAfterCreateOrder],
   );
 
   const clearOrders = useCallback(() => {

@@ -6,10 +6,6 @@ import { LiveComment, LiveStatus } from "@/types/live-comment";
 const PYTHON_LIVE_URL =
   process.env.NEXT_PUBLIC_PYTHON_LIVE_URL || "http://localhost:8765";
 
-function isLiveComment(value: LiveComment | null | undefined): value is LiveComment {
-  return Boolean(value && value.id);
-}
-
 function getOrCreateClientId() {
   if (typeof window === "undefined") return "";
 
@@ -261,37 +257,36 @@ export function useTikTokLiveSSE() {
     });
 
     eventSource.addEventListener("COMMENT", (event) => {
-  const payload = normalizeUpdatedComment(JSON.parse((event as MessageEvent).data));
+      const payload = normalizeUpdatedComment(
+        JSON.parse(String((event as MessageEvent).data || "{}")),
+      );
 
-  if (!payload) return;
+      if (!payload) return;
 
-  setComments((prev) => {
-    const exists = prev.some((item) => item.id === payload.id);
+      setComments((prev) => {
+        const exists = prev.some((item) => item.id === payload.id);
+        if (exists) return prev;
 
-    if (exists) return prev;
-
-    return [payload, ...prev].slice(0, 500);
-  });
-});
+        return [payload, ...prev].slice(0, 500);
+      });
+    });
 
     eventSource.addEventListener("COMMENT_UPDATED", (event) => {
-  const payload = JSON.parse((event as MessageEvent).data);
-  const commentId = payload.commentId || payload.comment_id;
-  const patch = payload.patch || {};
+      const payload = JSON.parse(String((event as MessageEvent).data || "{}"));
+      const commentId = payload.commentId || payload.comment_id;
+      const patch = payload.patch || {};
 
-  setComments((prev) =>
-    prev.map((item) => {
-      if (item.id !== commentId) return item;
+      setComments((prev) =>
+        prev.map((item) => {
+          if (item.id !== commentId) return item;
 
-      const nextItem = normalizeUpdatedComment({
-        ...item,
-        ...patch,
-      });
-
-      return nextItem || item;
-    }),
-  );
-});
+          return normalizeUpdatedComment({
+            ...item,
+            ...patch,
+          });
+        })
+      );
+    });
 
     eventSource.addEventListener("LIVE_TIME_STARTED", (event) => {
       const payload = JSON.parse(String((event as MessageEvent).data || "{}"));
