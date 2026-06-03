@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { getMeBootstrapApi } from "@/api/meApi";
 import { signOutApi } from "@/api/authApi";
-import { createClient } from "@/lib/supabase/client";
 
 type AuthUser = {
   id: string;
@@ -92,21 +91,21 @@ export function useAuth(): AuthState {
   }, []);
 
   useEffect(() => {
-    const supabase = createClient();
-
     const timer = window.setTimeout(() => {
       void refreshAuth();
     }, 0);
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
+    const handleAuthChanged = () => {
       void refreshAuth();
-    });
+    };
+
+    window.addEventListener("lumi-auth-change", handleAuthChanged);
+    window.addEventListener("focus", handleAuthChanged);
 
     return () => {
       window.clearTimeout(timer);
-      subscription.unsubscribe();
+      window.removeEventListener("lumi-auth-change", handleAuthChanged);
+      window.removeEventListener("focus", handleAuthChanged);
     };
   }, [refreshAuth]);
 

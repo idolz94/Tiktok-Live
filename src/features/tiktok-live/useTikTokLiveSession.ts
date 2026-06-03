@@ -4,12 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MAX_COMMENTS } from "@/constants/config";
 import type { LiveComment } from "@/types";
 import type { LiveHistoryItem } from "@/features/tiktok-live/types";
-import {
-  getLiveHistoryApi,
-  saveLiveSessionEndedApi,
-  saveLiveSessionStartedApi,
-} from "@/api/liveHistoryApi";
-import { saveLiveCommentApi } from "@/api/liveCommentsApi";
+import { getLiveHistoryApi } from "@/api/liveHistoryApi";
 import { normalizeLiveSession } from "@/features/tiktok-live/liveSessionMapper";
 import { calcDurationSeconds } from "@/utils/date";
 
@@ -22,15 +17,6 @@ function formatNowText(nowMs: number) {
   });
 }
 
-function mergeSession(oldSession: LiveHistoryItem | null, nextSession: LiveHistoryItem) {
-  return {
-    ...(oldSession || {}),
-    ...nextSession,
-    comments: nextSession.comments?.length ? nextSession.comments : oldSession?.comments || [],
-    orders: nextSession.orders?.length ? nextSession.orders : oldSession?.orders || [],
-  } as LiveHistoryItem;
-}
-
 function shouldShowHistorySession(session: LiveHistoryItem) {
   const durationSeconds = Number(session.durationSeconds || 0);
   const commentCount = Number(session.commentCount || session.comments?.length || 0);
@@ -39,10 +25,19 @@ function shouldShowHistorySession(session: LiveHistoryItem) {
   return durationSeconds > 0 || commentCount > 0 || orderCount > 0;
 }
 
+function mergeSession(oldSession: LiveHistoryItem | null, nextSession: LiveHistoryItem) {
+  return {
+    ...(oldSession || {}),
+    ...nextSession,
+    startedAt: oldSession?.startedAt || nextSession.startedAt,
+    comments: oldSession?.comments?.length ? oldSession.comments : nextSession.comments || [],
+    orders: oldSession?.orders?.length ? oldSession.orders : nextSession.orders || [],
+  } as LiveHistoryItem;
+}
+
 export function useTikTokLiveSession() {
   const currentLiveSessionRef = useRef<LiveHistoryItem | null>(null);
   const currentDbLiveSessionIdRef = useRef<string | null>(null);
-  const pendingCommentsRef = useRef<LiveComment[]>([]);
   const sessionCommentsRef = useRef<LiveComment[]>([]);
 
   const [currentLiveSession, setCurrentLiveSessionState] =
@@ -118,30 +113,43 @@ export function useTikTokLiveSession() {
     return formatNowText(nowMs);
   }, [isRunning, nowMs]);
 
-  const savePendingComments = useCallback(async (liveSessionId: string) => {
-    const pendingComments = pendingCommentsRef.current;
-    pendingCommentsRef.current = [];
-
-    await Promise.all(
-      pendingComments.map((comment) =>
-        saveLiveCommentApi({ liveSessionId, comment }).catch((error) => {
-          console.log("SAVE PENDING LIVE COMMENT ERROR:", error);
-        }),
-      ),
-    );
-  }, []);
-
   const clearLiveHistory = useCallback(() => {
     setLiveHistory([]);
   }, []);
 
   const resetCurrentSession = useCallback(() => {
-    pendingCommentsRef.current = [];
     sessionCommentsRef.current = [];
     setCurrentLiveSession(null);
     setDbLiveSessionId(null);
     setNowMs(0);
   }, [setCurrentLiveSession, setDbLiveSessionId]);
+
+  const startSessionFromPayload = useCallback(
+    (payload: unknown) => {
+      const nextSession = normalizeLiveSession(payload);
+      const currentSession = currentLiveSessionRef.current;
+      const dbLiveSessionId = nextSession.id || null;
+
+      if (
+        currentSession &&
+        (currentSession.id === nextSession.id || currentSession.sessionId === nextSession.sessionId)
+      ) {
+        const mergedSession = mergeSession(currentSession, nextSession);
+        setCurrentLiveSession(mergedSession);
+        setDbLiveSessionId(dbLiveSessionId);
+        setNowMs(Date.now());
+        return mergedSession;
+      }
+
+      sessionCommentsRef.current = [];
+      setCurrentLiveSession(nextSession);
+      setDbLiveSessionId(dbLiveSessionId);
+      setNowMs(Date.now());
+
+      return nextSession;
+    },
+    [setCurrentLiveSession, setDbLiveSessionId],
+  );
 
   const finalizeCurrentSessionLocally = useCallback(
     (reason: string) => {
@@ -162,118 +170,72 @@ export function useTikTokLiveSession() {
         status: reason === "live_error" ? "error" : "ended",
       };
 
-      setCurrentLiveSession(localSession);
+      setLiveHistory((prev) => {
+        const filtered = prev.filter((item) => item.id !== localSession.id);
+        return shouldShowHistorySession(localSession) ? [localSession, ...filtered] : filtered;
+      });
 
-      void saveLiveSessionEndedApi({
-        sessionId: session.sessionId,
-        username: session.username,
-        startedAt: session.startedAt,
-        endedAt,
-        durationSeconds,
-        commentCount: comments.length,
-        reason,
-      })
-        .then((savedSession) => {
-          setLiveHistory((prev) => {
-            const filtered = prev.filter((item) => item.id !== savedSession.id);
-            return shouldShowHistorySession(savedSession) ? [savedSession, ...filtered] : filtered;
-          });
-          return reloadLiveHistory();
-        })
-        .catch((error) => {
-          console.log("SAVE LIVE SESSION ENDED ERROR:", error);
-        });
-
-      pendingCommentsRef.current = [];
       sessionCommentsRef.current = [];
       setCurrentLiveSession(null);
       setDbLiveSessionId(null);
       setNowMs(0);
+
+      window.setTimeout(() => {
+        void reloadLiveHistory();
+      }, 300);
     },
     [reloadLiveHistory, setCurrentLiveSession, setDbLiveSessionId],
   );
 
-  const startSessionFromPayload = useCallback(
-    (payload: unknown) => {
-      const localSession = normalizeLiveSession(payload);
-
-      pendingCommentsRef.current = [];
-      sessionCommentsRef.current = [];
-      setCurrentLiveSession(localSession);
-      setDbLiveSessionId(null);
-      setNowMs(Date.now());
-
-      void saveLiveSessionStartedApi({
-        sessionId: localSession.sessionId,
-        username: localSession.username,
-        startedAt: localSession.startedAt,
-      })
-        .then(async (savedSession) => {
-          const mergedSession = mergeSession(currentLiveSessionRef.current, savedSession);
-          setDbLiveSessionId(savedSession.id);
-          setCurrentLiveSession(mergedSession);
-          await savePendingComments(savedSession.id);
-          await reloadLiveHistory();
-        })
-        .catch((error) => {
-          console.log("SAVE LIVE SESSION STARTED ERROR:", error);
-        });
-    },
-    [reloadLiveHistory, savePendingComments, setCurrentLiveSession, setDbLiveSessionId],
-  );
-
   const endSessionFromPayload = useCallback(
     (payload: unknown) => {
-      const sessionFromPython = normalizeLiveSession(payload);
+      const sessionFromServer = normalizeLiveSession(payload);
+      const currentSession = currentLiveSessionRef.current;
       const comments = sessionCommentsRef.current;
-      const finalCommentCount = Math.max(sessionFromPython.commentCount || 0, comments.length);
+      const startedAt = currentSession?.startedAt || sessionFromServer.startedAt || new Date().toISOString();
+      const endedAt = sessionFromServer.endedAt || new Date().toISOString();
+      const durationSeconds = sessionFromServer.durationSeconds || calcDurationSeconds(startedAt, endedAt);
+      const finalCommentCount = Math.max(sessionFromServer.commentCount || 0, comments.length);
 
-      void saveLiveSessionEndedApi({
-        sessionId: sessionFromPython.sessionId,
-        username: sessionFromPython.username,
-        startedAt: sessionFromPython.startedAt,
-        endedAt: sessionFromPython.endedAt || new Date().toISOString(),
-        durationSeconds: sessionFromPython.durationSeconds,
+      const localSession: LiveHistoryItem = {
+        ...sessionFromServer,
+        startedAt,
+        endedAt,
+        durationSeconds,
         commentCount: finalCommentCount,
-        reason: sessionFromPython.reason || "live_ended",
-      })
-        .then((savedSession) => {
-          setLiveHistory((prev) => {
-            const filtered = prev.filter((item) => item.id !== savedSession.id);
-            return shouldShowHistorySession(savedSession) ? [savedSession, ...filtered] : filtered;
-          });
-          return reloadLiveHistory();
-        })
-        .catch((error) => {
-          console.log("SAVE LIVE SESSION ENDED ERROR:", error);
-        });
+        comments,
+        status: sessionFromServer.status || "ended",
+      };
 
-      pendingCommentsRef.current = [];
+      setLiveHistory((prev) => {
+        const filtered = prev.filter((item) => item.id !== localSession.id);
+        return shouldShowHistorySession(localSession) ? [localSession, ...filtered] : filtered;
+      });
+
       sessionCommentsRef.current = [];
       setCurrentLiveSession(null);
       setDbLiveSessionId(null);
       setNowMs(0);
+
+      window.setTimeout(() => {
+        void reloadLiveHistory();
+      }, 300);
     },
     [reloadLiveHistory, setCurrentLiveSession, setDbLiveSessionId],
   );
 
   const updateSessionStatusFromPayload = useCallback(
     (payload: unknown) => {
-      const data = payload as { startedAt?: string; started_at?: string } | null;
+      const data = payload as { startedAt?: string; started_at?: string; liveSessionId?: string; live_session_id?: string } | null;
 
-      if (!data || (!data.startedAt && !data.started_at)) {
-        pendingCommentsRef.current = [];
-        sessionCommentsRef.current = [];
-        setCurrentLiveSession(null);
-        setDbLiveSessionId(null);
-        setNowMs(0);
+      if (!data || (!data.startedAt && !data.started_at && !data.liveSessionId && !data.live_session_id)) {
+        resetCurrentSession();
         return;
       }
 
-      const session = normalizeLiveSession(payload);
-      setCurrentLiveSession(session);
+      startSessionFromPayload(payload);
     },
-    [setCurrentLiveSession, setDbLiveSessionId],
+    [resetCurrentSession, startSessionFromPayload],
   );
 
   const addCommentToCurrentSession = useCallback(
@@ -297,24 +259,6 @@ export function useTikTokLiveSession() {
 
         setCurrentLiveSession(nextSession);
       }
-
-      const dbLiveSessionId = currentDbLiveSessionIdRef.current;
-
-      if (!dbLiveSessionId) {
-        pendingCommentsRef.current = existed
-          ? pendingCommentsRef.current.map((item) =>
-              item.id === comment.id ? { ...item, ...comment } : item,
-            )
-          : [comment, ...pendingCommentsRef.current].slice(0, MAX_COMMENTS);
-        return;
-      }
-
-      void saveLiveCommentApi({
-        liveSessionId: dbLiveSessionId,
-        comment,
-      }).catch((error) => {
-        console.log("SAVE LIVE COMMENT ERROR:", error);
-      });
     },
     [setCurrentLiveSession],
   );

@@ -1,13 +1,40 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
+import { ApiError, getRequest } from "@/lib/request";
 import { Profile, Shop, ShopLicense, ShopMember } from "@/types/database";
 
+type BootstrapUser = {
+  id: string;
+  email?: string | null;
+  user_metadata?: Record<string, any>;
+  metadata?: Record<string, any>;
+  [key: string]: any;
+};
+
+export type MeBootstrapResponse = {
+  user: BootstrapUser | null;
+  profile: Profile | null;
+  shopMember: ShopMember | null;
+  shop: Shop | null;
+  license: ShopLicense | null;
+  canUseApp: boolean;
+  reason?: string | null;
+};
+
+const EMPTY_ME: MeBootstrapResponse = {
+  user: null,
+  profile: null,
+  shopMember: null,
+  shop: null,
+  license: null,
+  canUseApp: false,
+  reason: "NO_USER",
+};
 
 export function isLicenseUsable(license: ShopLicense | null) {
   if (!license) return false;
 
-  const validStatus = ["trial", "active"].includes(license.status);
+  const validStatus = ["trial", "trialing", "active"].includes(String(license.status));
 
   if (!validStatus) return false;
 
@@ -24,96 +51,55 @@ export function isLicenseUsable(license: ShopLicense | null) {
   return true;
 }
 
-export async function getMeBootstrapApi() {
-  const supabase = createClient();
+function normalizeUser(user: any): BootstrapUser | null {
+  if (!user) return null;
 
-  const { data: sessionData, error: sessionError } =
-    await supabase.auth.getSession();
+  const metadata = user.user_metadata || user.metadata || {};
 
-  if (sessionError) {
-    throw new Error(sessionError.message);
-  }
+  return {
+    ...user,
+    id: String(user.id || user.userId || user.user_id || ""),
+    email: user.email || null,
+    user_metadata: {
+      full_name: metadata.full_name || metadata.fullName || user.fullName || user.full_name || "",
+      phone: metadata.phone || user.phone || "",
+      tiktok_id: metadata.tiktok_id || metadata.tiktokId || user.tiktokId || "",
+      default_tiktok_username:
+        metadata.default_tiktok_username ||
+        metadata.defaultTikTokUsername ||
+        user.defaultTikTokUsername ||
+        user.default_tiktok_username ||
+        "",
+      ...metadata,
+    },
+  };
+}
 
-  const session = sessionData.session;
+function normalizeProfile(raw: any, user: BootstrapUser | null): Profile | null {
+  if (!raw && !user) return null;
 
-  if (!session) {
-    return {
-      user: null,
-      profile: null,
-      shopMember: null,
-      shop: null,
-      license: null,
-      canUseApp: false,
-    };
-  }
+  const metadata = user?.user_metadata || {};
+  const source = raw || {};
 
-  const user = session.user;
+  return {
+    id: String(source.id || user?.id || ""),
+    full_name: source.full_name || source.fullName || metadata.full_name || null,
+    email: source.email || user?.email || null,
+    phone: source.phone || metadata.phone || null,
+    avatar_url: source.avatar_url || source.avatarUrl || null,
+    status: source.status || "active",
+    created_at: source.created_at || source.createdAt || new Date().toISOString(),
+    updated_at: source.updated_at || source.updatedAt || new Date().toISOString(),
+  };
+}
 
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle<Profile>();
-
-  if (profileError) {
-    throw new Error(profileError.message);
-  }
-
-  const { data: shopMember, error: shopMemberError } = await supabase
-    .from("shop_members")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle<ShopMember>();
-
-  if (shopMemberError) {
-    throw new Error(shopMemberError.message);
-  }
-
-  if (!shopMember) {
-    return {
-      user,
-      profile,
-      shopMember: null,
-      shop: null,
-      license: null,
-      canUseApp: false,
-    };
-  }
-
-  const { data: shop, error: shopError } = await supabase
-    .from("shops")
-    .select("*")
-    .eq("id", shopMember.shop_id)
-    .maybeSingle<Shop>();
-
-  if (shopError) {
-    throw new Error(shopError.message);
-  }
-
-  if (!shop) {
-    return {
-      user,
-      profile,
-      shopMember,
-      shop: null,
-      license: null,
-      canUseApp: false,
-    };
-  }
-
-  const { data: license, error: licenseError } = await supabase
-    .from("shop_licenses")
-    .select("*")
-    .eq("shop_id", shop.id)
-    .eq("is_current", true)
-    .maybeSingle<ShopLicense>();
-
-  if (licenseError) {
-    throw new Error(licenseError.message);
-  }
+function normalizeMeBootstrap(raw: any): MeBootstrapResponse {
+  const source = raw || {};
+  const user = normalizeUser(source.user || source.account || source.me);
+  const profile = normalizeProfile(source.profile, user);
+  const shopMember = source.shopMember || source.member || null;
+  const shop = source.shop || null;
+  const license = source.license || source.shopLicense || source.shop_license || null;
 
   return {
     user,
@@ -121,6 +107,21 @@ export async function getMeBootstrapApi() {
     shopMember,
     shop,
     license,
-    canUseApp: isLicenseUsable(license),
+    canUseApp:
+      typeof source.canUseApp === "boolean" ? source.canUseApp : isLicenseUsable(license),
+    reason: source.reason || null,
   };
+}
+
+export async function getMeBootstrapApi(): Promise<MeBootstrapResponse> {
+  try {
+    const data = await getRequest<any>("/me/bootstrap");
+    return normalizeMeBootstrap(data);
+  } catch (error) {
+    if (error instanceof ApiError && [401, 403].includes(error.status)) {
+      return EMPTY_ME;
+    }
+
+    throw error;
+  }
 }

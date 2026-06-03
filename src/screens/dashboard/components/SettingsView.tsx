@@ -62,18 +62,17 @@ export default function SettingsView({
             onClick={submitTikTokUsername}
             type="button"
           >
-            Subscribe
+            Start live
           </button>
         </div>
 
         <p className="mt-2 text-xs leading-[18px] text-slate-500">
-          Mỗi web app có thể nhập username riêng. Python sẽ chỉ gửi comment của username này về web
-          app này.
+          Mỗi web app có thể nhập username riêng. Backend sẽ start Python collector cho username này và gửi comment realtime qua SSE.
         </p>
       </div>
 
       <div className="mb-3 rounded-[18px] border border-gray-200 bg-white p-[14px] shadow-[0_8px_16px_rgba(15,23,42,0.08)]">
-        <span className="block text-[13px] font-extrabold text-slate-500">WebSocket URL</span>
+        <span className="block text-[13px] font-extrabold text-slate-500">Backend SSE/API URL</span>
         <strong className="mt-1.5 block text-[15px] font-black break-words text-[#273044]">
           {DEFAULT_WS_URL}
         </strong>

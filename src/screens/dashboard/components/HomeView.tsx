@@ -168,7 +168,7 @@ export default function HomeView({
               <p className="m-0 text-[15px] leading-[22px] text-slate-500">
                 {commentTab === "priority"
                   ? "Chưa có comment ưu tiên."
-                  : "Chưa có comment. Hãy chạy Python socket, app sẽ tự kết nối."}
+                  : "Chưa có comment. Hãy Start live để Backend gọi Python collector và nhận SSE realtime."}
               </p>
             </div>
           ) : (

@@ -1,89 +1,75 @@
 import { DEFAULT_WS_URL } from "@/constants/config";
+import { buildApiUrl, getAuthToken, postRequest } from "@/lib/request";
+
+function appendParams(url: string, params: Record<string, string | undefined>) {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) searchParams.set(key, value);
+  });
+
+  const query = searchParams.toString();
+  if (!query) return url;
+
+  return `${url}${url.includes("?") ? "&" : "?"}${query}`;
+}
 
 export function getSseBaseUrl() {
-  const rawUrl = DEFAULT_WS_URL.trim();
+  return DEFAULT_WS_URL.trim().replace(/\/+$/, "");
+}
 
-  try {
-    const url = new URL(rawUrl);
+export function buildLiveStreamEventsUrl(clientId: string) {
+  const accessToken = getAuthToken();
+  const url = buildApiUrl("/live-stream/events");
 
-    if (url.protocol === "ws:") {
-      url.protocol = "http:";
-    }
-
-    if (url.protocol === "wss:") {
-      url.protocol = "https:";
-    }
-
-    url.pathname = "";
-    url.search = "";
-    url.hash = "";
-
-    return url.toString().replace(/\/$/, "");
-  } catch {
-    return rawUrl
-      .replace(/^ws:\/\//, "http://")
-      .replace(/^wss:\/\//, "https://")
-      .replace(/\/$/, "");
-  }
+  return appendParams(url, {
+    clientId,
+    // EventSource không gửi được Authorization header nên truyền token qua query.
+    accessToken: accessToken || undefined,
+  });
 }
 
 export async function subscribeTikTokLiveApi({
-  clientId,
   username,
 }: {
-  clientId: string;
+  clientId?: string;
   username: string;
 }) {
-  const baseUrl = getSseBaseUrl();
-
-  const res = await fetch(`${baseUrl}/subscribe`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      clientId,
-      username,
-    }),
+  return postRequest<any>("/live-stream/start", {
+    username,
   });
-
-  if (!res.ok) {
-    throw new Error(`Subscribe failed: ${res.status}`);
-  }
-
-  return res.json();
 }
 
-export async function stopTikTokLiveApi(clientId: string) {
-  const baseUrl = getSseBaseUrl();
+export async function stopTikTokLiveApi(input: string | { clientId?: string; username?: string }) {
+  const username = typeof input === "string" ? "" : String(input.username || "").trim();
 
-  const res = await fetch(`${baseUrl}/stop`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      clientId,
-    }),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Stop failed: ${res.status}`);
+  if (!username) {
+    return {
+      ok: false,
+      skipped: true,
+      message: "Thiếu username để dừng collector.",
+    };
   }
 
-  return res.json();
+  return postRequest<any>("/live-stream/stop", {
+    username,
+  });
 }
 
-export function sendStopBeacon(clientId: string) {
+export function sendStopBeacon({ username }: { clientId?: string; username?: string }) {
   if (typeof navigator === "undefined") return;
 
-  const baseUrl = getSseBaseUrl();
-  const data = JSON.stringify({ clientId });
+  const accessToken = getAuthToken();
+  const url = appendParams(buildApiUrl("/live-stream/stop"), {
+    accessToken: accessToken || undefined,
+  });
+
+  const data = JSON.stringify({ username });
 
   navigator.sendBeacon(
-    `${baseUrl}/stop`,
+    url,
     new Blob([data], {
       type: "application/json",
-    })
+    }),
   );
 }

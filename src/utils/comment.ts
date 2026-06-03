@@ -51,22 +51,56 @@ function toNumber(value: unknown, fallback = 0) {
   return nextValue;
 }
 
+export function unwrapSseCommentPayload(input: any) {
+  if (!input) return input;
+
+  const nestedComment =
+    input.comment && typeof input.comment === "object" && !Array.isArray(input.comment)
+      ? input.comment
+      : null;
+
+  if (!nestedComment) return input;
+
+  return {
+    ...nestedComment,
+    liveSessionId: input.liveSessionId || input.live_session_id || nestedComment.liveSessionId,
+    dbLiveSessionId: input.liveSessionId || input.live_session_id || nestedComment.dbLiveSessionId,
+    collectorSessionId: input.collectorSessionId || nestedComment.collectorSessionId,
+    liveUsername: input.liveUsername || nestedComment.liveUsername,
+    rawSsePayload: input,
+  };
+}
+
 export function normalizeComment(input: any): LiveComment | null {
   if (!input) return null;
 
-  const id = String(input.id || createId());
-  const comment = String(input.comment || input.text || input.rawText || input.raw_text || "").trim();
+  const source = unwrapSseCommentPayload(input);
+  const rawCommentValue = source.comment;
+  const commentValue =
+    typeof rawCommentValue === "object" && rawCommentValue !== null
+      ? source.text || source.commentText || source.comment_text || source.rawText || source.raw_text
+      : rawCommentValue || source.text || source.commentText || source.comment_text || source.rawText || source.raw_text;
+
+  const id = String(
+    source.externalCommentId ||
+      source.external_comment_id ||
+      source.id ||
+      source.commentId ||
+      source.comment_id ||
+      createId(),
+  );
+  const comment = String(commentValue || "").trim();
 
   if (!comment) return null;
 
-  const customerTikTokUsername = getCommentTikTokUsername(input);
+  const customerTikTokUsername = getCommentTikTokUsername(source);
   const username = String(
-    input.username || input.displayName || input.display_name || customerTikTokUsername || "Unknown user",
+    source.username || source.displayName || source.display_name || customerTikTokUsername || "Unknown user",
   );
-  const displayName = String(input.displayName || input.display_name || username);
-  const uniqueId = String(input.uniqueId || input.unique_id || input.tiktokUniqueId || input.tiktok_unique_id || "").trim();
-  const createdAt = String(input.createdAt || input.created_at || new Date().toISOString());
-  const avatar = String(input.avatar || input.avatarUrl || input.avatar_url || input.profilePictureUrl || "");
+  const displayName = String(source.displayName || source.display_name || username);
+  const uniqueId = String(source.uniqueId || source.unique_id || source.tiktokUniqueId || source.tiktok_unique_id || "").trim();
+  const createdAt = String(source.createdAt || source.created_at || new Date().toISOString());
+  const avatar = String(source.avatar || source.avatarUrl || source.avatar_url || source.profilePictureUrl || "");
 
   return {
     id,
@@ -77,21 +111,21 @@ export function normalizeComment(input: any): LiveComment | null {
     avatar,
     avatarUrl: avatar,
     comment,
-    intent: input.intent || detectIntent(comment),
-    priorityLevel: input.priorityLevel || input.priority_level || "normal",
-    finalScore: toNumber(input.finalScore || input.final_score, 0),
-    aiScore: toNumber(input.aiScore || input.ai_score, 0),
-    ruleScore: toNumber(input.ruleScore || input.rule_score, 0),
-    aiStatus: input.aiStatus || input.ai_status || "none",
-    aiReason: String(input.aiReason || input.ai_reason || ""),
-    aiModel: input.aiModel,
-    matchedReasons: toStringArray(input.matchedReasons || input.matched_reasons),
-    missingInfo: toStringArray(input.missingInfo || input.missing_info),
-    isOrderCreated: Boolean(input.isOrderCreated || input.is_order_created),
-    orderId: input.orderId || input.order_id || "",
-    dbId: input.dbId || input.db_id || input.liveCommentId || input.live_comment_id || "",
+    intent: source.intent || detectIntent(comment),
+    priorityLevel: source.priorityLevel || source.priority_level || "normal",
+    finalScore: toNumber(source.finalScore || source.final_score, 0),
+    aiScore: toNumber(source.aiScore || source.ai_score, 0),
+    ruleScore: toNumber(source.ruleScore || source.rule_score, 0),
+    aiStatus: source.aiStatus || source.ai_status || "none",
+    aiReason: String(source.aiReason || source.ai_reason || ""),
+    aiModel: source.aiModel,
+    matchedReasons: toStringArray(source.matchedReasons || source.matched_reasons),
+    missingInfo: toStringArray(source.missingInfo || source.missing_info),
+    isOrderCreated: Boolean(source.isOrderCreated || source.is_order_created),
+    orderId: source.orderId || source.order_id || "",
+    dbId: source.dbId || source.db_id || source.liveCommentId || source.live_comment_id || "",
     createdAt,
-    raw: input,
+    raw: source,
   };
 }
 

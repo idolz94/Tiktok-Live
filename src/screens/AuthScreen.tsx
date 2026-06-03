@@ -52,6 +52,7 @@ export default function AuthScreen() {
         await signInApi({
           phone,
           password,
+          remember,
         });
       } else {
         await signUpApi({

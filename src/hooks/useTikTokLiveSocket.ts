@@ -6,11 +6,11 @@ import type { LiveComment } from "@/types";
 import { useTikTokComments } from "@/features/tiktok-live/useTikTokComments";
 import { useTikTokLiveSession } from "@/features/tiktok-live/useTikTokLiveSession";
 import {
-  getSseBaseUrl,
+  buildLiveStreamEventsUrl,
   stopTikTokLiveApi,
   subscribeTikTokLiveApi,
 } from "@/features/tiktok-live/sseApi";
-import { normalizeTikTokUsername } from "@/utils/comment";
+import { normalizeTikTokUsername, unwrapSseCommentPayload } from "@/utils/comment";
 
 function createClientId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -19,21 +19,26 @@ function createClientId() {
 
   return `${Date.now()}-${Math.random()}`;
 }
+
 type UseTikTokLiveSocketOptions = {
   initialUsername?: string | null;
 };
+
+function getPayloadUsername(payload: Record<string, any>) {
+  return payload.username || payload.liveUsername || payload.tiktokUsername || payload.tiktok_username || "";
+}
 
 export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
   const eventSourceRef = useRef<EventSource | null>(null);
   const clientIdRef = useRef(createClientId());
   const isManualCloseRef = useRef(false);
-  const tiktokUsernameRef = useRef(normalizeTikTokUsername(TIKTOK_USERNAME));
+  const tiktokUsernameRef = useRef(normalizeTikTokUsername(options.initialUsername || TIKTOK_USERNAME));
 
-  const [status, setStatus] = useState("Đang kết nối server SSE...");
+  const [status, setStatus] = useState("Đang kết nối Backend SSE...");
   const [isConnected, setIsConnected] = useState(false);
   const [tiktokUsername, setTiktokUsername] = useState(
-  options.initialUsername || TIKTOK_USERNAME,
-);
+    options.initialUsername || TIKTOK_USERNAME,
+  );
 
   const {
     comments,
@@ -62,18 +67,24 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
   const handleServerEvent = useCallback(
     (type: string, payload: Record<string, any>) => {
       if (type === "CONNECTED") {
-        setStatus("Đã kết nối server SSE");
+        setStatus("Đã kết nối Backend SSE");
         setIsConnected(true);
         return;
       }
 
+      if (type === "PING") {
+        setIsConnected(true);
+        return;
+      }
+
+      // Giữ lại để tương thích nếu server cũ vẫn bắn event này.
       if (type === "SUBSCRIBING") {
-        setStatus(`Đang chuẩn bị lấy comment LIVE: ${payload.username || ""}`);
+        setStatus(`Đang chuẩn bị lấy comment LIVE: ${getPayloadUsername(payload)}`);
         return;
       }
 
       if (type === "SUBSCRIBED") {
-        const username = payload.username || payload.tiktokUsername || "";
+        const username = getPayloadUsername(payload);
 
         if (username) {
           tiktokUsernameRef.current = username;
@@ -89,13 +100,13 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
 
       if (type === "LIVE_TIME_STARTED") {
         startSessionFromPayload(payload);
-        setStatus(`Bắt đầu phiên nhận comment: ${payload.username || ""}`);
+        setStatus(`Bắt đầu phiên nhận comment: ${getPayloadUsername(payload)}`);
         return;
       }
 
       if (type === "LIVE_TIME_ENDED") {
         endSessionFromPayload(payload);
-        setStatus(`Đã lưu phiên LIVE: ${payload.username || ""}`);
+        setStatus(`Đã lưu phiên LIVE: ${getPayloadUsername(payload)}`);
         return;
       }
 
@@ -107,27 +118,35 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
       if (type === "UNSUBSCRIBED") {
         finalizeCurrentSessionLocally("unsubscribed");
         setComments([]);
-        setStatus(`Đã rời LIVE: ${payload.username || ""}`);
+        setStatus(`Đã rời LIVE: ${getPayloadUsername(payload)}`);
         return;
       }
 
       if (type === "LIVE_CONNECTED") {
-        setStatus(`Đã kết nối TikTok Live: ${payload.username || ""}`);
+        const username = getPayloadUsername(payload);
+
+        if (username) {
+          tiktokUsernameRef.current = username;
+          setTiktokUsername(username);
+        }
+
+        startSessionFromPayload(payload);
+        setStatus(`Đã kết nối TikTok Live: ${username}`);
         return;
       }
 
       if (type === "LIVE_DISCONNECTED") {
-        finalizeCurrentSessionLocally("live_disconnected");
-        setStatus(`TikTok Live đã ngắt: ${payload.username || ""}`);
+        endSessionFromPayload(payload);
+        setStatus(`TikTok Live đã ngắt: ${getPayloadUsername(payload)}`);
         return;
       }
 
       if (type === "LIVE_ERROR") {
         finalizeCurrentSessionLocally("live_error");
         setStatus(
-          `TikTok lỗi ${payload.username || ""}: ${
+          `TikTok lỗi ${getPayloadUsername(payload)}: ${
             payload.message || "Không rõ lỗi"
-          }`
+          }`,
         );
         return;
       }
@@ -153,8 +172,11 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
         return;
       }
 
-      if (type === "COMMENT") {
-        const comment = addCommentToList(payload);
+      if (type === "COMMENT" || type === "COMMENT_SAVED") {
+        // Backend mới bắn payload dạng { liveSessionId, comment }.
+        // unwrapSseCommentPayload sẽ lấy phần payload.comment để UI không bị "[object Object]".
+        startSessionFromPayload(payload);
+        const comment = addCommentToList(unwrapSseCommentPayload(payload));
 
         if (comment) {
           addCommentToCurrentSession(comment);
@@ -171,7 +193,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
       setComments,
       startSessionFromPayload,
       updateSessionStatusFromPayload,
-    ]
+    ],
   );
 
   const handleEventSourceMessage = useCallback(
@@ -185,30 +207,30 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
         }
       }
     },
-    [handleServerEvent]
+    [handleServerEvent],
   );
 
   const connectSse = useCallback(() => {
-    const baseUrl = getSseBaseUrl();
     const clientId = clientIdRef.current;
+    const url = buildLiveStreamEventsUrl(clientId);
 
-    if (!baseUrl) {
-      setStatus("Thiếu SSE URL");
+    if (!url) {
+      setStatus("Thiếu Backend SSE URL");
       return;
     }
 
     isManualCloseRef.current = false;
-
     eventSourceRef.current?.close();
 
-    const eventSource = new EventSource(
-      `${baseUrl}/events?clientId=${encodeURIComponent(clientId)}`
-    );
+    const eventSource = new EventSource(url, {
+      withCredentials: true,
+    });
 
     eventSourceRef.current = eventSource;
 
     const eventTypes = [
       "CONNECTED",
+      "PING",
       "SUBSCRIBING",
       "SUBSCRIBED",
       "LIVE_TIME_STARTED",
@@ -220,6 +242,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
       "LIVE_ERROR",
       "SNAPSHOT",
       "COMMENT",
+      "COMMENT_SAVED",
       "COMMENT_UPDATED",
     ];
 
@@ -231,14 +254,14 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
 
     eventSource.onopen = () => {
       setIsConnected(true);
-      setStatus("Đã kết nối server SSE");
+      setStatus("Đã kết nối Backend SSE");
     };
 
     eventSource.onerror = () => {
       if (isManualCloseRef.current) return;
 
       setIsConnected(false);
-      setStatus("SSE mất kết nối, browser đang tự kết nối lại...");
+      setStatus("SSE Backend mất kết nối, browser đang tự kết nối lại...");
     };
   }, [handleEventSourceMessage]);
 
@@ -260,7 +283,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
       tiktokUsernameRef.current = nextUsername;
       setTiktokUsername(nextUsername);
       setComments([]);
-      setStatus(`Đang subscribe LIVE ${nextUsername}...`);
+      setStatus(`Đang yêu cầu Backend start Python collector: ${nextUsername}...`);
 
       try {
         await subscribeTikTokLiveApi({
@@ -268,27 +291,31 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
           username: nextUsername,
         });
 
+        setStatus(`Đã gửi lệnh start collector cho ${nextUsername}, đang chờ comment...`);
         return true;
       } catch (error) {
         if (process.env.NODE_ENV === "development") {
-          console.error("SUBSCRIBE SSE ERROR:", error);
+          console.error("START LIVE STREAM ERROR:", error);
         }
 
-        setStatus("Không gọi được API subscribe Python");
+        setStatus(error instanceof Error ? error.message : "Không gọi được API start collector ở Backend");
         return false;
       }
     },
-    [finalizeCurrentSessionLocally, setComments]
+    [finalizeCurrentSessionLocally, setComments],
   );
 
   const stopLiveSession = useCallback(async () => {
     setStatus("Đang dừng nhận comment...");
 
     try {
-      await stopTikTokLiveApi(clientIdRef.current);
+      await stopTikTokLiveApi({
+        clientId: clientIdRef.current,
+        username: tiktokUsernameRef.current,
+      });
     } catch (error) {
       if (process.env.NODE_ENV === "development") {
-        console.error("STOP SSE ERROR:", error);
+        console.error("STOP LIVE STREAM ERROR:", error);
       }
     }
 
@@ -314,10 +341,13 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     isManualCloseRef.current = true;
 
     try {
-      await stopTikTokLiveApi(clientIdRef.current);
+      await stopTikTokLiveApi({
+        clientId: clientIdRef.current,
+        username: tiktokUsernameRef.current,
+      });
     } catch (error) {
       if (process.env.NODE_ENV === "development") {
-        console.error("DISCONNECT SSE ERROR:", error);
+        console.error("DISCONNECT LIVE STREAM ERROR:", error);
       }
     }
 
@@ -328,35 +358,35 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     setStatus("Đã ngắt kết nối");
   }, [finalizeCurrentSessionLocally]);
 
- useEffect(() => {
-  const timer = window.setTimeout(() => {
-    connectSse();
-  }, 0);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      connectSse();
+    }, 0);
 
-  return () => {
-    window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
 
-    isManualCloseRef.current = true;
+      isManualCloseRef.current = true;
 
-    eventSourceRef.current?.close();
-    eventSourceRef.current = null;
-  };
-}, []);
+      eventSourceRef.current?.close();
+      eventSourceRef.current = null;
+    };
+  }, [connectSse]);
 
   useEffect(() => {
-  const timer = window.setTimeout(() => {
-    const nextUsername = normalizeTikTokUsername(options.initialUsername || "");
+    const timer = window.setTimeout(() => {
+      const nextUsername = normalizeTikTokUsername(options.initialUsername || "");
 
-    if (!nextUsername) return;
+      if (!nextUsername) return;
 
-    tiktokUsernameRef.current = nextUsername;
-    setTiktokUsername(nextUsername);
-  }, 0);
+      tiktokUsernameRef.current = nextUsername;
+      setTiktokUsername(nextUsername);
+    }, 0);
 
-  return () => {
-    window.clearTimeout(timer);
-  };
-}, [options.initialUsername]);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [options.initialUsername]);
 
   return {
     status,
