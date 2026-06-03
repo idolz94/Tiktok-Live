@@ -5,7 +5,7 @@ import DashboardScreen from "../screens/DashboardScreen";
 import { useAuth } from "../hooks/useAuth";
 
 export default function HomePage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, logout } = useAuth();
 
   if (isLoading) {
     return (
@@ -18,5 +18,5 @@ export default function HomePage() {
     );
   }
 
-  return user ? <DashboardScreen /> : <AuthScreen />;
+  return user ? <DashboardScreen user={user} logout={logout} /> : <AuthScreen />;
 }

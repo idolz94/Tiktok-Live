@@ -2,9 +2,9 @@
 
 import { useCallback, useRef, useState } from "react";
 import BottomNav from "../components/BottomNav";
-import { useAuth } from "../hooks/useAuth";
 import { useTikTokLiveSocket } from "../hooks/useTikTokLiveSocket";
 import { BottomTab, LiveComment, TopTab } from "../types";
+import type { AuthUser } from "../hooks/useAuth";
 import OrderOverviewScreen from "./OrderOverviewScreen";
 import CustomersView from "./dashboard/components/CustomersView";
 import HomeView from "./dashboard/components/HomeView";
@@ -16,8 +16,12 @@ import TopSegmentTabs from "./dashboard/components/TopSegmentTabs";
 import { useOrderManager } from "./dashboard/hooks/useOrderManager";
 import { createOrderCommentKey } from "@/utils/comment";
 
-export default function DashboardScreen() {
-  const { user, logout } = useAuth();
+type DashboardScreenProps = {
+  user: AuthUser;
+  logout: () => Promise<void>;
+};
+
+export default function DashboardScreen({ user, logout }: DashboardScreenProps) {
  const registeredTikTokUsername = user?.tiktokUsername || "";
 
 const {
