@@ -169,3 +169,32 @@ Sau khi sửa:
 1. Chạy build/typecheck nếu có.
 2. Kiểm tra Network không còn call Supabase/Python.
 3. Kiểm tra SSE vẫn nhận PING/COMMENT.
+
+
+## Figma Design Workflow
+
+Repo client có thể dùng Figma MCP trong Claude Code để code UI sát design.
+
+Quy tắc:
+- Chỉ dùng Figma MCP trong repo client.
+- Không dùng Figma MCP trong backend hoặc python collector.
+- Khi user đưa Figma link, phải đọc design context trước khi code.
+- Không đoán layout nếu Figma MCP có thể đọc được design.
+- Ưu tiên map design sang Tailwind CSS.
+- Giữ đúng spacing, font size, border radius, color, shadow theo Figma.
+- Nếu design có component lặp lại, tạo component React riêng.
+- Không hardcode quá nhiều nếu có thể tách constants/components.
+- Nếu thiếu asset/icon/image, báo rõ asset nào thiếu.
+- Nếu Figma không đọc được, yêu cầu user check quyền share hoặc export screenshot.
+
+Flow code UI từ Figma:
+1. Nhận Figma link hoặc node/frame.
+2. Dùng Figma MCP đọc design context.
+3. Xác định page/component cần sửa.
+4. Tìm file UI tương ứng trong Next.js.
+5. Code bằng React + Tailwind CSS.
+6. So sánh lại với Figma.
+7. Chạy npm run build nếu có.
+
+Prompt mẫu:
+"Use Figma MCP to inspect this Figma frame: <link>. Then update the corresponding Next.js page/component to match the design using Tailwind CSS. Do not change backend API logic."

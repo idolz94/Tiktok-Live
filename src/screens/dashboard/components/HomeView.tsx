@@ -375,14 +375,14 @@ export default function HomeView({
             paidCount={paidOrders}
             draftCount={draftOrders}
             confirmedCount={confirmedOrders}
+            unpaidCount={orders.filter((o) => o.depositStatus !== "paid" && o.depositStatus !== "deposited").length}
           />
 
           <div className="pb-[26px]">
-            <SectionHeader
-              title="Đơn đã tạo"
-              actionText="Xóa đơn"
-              onAction={onClearOrders}
-            />
+            <div className="flex items-center justify-between px-4 py-2">
+              <span className="text-[13px] text-[#787878]">{filteredOrders.length} đơn</span>
+              <button type="button" onClick={onClearOrders} className="text-[13px] font-medium text-[#ff4242]">Xóa đơn</button>
+            </div>
 
             {filteredOrders.length === 0 ? (
               <div className="px-6 py-12 text-center">
