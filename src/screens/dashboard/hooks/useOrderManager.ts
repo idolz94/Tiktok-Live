@@ -62,7 +62,6 @@ export function useOrderManager({
   const [liveTab, setLiveTab] = useState<LiveTab>("live");
   const [orderFilter, setOrderFilter] = useState<OrderFilter>("all");
   const [orderSearchText, setOrderSearchText] = useState("");
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   const reloadOrders = useCallback(async () => {
     try {
@@ -155,12 +154,6 @@ export function useOrderManager({
       return searchValue.includes(keyword);
     });
   }, [orderFilter, orderSearchText, orders]);
-
-  const selectedOrder = useMemo(() => {
-    if (!selectedOrderId) return null;
-
-    return orders.find((order) => order.id === selectedOrderId) || null;
-  }, [orders, selectedOrderId]);
 
   const customers = useMemo<CustomerSummaryWithTikTok[]>(() => {
     const map = new Map<string, CustomerSummaryWithTikTok>();
@@ -324,9 +317,6 @@ export function useOrderManager({
     setOrders((prev) => prev.filter((order) => order.id !== id));
   }, []);
 
-  const openOrderOverview = useCallback((orderId: string) => setSelectedOrderId(orderId), []);
-  const closeOrderOverview = useCallback(() => setSelectedOrderId(null), []);
-
   const totalRevenue = useMemo(
     () => orders.reduce((sum, item) => sum + getOrderRevenue(item), 0),
     [orders],
@@ -336,7 +326,6 @@ export function useOrderManager({
     orders,
     filteredOrders,
     customers,
-    selectedOrder,
     orderLoading,
     orderError,
     reloadOrders,
@@ -359,7 +348,5 @@ export function useOrderManager({
     toggleDepositStatus,
     confirmOrder,
     deleteOrder,
-    openOrderOverview,
-    closeOrderOverview,
   };
 }

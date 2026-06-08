@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { DrawlerBase } from "@/components/ui/Drawler";
 import type { ShopTikTokChannel } from "@/types/database";
 import { isPriorityComment, normalizeTikTokUsername } from "@/utils/comment";
 import CommentCard from "../../../components/CommentCard";
@@ -14,7 +15,6 @@ import {
   OrderProduct,
   TopTab,
 } from "../../../types";
-import SectionHeader from "./SectionHeader";
 import StatsRow from "./StatsRow";
 
 type CommentTab = "all" | "priority";
@@ -47,8 +47,9 @@ export default function HomeView({
   tiktokUsername,
   tiktokChannels,
   isConnected,
+  showChannelSwitcher,
+  onShowChannelSwitcherChange,
   onConnectTikTokLive,
-  onDisconnectTikTokLive,
 }: {
   topTab: TopTab;
   liveTab: LiveTab;
@@ -77,15 +78,13 @@ export default function HomeView({
   tiktokUsername: string;
   tiktokChannels: ShopTikTokChannel[];
   isConnected: boolean;
+  showChannelSwitcher: boolean;
+  onShowChannelSwitcherChange: (open: boolean) => void;
   onConnectTikTokLive: (username: string) => Promise<boolean | void>;
-  onDisconnectTikTokLive: () => Promise<void>;
 }) {
   const [commentTab, setCommentTab] = useState<CommentTab>("all");
   const [selectedUsername, setSelectedUsername] = useState(tiktokUsername || "");
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isDisconnecting, setIsDisconnecting] = useState(false);
-  const [liveBarExpanded, setLiveBarExpanded] = useState(true);
-  const [showChannelSwitcher, setShowChannelSwitcher] = useState(false);
 
   const priorityComments = useMemo(() => {
     return comments.filter(isPriorityComment);
@@ -125,18 +124,6 @@ export default function HomeView({
     }
   };
 
-  const disconnectLive = async () => {
-    if (isDisconnecting) return;
-
-    try {
-      setIsDisconnecting(true);
-      await onDisconnectTikTokLive();
-      setLiveBarExpanded(true);
-    } finally {
-      setIsDisconnecting(false);
-    }
-  };
-
   if (topTab === "facebook") {
     return (
       <div className="flex-1 p-4">
@@ -146,6 +133,165 @@ export default function HomeView({
             Tính năng Facebook đang được phát triển.
           </p>
         </div>
+      </div>
+    );
+  }
+
+  // When live and connected: full-screen layout matching Figma 3:1899
+  if (isConnected && liveTab === "live") {
+    return (
+      <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#f2f2f2]">
+        {/* Tab switcher */}
+        <div className="px-4 pt-3 pb-2">
+          <div className="flex gap-2 rounded-full bg-white p-1 shadow-[0_10px_24px_rgba(255,95,138,0.08)]">
+            <button
+              type="button"
+              onClick={() => onChangeLiveTab("live")}
+              className="relative flex h-10 flex-1 items-center justify-center gap-2 rounded-full text-[14px] font-semibold bg-[#ff6b8a] text-white shadow-sm"
+            >
+              <span className="h-2 w-2 rounded-full bg-white opacity-90" />
+              Live
+            </button>
+            <button
+              type="button"
+              onClick={() => onChangeLiveTab("orders")}
+              className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full text-[14px] font-semibold text-[#787878]"
+            >
+              Đơn đã tạo
+            </button>
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <StatsRow
+          commentsCount={comments.length}
+          buyingCount={priorityComments.length || buyingCount}
+          ordersCount={orders.length}
+        />
+
+        {/* Comment section: tab filter (sticky) + scrollable list */}
+        <div className="flex min-h-0 flex-1 flex-col">
+          {/* Tab filter — neo trên đầu vùng scroll */}
+          <div className="shrink-0 flex gap-2 px-4 pb-2 mt-3">
+            <button
+              type="button"
+              onClick={() => setCommentTab("all")}
+              className={`rounded-2xl px-4 py-2 text-[13px] font-semibold ${
+                commentTab === "all"
+                  ? "bg-[#2b2b2b] text-white"
+                  : "bg-white text-[#484848]"
+              }`}
+            >
+              Tất cả · {comments.length}
+            </button>
+            <button
+              type="button"
+              onClick={() => setCommentTab("priority")}
+              className={`rounded-2xl px-4 py-2 text-[13px] font-semibold ${
+                commentTab === "priority"
+                  ? "bg-[#ff8c42] text-white"
+                  : "bg-white text-[#ff8c42]"
+              }`}
+            >
+              Ưu tiên · {priorityComments.length}
+            </button>
+            <button
+              type="button"
+              onClick={onClearComments}
+              className="ml-auto rounded-2xl bg-white px-4 py-2 text-[13px] font-semibold text-[#ff4242]"
+            >
+              Xóa
+            </button>
+          </div>
+
+          {/* Scrollable comment list */}
+          <div
+            className="overflow-y-auto overscroll-contain px-4 pb-20 [-webkit-overflow-scrolling:touch]"
+            style={{ height: "calc(100dvh - 450px)" }}
+          >
+            {currentComments.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <p className="text-center text-[15px] leading-5.5 text-[#787878]">
+                  {commentTab === "priority"
+                    ? "Chưa có comment ưu tiên."
+                    : "Đang chờ comment realtime từ TikTok LIVE."}
+                </p>
+              </div>
+            ) : (
+              currentComments.map((item) => (
+                <CommentCard
+                  key={item.id}
+                  item={item}
+                  onCreateOrder={onCreateOrderFromComment}
+                />
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Channel switcher drawer — Figma 3:1975 */}
+        <DrawlerBase
+          open={showChannelSwitcher}
+          onOpenChange={onShowChannelSwitcherChange}
+          height="auto"
+          showHandle
+          showCloseButton={false}
+          title="Chuyển kênh"
+          footer={
+            <button
+              type="button"
+              onClick={async () => {
+                await connectSelectedChannel();
+                onShowChannelSwitcherChange(false);
+              }}
+              disabled={isConnecting || !selectedUsername}
+              className="flex w-full items-center justify-center rounded-[40px] py-3.5 text-[16px] font-medium text-black disabled:opacity-60"
+              style={{
+                backgroundImage: "linear-gradient(138deg, #ff6b8a 13%, #ffa66d 52%, #ffc86a 118%)",
+              }}
+            >
+              {isConnecting ? "Đang kết nối..." : "Kết nối lại"}
+            </button>
+          }
+        >
+          <div className="flex flex-col gap-3">
+            {channelOptions.map((option) => {
+              const isActive = option.username === selectedUsername;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setSelectedUsername(option.username)}
+                  className="flex w-full items-center gap-4 rounded-2xl bg-[#f2f2f2] p-4 text-left"
+                >
+                  {/* Avatar */}
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] text-[16px] font-semibold text-[#ff6b8a]">
+                    {option.username.charAt(0).toUpperCase()}
+                  </div>
+                  {/* Info */}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14px] font-medium leading-5.5 text-black">
+                      {option.username}
+                    </p>
+                    <div className="mt-0.5 flex items-center gap-2">
+                      {/* TikTok icon */}
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" stroke="#484848" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span className="text-[12px] leading-4.5 text-[#484848]">TikTok</span>
+                    </div>
+                  </div>
+                  {/* Selected check */}
+                  {isActive && (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0">
+                      <path d="M20 6 9 17l-5-5" stroke="#ff6b8a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </DrawlerBase>
       </div>
     );
   }
@@ -184,188 +330,41 @@ export default function HomeView({
       </div>
 
       {liveTab === "live" ? (
-        <div className="overflow-auto px-3 pb-[26px] [-webkit-overflow-scrolling:touch] pt-[26px]">
-          {!isConnected ? (
-            <div className="mb-3 rounded-[24px] border border-pink-100 bg-white p-4 shadow-sm">
-              <p className="text-[15px] font-black text-[#273044]">Chọn tài khoản LIVE</p>
-              <p className="mt-1 text-xs font-semibold text-slate-400">
-                Chọn kênh TikTok rồi bấm Kết nối để bắt đầu nhận comment.
-              </p>
+        <div className="overflow-auto px-3 pb-6.5 [-webkit-overflow-scrolling:touch] pt-6.5">
+          <div className="mb-3 rounded-3xl border border-pink-100 bg-white p-4 shadow-sm">
+            <p className="text-[15px] font-black text-[#273044]">Chọn tài khoản LIVE</p>
+            <p className="mt-1 text-xs font-semibold text-slate-400">
+              Chọn kênh TikTok rồi bấm Kết nối để bắt đầu nhận comment.
+            </p>
 
-              <div className="mt-3 flex gap-2">
-                <select
-                  className="min-h-12 min-w-0 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-[15px] font-black text-[#273044] outline-none"
-                  value={selectedUsername}
-                  onChange={(event) => setSelectedUsername(event.target.value)}
-                  disabled={isConnecting}
-                >
-                  <option value="">Chọn tài khoản TikTok</option>
-                  {channelOptions.map((option) => (
-                    <option key={option.id} value={option.username}>
-                      {option.username}{option.isDefault ? " · Mặc định" : ""}
-                    </option>
-                  ))}
-                </select>
+            <div className="mt-3 flex gap-2">
+              <select
+                className="min-h-12 min-w-0 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-[15px] font-black text-[#273044] outline-none"
+                value={selectedUsername}
+                onChange={(event) => setSelectedUsername(event.target.value)}
+                disabled={isConnecting}
+              >
+                <option value="">Chọn tài khoản TikTok</option>
+                {channelOptions.map((option) => (
+                  <option key={option.id} value={option.username}>
+                    {option.username}{option.isDefault ? " · Mặc định" : ""}
+                  </option>
+                ))}
+              </select>
 
-                <button
-                  className="min-h-12 shrink-0 rounded-2xl bg-[#ff5f8a] px-5 text-[15px] font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
-                  onClick={connectSelectedChannel}
-                  type="button"
-                  disabled={isConnecting || !selectedUsername}
-                >
-                  {isConnecting ? "Đang kết nối..." : "Kết nối"}
-                </button>
-              </div>
+              <button
+                className="min-h-12 shrink-0 rounded-2xl bg-[#ff5f8a] px-5 text-[15px] font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={connectSelectedChannel}
+                type="button"
+                disabled={isConnecting || !selectedUsername}
+              >
+                {isConnecting ? "Đang kết nối..." : "Kết nối"}
+              </button>
             </div>
-          ) : (
-            <>
-              <StatsRow
-                commentsCount={comments.length}
-                buyingCount={priorityComments.length || buyingCount}
-                ordersCount={orders.length}
-              />
-
-              <SectionHeader
-                title="Comment realtime"
-                actionText="Xóa comment"
-                onAction={onClearComments}
-              />
-
-              <div className="mb-3 grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCommentTab("all")}
-                  className={[
-                    "rounded-2xl px-3 py-3 text-sm font-black",
-                    commentTab === "all"
-                      ? "bg-slate-900 text-white"
-                      : "bg-white text-slate-600",
-                  ].join(" ")}
-                >
-                  Tất cả · {comments.length}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setCommentTab("priority")}
-                  className={[
-                    "rounded-2xl px-3 py-3 text-sm font-black",
-                    commentTab === "priority"
-                      ? "bg-orange-500 text-white"
-                      : "bg-white text-orange-600",
-                  ].join(" ")}
-                >
-                  Ưu tiên · {priorityComments.length}
-                </button>
-              </div>
-
-              {currentComments.length === 0 ? (
-                <div className="px-6 py-12 text-center">
-                  <p className="m-0 text-[15px] leading-[22px] text-slate-500">
-                    {commentTab === "priority"
-                      ? "Chưa có comment ưu tiên."
-                      : "Chưa có comment. Đang chờ comment realtime từ TikTok LIVE."}
-                  </p>
-                </div>
-              ) : (
-                currentComments.map((item) => (
-                  <CommentCard
-                    key={item.id}
-                    item={item}
-                    onCreateOrder={onCreateOrderFromComment}
-                  />
-                ))
-              )}
-
-              {liveBarExpanded ? (
-                <div className="sticky bottom-3 z-20 mt-4 rounded-[24px] bg-white p-3 shadow-[0_12px_36px_rgba(15,23,42,0.18)]">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#4389dc] text-lg font-black text-white">
-                      {normalizeTikTokUsername(tiktokUsername).charAt(0).toUpperCase() || "L"}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[15px] font-black text-[#273044]">
-                        {normalizeTikTokUsername(tiktokUsername)}
-                      </p>
-                      <p className="mt-0.5 text-xs font-semibold text-slate-400">
-                        Đang LIVE · {comments.length} người đang xem
-                      </p>
-                    </div>
-
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      <button
-                        className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-600 text-lg"
-                        onClick={() => setShowChannelSwitcher((v) => !v)}
-                        type="button"
-                        aria-label="Đổi kênh"
-                      >
-                        ⇌
-                      </button>
-                      <button
-                        className="flex h-9 w-9 items-center justify-center rounded-full bg-red-50 text-red-500 disabled:opacity-50"
-                        onClick={disconnectLive}
-                        type="button"
-                        disabled={isDisconnecting}
-                        aria-label="Ngắt LIVE"
-                      >
-                        ⏻
-                      </button>
-                      <button
-                        className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-600"
-                        onClick={() => setLiveBarExpanded(false)}
-                        type="button"
-                        aria-label="Thu gọn"
-                      >
-                        ⌄
-                      </button>
-                    </div>
-                  </div>
-
-                  {showChannelSwitcher && (
-                    <div className="mt-3 flex gap-2 border-t border-slate-100 pt-3">
-                      <select
-                        className="min-h-11 min-w-0 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-[14px] font-black text-[#273044] outline-none"
-                        value={selectedUsername}
-                        onChange={(e) => setSelectedUsername(e.target.value)}
-                        disabled={isConnecting}
-                      >
-                        <option value="">Chọn tài khoản</option>
-                        {channelOptions.map((option) => (
-                          <option key={option.id} value={option.username}>
-                            {option.username}{option.isDefault ? " · Mặc định" : ""}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        className="min-h-11 shrink-0 rounded-2xl bg-[#ff5f8a] px-4 text-[14px] font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
-                        onClick={async () => {
-                          await connectSelectedChannel();
-                          setShowChannelSwitcher(false);
-                        }}
-                        type="button"
-                        disabled={isConnecting || !selectedUsername}
-                      >
-                        {isConnecting ? "..." : "Kết nối lại"}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <button
-                  className="sticky bottom-3 z-20 ml-auto mt-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#ff5f8a] text-xl font-black text-white shadow-[0_12px_30px_rgba(255,95,138,0.35)]"
-                  onClick={() => setLiveBarExpanded(true)}
-                  type="button"
-                  aria-label="Hiện điều khiển LIVE"
-                >
-                  ⌃
-                </button>
-              )}
-            </>
-          )}
+          </div>
         </div>
       ) : (
-        <div className="overflow-auto pb-[26px] [-webkit-overflow-scrolling:touch]">
+        <div className="overflow-auto pb-6.5 [-webkit-overflow-scrolling:touch]">
           <OrderFilterBar
             searchText={orderSearchText}
             onChangeSearch={onChangeOrderSearchText}
@@ -378,7 +377,7 @@ export default function HomeView({
             unpaidCount={orders.filter((o) => o.depositStatus !== "paid" && o.depositStatus !== "deposited").length}
           />
 
-          <div className="pb-[26px]">
+          <div className="pb-6.5">
             <div className="flex items-center justify-between px-4 py-2">
               <span className="text-[13px] text-[#787878]">{filteredOrders.length} đơn</span>
               <button type="button" onClick={onClearOrders} className="text-[13px] font-medium text-[#ff4242]">Xóa đơn</button>
@@ -386,7 +385,7 @@ export default function HomeView({
 
             {filteredOrders.length === 0 ? (
               <div className="px-6 py-12 text-center">
-                <p className="m-0 text-[15px] leading-[22px] text-slate-500">
+                <p className="m-0 text-[15px] leading-5.5 text-slate-500">
                   Chưa có đơn nào.
                 </p>
               </div>

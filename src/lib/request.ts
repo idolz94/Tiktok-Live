@@ -1,6 +1,8 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 const AUTH_TOKEN_KEY = process.env.NEXT_PUBLIC_AUTH_TOKEN_KEY || "LUMI_AUTH_TOKEN";
 
+let hasEmittedSessionExpired = false;
+
 export type RequestParams = Record<string, string | number | boolean | null | undefined>;
 
 export type RequestOptions = {
@@ -42,6 +44,7 @@ export function setAuthToken(token?: string | null) {
   try {
     if (token) {
       window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+      hasEmittedSessionExpired = false;
     } else {
       window.localStorage.removeItem(AUTH_TOKEN_KEY);
     }
@@ -57,6 +60,13 @@ export function clearAuthToken() {
 export function emitAuthChanged() {
   if (!isBrowser()) return;
   window.dispatchEvent(new Event("lumi-auth-change"));
+}
+
+export function emitSessionExpired() {
+  if (!isBrowser()) return;
+  if (hasEmittedSessionExpired) return;
+  hasEmittedSessionExpired = true;
+  window.dispatchEvent(new Event("lumi-session-expired"));
 }
 
 function appendParams(url: string, params?: RequestParams) {
@@ -121,6 +131,10 @@ async function handleResponse<T>(response: Response): Promise<T> {
   const result = await parseResponse(response);
 
   if (!response.ok) {
+    if (response.status === 401 || result?.code === "UNAUTHORIZED") {
+      emitSessionExpired();
+    }
+
     throw new ApiError(
       getErrorMessage(result, `API request failed: ${response.status}`),
       response.status,
@@ -130,10 +144,18 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
   if (result && typeof result === "object") {
     if ("ok" in result && !result.ok) {
+      if (response.status === 401 || result.code === "UNAUTHORIZED") {
+        emitSessionExpired();
+      }
+
       throw new ApiError(getErrorMessage(result, "API request failed"), response.status, result);
     }
 
     if ("success" in result && !result.success) {
+      if (response.status === 401 || result.code === "UNAUTHORIZED") {
+        emitSessionExpired();
+      }
+
       throw new ApiError(getErrorMessage(result, "API request failed"), response.status, result);
     }
 

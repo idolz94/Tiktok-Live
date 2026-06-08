@@ -6,17 +6,17 @@ export function Divider() {
 
 export function VndBadge() {
   return (
-    <span className="rounded-[2px] bg-[#f2f2f2] px-2 py-[3px] text-[12px] leading-[18px] font-medium text-[#161616]">VND</span>
+    <span className="rounded-xs bg-[#f2f2f2] px-2 py-0.75 text-[12px] leading-4.5 font-medium text-[#161616]">VND</span>
   );
 }
 
 export function InputField({ label, placeholder, suffix, children }: { label: string; placeholder?: string; suffix?: ReactNode; children?: ReactNode }) {
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-[14px] leading-[22px] text-[#484848]">{label}</label>
-      <div className="flex h-12 items-center gap-4 rounded-[8px] border border-black/10 px-4">
+      <label className="text-[14px] leading-5.5 text-[#484848]">{label}</label>
+      <div className="flex h-12 items-center gap-4 rounded-lg border border-black/10 px-4">
         {children ?? (
-          <input className="min-w-0 flex-1 bg-transparent text-[14px] leading-[22px] text-black outline-none placeholder:text-[#787878]" placeholder={placeholder} />
+          <input className="min-w-0 flex-1 bg-transparent text-[14px] leading-5.5 text-black outline-none placeholder:text-[#787878]" placeholder={placeholder} />
         )}
         {suffix}
       </div>
@@ -42,7 +42,7 @@ export function ShippingOption({ label, active }: { label: string; active?: bool
   return (
     <button
       type="button"
-      className={`flex h-12 items-center justify-center rounded-[40px] border px-4 text-[14px] leading-[22px] font-medium ${
+      className={`flex h-12 items-center justify-center rounded-[40px] border px-4 text-[14px] leading-5.5 font-medium ${
         active
           ? "border-[#f5c842] bg-[#fff8dc] text-black"
           : "border-black/10 bg-white text-[#484848]"
@@ -55,7 +55,7 @@ export function ShippingOption({ label, active }: { label: string; active?: bool
 
 export function UnitBadge({ unit }: { unit: string }) {
   return (
-    <span className="flex items-center gap-1 rounded-[2px] bg-[#f2f2f2] px-2 py-[3px] text-[12px] font-medium text-[#161616]">
+    <span className="flex items-center gap-1 rounded-xs bg-[#f2f2f2] px-2 py-0.75 text-[12px] font-medium text-[#161616]">
       {unit}
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
         <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />

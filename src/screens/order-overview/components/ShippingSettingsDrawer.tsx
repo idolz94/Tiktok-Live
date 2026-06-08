@@ -25,7 +25,7 @@ export function ShippingSettingsDrawer({
       height="auto"
     >
       <div className="flex flex-col gap-6">
-        <div className="rounded-xl bg-[#eaf4ff] px-4 py-3 text-[14px] leading-[22px] text-[#0f5d9f]">
+        <div className="rounded-xl bg-[#eaf4ff] px-4 py-3 text-[14px] leading-5.5 text-[#0f5d9f]">
           Kích thước sẽ tự động nhân với số lượng sản phẩm (ví dụ: 5 sản phẩm = x5 lần)
         </div>
 
@@ -42,7 +42,7 @@ export function ShippingSettingsDrawer({
               value={dimLength}
               onChange={(e) => setDimLength(e.target.value)}
               inputMode="decimal"
-              className="min-w-0 flex-1 bg-transparent text-[14px] leading-[22px] text-black outline-none"
+              className="min-w-0 flex-1 bg-transparent text-[14px] leading-5.5 text-black outline-none"
             />
           </InputField>
           <InputField label="Rộng" suffix={<UnitBadge unit="cm" />}>
@@ -50,7 +50,7 @@ export function ShippingSettingsDrawer({
               value={dimWidth}
               onChange={(e) => setDimWidth(e.target.value)}
               inputMode="decimal"
-              className="min-w-0 flex-1 bg-transparent text-[14px] leading-[22px] text-black outline-none"
+              className="min-w-0 flex-1 bg-transparent text-[14px] leading-5.5 text-black outline-none"
             />
           </InputField>
           <InputField label="Cao" suffix={<UnitBadge unit="cm" />}>
@@ -58,7 +58,7 @@ export function ShippingSettingsDrawer({
               value={dimHeight}
               onChange={(e) => setDimHeight(e.target.value)}
               inputMode="decimal"
-              className="min-w-0 flex-1 bg-transparent text-[14px] leading-[22px] text-black outline-none"
+              className="min-w-0 flex-1 bg-transparent text-[14px] leading-5.5 text-black outline-none"
             />
           </InputField>
           <InputField label="Khối lượng" suffix={<UnitBadge unit="Gram" />}>
@@ -66,7 +66,7 @@ export function ShippingSettingsDrawer({
               value={dimWeight}
               onChange={(e) => setDimWeight(e.target.value)}
               inputMode="decimal"
-              className="min-w-0 flex-1 bg-transparent text-[14px] leading-[22px] text-black outline-none"
+              className="min-w-0 flex-1 bg-transparent text-[14px] leading-5.5 text-black outline-none"
             />
           </InputField>
         </div>
