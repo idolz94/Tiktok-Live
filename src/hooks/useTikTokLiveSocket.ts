@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { TIKTOK_USERNAME } from "@/constants/config";
 import type { LiveComment } from "@/types";
 import { useTikTokComments } from "@/features/tiktok-live/useTikTokComments";
 import { useTikTokLiveSession } from "@/features/tiktok-live/useTikTokLiveSession";
 import {
   buildLiveStreamEventsUrl,
+  buildSseHeaders,
   stopTikTokLiveApi,
   subscribeTikTokLiveApi,
 } from "@/features/tiktok-live/sseApi";
@@ -29,7 +31,7 @@ function getPayloadUsername(payload: Record<string, any>) {
 }
 
 export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
-  const eventSourceRef = useRef<EventSource | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const clientIdRef = useRef(createClientId());
   const isManualCloseRef = useRef(false);
   const tiktokUsernameRef = useRef(normalizeTikTokUsername(options.initialUsername || TIKTOK_USERNAME));
@@ -196,20 +198,6 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     ],
   );
 
-  const handleEventSourceMessage = useCallback(
-    (type: string, event: MessageEvent) => {
-      try {
-        const payload = JSON.parse(String(event.data || "{}"));
-        handleServerEvent(type, payload);
-      } catch (error) {
-        if (process.env.NODE_ENV === "development") {
-          console.error("SSE parse error:", error);
-        }
-      }
-    },
-    [handleServerEvent],
-  );
-
   const connectSse = useCallback(() => {
     const clientId = clientIdRef.current;
     const url = buildLiveStreamEventsUrl(clientId);
@@ -220,15 +208,10 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     }
 
     isManualCloseRef.current = false;
-    eventSourceRef.current?.close();
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
 
-    const eventSource = new EventSource(url, {
-      withCredentials: true,
-    });
-
-    eventSourceRef.current = eventSource;
-
-    const eventTypes = [
+    const EVENT_TYPES = [
       "CONNECTED",
       "PING",
       "SUBSCRIBING",
@@ -246,24 +229,46 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
       "COMMENT_UPDATED",
     ];
 
-    eventTypes.forEach((eventType) => {
-      eventSource.addEventListener(eventType, (event) => {
-        handleEventSourceMessage(eventType, event as MessageEvent);
-      });
+    fetchEventSource(url, {
+      method: "GET",
+      headers: buildSseHeaders(),
+      credentials: "include",
+      signal: abortControllerRef.current.signal,
+      openWhenHidden: true,
+
+      onopen: async (response) => {
+        if (response.ok) {
+          setIsConnected(true);
+          setStatus("Đã kết nối Backend SSE");
+          return;
+        }
+
+        throw new Error(`SSE open failed: ${response.status}`);
+      },
+
+      onmessage: (event) => {
+        const type = event.event || "message";
+
+        if (!EVENT_TYPES.includes(type)) return;
+
+        try {
+          const payload = JSON.parse(event.data || "{}");
+          handleServerEvent(type, payload);
+        } catch (error) {
+          if (process.env.NODE_ENV === "development") {
+            console.error("SSE parse error:", error);
+          }
+        }
+      },
+
+      onerror: (error) => {
+        if (isManualCloseRef.current) throw error;
+
+        setIsConnected(false);
+        setStatus("SSE Backend mất kết nối, đang thử kết nối lại...");
+      },
     });
-
-    eventSource.onopen = () => {
-      setIsConnected(true);
-      setStatus("Đã kết nối Backend SSE");
-    };
-
-    eventSource.onerror = () => {
-      if (isManualCloseRef.current) return;
-
-      setIsConnected(false);
-      setStatus("SSE Backend mất kết nối, browser đang tự kết nối lại...");
-    };
-  }, [handleEventSourceMessage]);
+  }, [handleServerEvent]);
 
   const subscribeTikTokUsername = useCallback(
     async (username: string) => {
@@ -334,8 +339,8 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
 
     isManualCloseRef.current = false;
 
-    eventSourceRef.current?.close();
-    eventSourceRef.current = null;
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
 
     connectSse();
   }, [connectSse, finalizeCurrentSessionLocally]);
@@ -356,8 +361,8 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
       }
     }
 
-    eventSourceRef.current?.close();
-    eventSourceRef.current = null;
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
 
     setIsConnected(false);
     setStatus("Đã ngắt kết nối");
@@ -373,8 +378,8 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
 
       isManualCloseRef.current = true;
 
-      eventSourceRef.current?.close();
-      eventSourceRef.current = null;
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
     };
   }, [connectSse]);
 
