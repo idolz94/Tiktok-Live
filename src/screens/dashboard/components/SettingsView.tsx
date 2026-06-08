@@ -28,6 +28,13 @@ export default function SettingsView({
     const nextUsername = normalizeTikTokUsername(inputUsername);
     if (!nextUsername) return;
 
+    const isSameAsDefault = nextUsername === normalizeTikTokUsername(tiktokUsername);
+
+    if (isSameAsDefault) {
+      onChangeTikTokUsername(nextUsername);
+      return;
+    }
+
     setIsSaving(true);
 
     try {
