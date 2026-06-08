@@ -29,17 +29,33 @@ export function buildLiveStreamEventsUrl(clientId: string) {
   });
 }
 
+export type SubscribeTikTokLiveResult = {
+  success: boolean;
+  message: string;
+  status: string;
+  username: string;
+};
+
 export async function subscribeTikTokLiveApi({
   clientId,
   username,
 }: {
   clientId?: string;
   username: string;
-}) {
-  return postRequest<any>("/live-stream/start", {
+}): Promise<SubscribeTikTokLiveResult> {
+  const data = await postRequest<any>("/live-stream/start", {
     username,
     ...(clientId ? { clientId } : {}),
   });
+
+  const result = data?.data ?? data;
+
+  return {
+    success: Boolean(result?.success ?? data?.ok ?? true),
+    message: String(result?.message ?? ""),
+    status: String(result?.status ?? ""),
+    username: String(result?.username ?? username),
+  };
 }
 
 export async function stopTikTokLiveApi(input: string | { clientId?: string; username?: string }) {

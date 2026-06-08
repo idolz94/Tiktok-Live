@@ -66,7 +66,11 @@ export function useTikTokLiveSSE() {
         username,
       });
 
-      setSubscribedUsername(data?.collector?.username || data?.username || username);
+      setSubscribedUsername(data.username || username);
+      setStatus({
+        status: data.status || "starting",
+        message: data.message || "Đã gửi yêu cầu bắt đầu live stream.",
+      });
       return data;
     },
     [clientId],

@@ -233,32 +233,25 @@ export function useOrderManager({
   const createOrderFromComment = useCallback(
     async (item: LiveComment) => {
       try {
-        const savedOrder = await createOrderFromCommentApi({
+        const result = await createOrderFromCommentApi({
           comment: item,
           liveSessionId,
           price: 20,
           quantity: 1,
         });
 
-        const nextOrder = savedOrder.uiOrder;
-
-        setOrders((prev) => {
-          const existed = prev.some((oldOrder) => oldOrder.id === nextOrder.id);
-          if (existed) return prev;
-          return [nextOrder, ...prev];
-        });
-
+        await reloadOrders();
         setLiveTab("orders");
         onAfterCreateOrder?.();
 
-        return nextOrder;
+        return result;
       } catch (error) {
         if (process.env.NODE_ENV === "development") console.error("CREATE ORDER ERROR:", error);
         setOrderError(error instanceof Error ? error.message : "Tạo đơn thất bại.");
         throw error;
       }
     },
-    [liveSessionId, onAfterCreateOrder],
+    [liveSessionId, onAfterCreateOrder, reloadOrders],
   );
 
   const clearOrders = useCallback(() => {

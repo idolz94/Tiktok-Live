@@ -58,13 +58,20 @@ export async function getOrdersApi(): Promise<OrderWithTikTok[]> {
   return rows.map((order: any) => normalizeApiOrderForUi(order));
 }
 
+export type CreateOrderFromCommentResult = {
+  success: boolean;
+  message: string;
+  orderId: string;
+  orderCode: string;
+};
+
 export async function createOrderFromCommentApi({
   comment,
   liveSessionId,
   price = DEFAULT_PRICE,
   quantity = DEFAULT_QUANTITY,
   note = "",
-}: CreateOrderFromCommentPayload) {
+}: CreateOrderFromCommentPayload): Promise<CreateOrderFromCommentResult> {
   const data = await postRequest<any>("/orders/from-comment", {
     comment,
     liveSessionId,
@@ -73,9 +80,13 @@ export async function createOrderFromCommentApi({
     note,
   });
 
+  const result = data?.data ?? data;
+
   return {
-    ...data,
-    uiOrder: normalizeOrderResponse(data),
+    success: Boolean(result?.success ?? true),
+    message: String(result?.message ?? ""),
+    orderId: String(result?.orderId ?? result?.order_id ?? ""),
+    orderCode: String(result?.orderCode ?? result?.order_code ?? ""),
   };
 }
 

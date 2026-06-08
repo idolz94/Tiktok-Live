@@ -286,13 +286,18 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
       setStatus(`Đang yêu cầu Backend start Python collector: ${nextUsername}...`);
 
       try {
-        await subscribeTikTokLiveApi({
+        const result = await subscribeTikTokLiveApi({
           clientId: clientIdRef.current,
           username: nextUsername,
         });
 
-        setStatus(`Đã gửi lệnh start collector cho ${nextUsername}, đang chờ comment...`);
-        return true;
+        if (result.username) {
+          tiktokUsernameRef.current = result.username;
+          setTiktokUsername(result.username);
+        }
+
+        setStatus(result.message || `Đã gửi lệnh start collector cho ${nextUsername}, đang chờ comment...`);
+        return result.success;
       } catch (error) {
         if (process.env.NODE_ENV === "development") {
           console.error("START LIVE STREAM ERROR:", error);
