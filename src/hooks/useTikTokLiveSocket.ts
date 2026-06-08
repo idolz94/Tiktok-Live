@@ -288,6 +288,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
       tiktokUsernameRef.current = nextUsername;
       setTiktokUsername(nextUsername);
       setComments([]);
+      connectSse();
       setStatus(`Đang yêu cầu Backend start Python collector: ${nextUsername}...`);
 
       try {
@@ -369,19 +370,12 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
   }, [finalizeCurrentSessionLocally]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      connectSse();
-    }, 0);
-
     return () => {
-      window.clearTimeout(timer);
-
       isManualCloseRef.current = true;
-
       abortControllerRef.current?.abort();
       abortControllerRef.current = null;
     };
-  }, [connectSse]);
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

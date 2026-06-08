@@ -1,72 +1,27 @@
 "use client";
 
-import { formatDate, formatDuration } from "@/utils/comment";
-import LiveStatusPill from "../../../components/LiveStatusPill";
-import { formatTime } from "@/utils/date";
-
-type LiveSession = {
-  sessionId?: string;
-  id?: string;
-  username: string;
-  startedAt: string;
-  endedAt?: string | null;
-  durationSeconds?: number;
-  commentCount?: number;
-};
-
-export default function SessionHeader({
-  isConnected,
-  status,
-  tiktokUsername,
-  currentLiveSession,
-  liveDurationSeconds,
-  liveNowText,
-}: {
+export default function SessionHeader({}: {
   isConnected: boolean;
   status: string;
   tiktokUsername: string;
-  currentLiveSession: LiveSession | null;
+  currentLiveSession: unknown;
   liveDurationSeconds: number;
   liveNowText: string;
 }) {
-  const isRunning = Boolean(currentLiveSession?.startedAt) && !currentLiveSession?.endedAt;
-  const duration = currentLiveSession?.endedAt
-    ? currentLiveSession.durationSeconds || 0
-    : liveDurationSeconds;
-  const startTime = currentLiveSession?.startedAt ? formatTime(currentLiveSession.startedAt) : "";
-  const endTime = currentLiveSession?.endedAt
-    ? formatTime(currentLiveSession.endedAt)
-    : isRunning
-      ? liveNowText
-      : "";
-
   return (
-    <header className="bg-[#fff7cf] px-4 pt-1.5 pb-2.5">
-      <div className="flex min-h-11 items-center justify-between">
+    <header className="bg-linear-to-b from-[#FF6B8A]/30 via-[#FFA66D]/20 to-white/0 px-3 pt-3 pb-2 flex justify-between">
+        <div className="flex h-13 w-13 items-center justify-center rounded-full bg-white shadow-[0_8px_22px_rgba(67,137,220,0.18)]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-[#4389dc] to-[#62b4ff] text-base font-black text-white">
+            P
+          </div>
+        </div>
         <button
-          className="inline-flex h-[42px] w-[42px] items-center justify-center text-[40px] leading-10 text-gray-900"
+          className="flex h-13 w-13 items-center justify-center rounded-full bg-white text-[26px] text-[#273044] shadow-[0_8px_22px_rgba(15,23,42,0.08)] active:scale-95"
           type="button"
+          aria-label="Tìm kiếm"
         >
-          ‹
+          ⌕
         </button>
-        <h1 className="m-0 text-[22px] font-black text-[#273044]">Chi tiết phiên LIVE</h1>
-        <div className="inline-flex h-[42px] w-[42px] items-center justify-center text-[40px] leading-10 text-gray-900" />
-      </div>
-
-      <div className="mt-1">
-        {currentLiveSession?.startedAt ? (
-          <p className="text-lg font-bold text-gray-800">
-            ▣ phiên {formatDate(currentLiveSession.startedAt)} {startTime} - {endTime}{" "}
-            <span className="text-gray-400">({formatDuration(duration)})</span>
-          </p>
-        ) : (
-          <p className="text-lg font-bold text-gray-800">▣ Đang chờ comment đầu tiên...</p>
-        )}
-
-        <p className="m-0 mt-1 text-lg font-black text-[#273044]">☻ {tiktokUsername}</p>
-      </div>
-
-      <LiveStatusPill isConnected={isConnected} status={status} />
     </header>
   );
 }

@@ -9,6 +9,7 @@ import type { AuthUser } from "../hooks/useAuth";
 import OrderOverviewScreen from "./OrderOverviewScreen";
 import CustomersView from "./dashboard/components/CustomersView";
 import HomeView from "./dashboard/components/HomeView";
+import PlaceholderView from "./dashboard/components/PlaceholderView";
 import ReportsView from "./dashboard/components/ReportsView";
 import SessionHeader from "./dashboard/components/SessionHeader";
 import SettingsView from "./dashboard/components/SettingsView";
@@ -20,9 +21,10 @@ import { createOrderCommentKey } from "@/utils/comment";
 type DashboardScreenProps = {
   user: AuthUser;
   logout: () => Promise<void>;
+  refreshAuth: () => Promise<void>;
 };
 
-export default function DashboardScreen({ user, logout }: DashboardScreenProps) {
+export default function DashboardScreen({ user, logout, refreshAuth }: DashboardScreenProps) {
  const registeredTikTokUsername = user?.tiktokUsername || "";
 
 const {
@@ -32,6 +34,7 @@ const {
   clearComments,
   tiktokUsername,
   changeTikTokUsername,
+  disconnect,
   currentLiveSession,
   currentLiveSessionId,
   liveHistory,
@@ -41,7 +44,7 @@ const {
   initialUsername: registeredTikTokUsername,
 });
 
-  const [topTab, setTopTab] = useState<TopTab>("connect");
+  const [topTab, setTopTab] = useState<TopTab>("tiktok");
   const [bottomTab, setBottomTab] = useState<BottomTab>("home");
   const createdCommentKeysRef = useRef<Set<string>>(new Set());
   const orderManager = useOrderManager({
@@ -108,13 +111,18 @@ const handleCreateOrder = async (comment: LiveComment) => {
           onToggleDeposit={orderManager.toggleDepositStatus}
           onConfirmOrder={orderManager.confirmOrder}
           onOpenOrderOverview={orderManager.openOrderOverview}
-          liveHistory={liveHistory}
+          tiktokUsername={tiktokUsername || registeredTikTokUsername}
+          tiktokChannels={user?.tiktokChannels || []}
+          isConnected={isConnected}
+          onConnectTikTokLive={changeTikTokUsername}
+          onDisconnectTikTokLive={disconnect}
         />
       );
     }
 
     if (bottomTab === "customers") return <CustomersView customers={orderManager.customers} />;
     if (bottomTab === "shipping") return <ShippingView orders={orderManager.orders} />;
+    if (bottomTab === "history") return <PlaceholderView liveHistory={liveHistory} />;
     if (bottomTab === "reports") {
       return (
         <ReportsView
@@ -130,9 +138,11 @@ const handleCreateOrder = async (comment: LiveComment) => {
       <SettingsView
         username={user?.fullName || user?.phone || user?.username || "User"}
         tiktokUsername={tiktokUsername || registeredTikTokUsername}
+        tiktokChannels={user?.tiktokChannels || []}
         isConnected={isConnected}
         status={status}
         onChangeTikTokUsername={changeTikTokUsername}
+        onRefreshAuth={refreshAuth}
         onLogout={logout}
       />
     );
@@ -147,7 +157,12 @@ const handleCreateOrder = async (comment: LiveComment) => {
     status,
     tiktokUsername,
     topTab,
+    user?.fullName,
+    user?.phone,
+    user?.tiktokChannels,
     user?.username,
+    registeredTikTokUsername,
+    refreshAuth,
   ]);
 
   if (orderManager.selectedOrder) {
@@ -161,8 +176,8 @@ const handleCreateOrder = async (comment: LiveComment) => {
   }
 
   return (
-    <main className="min-h-screen bg-[#f4f7f8]">
-      <div className="mx-auto flex min-h-screen max-w-[620px] flex-col bg-[#f4f7f8] shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
+    <main className="min-h-screen bg-white">
+      <div className="mx-auto flex min-h-screen max-w-155 flex-col bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
         <SessionHeader
           isConnected={isConnected}
           status={status}

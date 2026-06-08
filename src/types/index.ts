@@ -169,6 +169,6 @@ export type AuthUser = {
 };
 
 export type LiveTab = "live" | "orders";
-export type TopTab = "connect" | "history";
-export type BottomTab = "home" | "customers" | "shipping" | "reports" | "settings";
+export type TopTab = "tiktok" | "facebook";
+export type BottomTab = "home" | "customers" | "shipping" | "reports" | "history" | "settings";
 export type OrderFilter = "all" | "unpaid" | "paid" | "draft" | "confirmed";

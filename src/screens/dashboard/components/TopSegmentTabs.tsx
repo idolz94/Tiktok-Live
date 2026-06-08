@@ -10,21 +10,24 @@ export default function TopSegmentTabs({
   onChange: (tab: TopTab) => void;
 }) {
   return (
-    <div className="flex bg-[#d3fbe28c] p-1">
+    <div className="flex items-center justify-center gap-12 px-3 pt-4 pb-3">
       <button
-        className={`min-h-12 flex-1 rounded-xl text-base font-black ${activeTab === "connect" ? "bg-white/80 text-[#17313a]" : "text-[#8aa09a]"}`}
-        onClick={() => onChange("connect")}
+        className={`border-b-2 px-1 pb-2 text-[20px] font-medium ${activeTab === "tiktok" ? "border-[#ff5f8a] text-[#ff5f8a]" : "border-transparent text-[#7e7474]"}`}
+        onClick={() => onChange("tiktok")}
         type="button"
       >
-        KẾT NỐI LIVE
+        Tiktok
       </button>
 
       <button
-        className={`min-h-12 flex-1 rounded-xl text-base font-black ${activeTab === "history" ? "bg-white/80 text-[#17313a]" : "text-[#8aa09a]"}`}
-        onClick={() => onChange("history")}
+        className={`relative border-b-2 px-1 pb-2 text-[20px] font-medium border-transparent text-[#7e7474] opacity-60`}
+        onClick={() => onChange("facebook")}
         type="button"
       >
-        LỊCH SỬ
+        Facebook
+        <span className="absolute -top-1.5 -right-9 rounded-full bg-slate-200 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">
+          Soon
+        </span>
       </button>
     </div>
   );

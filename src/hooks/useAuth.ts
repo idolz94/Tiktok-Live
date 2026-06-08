@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getMeBootstrapApi } from "@/api/meApi";
 import { signOutApi } from "@/api/authApi";
+import type { ShopTikTokChannel } from "@/types/database";
 
 export type AuthUser = {
   id: string;
@@ -13,6 +14,7 @@ export type AuthUser = {
   shopId?: string | null;
   shopName?: string | null;
   tiktokUsername?: string | null;
+  tiktokChannels?: ShopTikTokChannel[];
   role?: string | null;
   canUseApp?: boolean;
 };
@@ -74,6 +76,7 @@ export function useAuth(): AuthState {
             me.user.user_metadata?.default_tiktok_username ||
             me.user.user_metadata?.tiktok_id ||
             "",
+          tiktokChannels: me.tiktokChannels,
           role: me.shopMember?.role || null,
           canUseApp: me.canUseApp,
         });

@@ -64,6 +64,15 @@ export type Shop = {
   updated_at: ISODateString;
 };
 
+export type ShopTikTokChannel = {
+  id: ID;
+  shopId: ID;
+  tiktokUsername: string;
+  isDefault: boolean;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+};
+
 export type ShopMember = {
   id: ID;
   shop_id: ID;

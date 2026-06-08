@@ -1,7 +1,7 @@
 "use client";
 
-import { ApiError, getRequest, patchRequest } from "@/lib/request";
-import { Profile, Shop, ShopLicense, ShopMember } from "@/types/database";
+import { ApiError, deleteRequest, getRequest, patchRequest, postRequest } from "@/lib/request";
+import { Profile, Shop, ShopLicense, ShopMember, ShopTikTokChannel } from "@/types/database";
 
 type BootstrapUser = {
   id: string;
@@ -17,6 +17,7 @@ export type MeBootstrapResponse = {
   shopMember: ShopMember | null;
   shop: Shop | null;
   license: ShopLicense | null;
+  tiktokChannels: ShopTikTokChannel[];
   canUseApp: boolean;
   reason?: string | null;
 };
@@ -27,6 +28,7 @@ const EMPTY_ME: MeBootstrapResponse = {
   shopMember: null,
   shop: null,
   license: null,
+  tiktokChannels: [],
   canUseApp: false,
   reason: "NO_USER",
 };
@@ -93,6 +95,33 @@ function normalizeProfile(raw: any, user: BootstrapUser | null): Profile | null 
   };
 }
 
+function normalizeTikTokChannel(raw: any): ShopTikTokChannel | null {
+  if (!raw) return null;
+
+  const id = raw.id;
+  const shopId = raw.shopId || raw.shop_id;
+  const tiktokUsername = raw.tiktokUsername || raw.tiktok_username;
+
+  if (!id || !shopId || !tiktokUsername) return null;
+
+  return {
+    id: String(id),
+    shopId: String(shopId),
+    tiktokUsername: String(tiktokUsername),
+    isDefault: Boolean(raw.isDefault ?? raw.is_default),
+    createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
+    updatedAt: raw.updatedAt || raw.updated_at || new Date().toISOString(),
+  };
+}
+
+function normalizeTikTokChannels(raw: any): ShopTikTokChannel[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .map(normalizeTikTokChannel)
+    .filter((channel): channel is ShopTikTokChannel => Boolean(channel));
+}
+
 function normalizeMeBootstrap(raw: any): MeBootstrapResponse {
   const source = raw || {};
   const user = normalizeUser(source.user || source.account || source.me);
@@ -100,6 +129,9 @@ function normalizeMeBootstrap(raw: any): MeBootstrapResponse {
   const shopMember = source.shopMember || source.member || null;
   const shop = source.shop || null;
   const license = source.license || source.shopLicense || source.shop_license || null;
+  const tiktokChannels = normalizeTikTokChannels(
+    source.tiktokChannels || source.tiktok_channels,
+  );
 
   return {
     user,
@@ -107,6 +139,7 @@ function normalizeMeBootstrap(raw: any): MeBootstrapResponse {
     shopMember,
     shop,
     license,
+    tiktokChannels,
     canUseApp:
       typeof source.canUseApp === "boolean" ? source.canUseApp : isLicenseUsable(license),
     reason: source.reason || null,
@@ -124,6 +157,49 @@ export async function getMeBootstrapApi(): Promise<MeBootstrapResponse> {
 
     throw error;
   }
+}
+
+export type CreateTikTokChannelPayload = {
+  tiktokUsername: string;
+  isDefault?: boolean;
+};
+
+export type UpdateTikTokChannelPayload = {
+  tiktokUsername?: string;
+  isDefault?: boolean;
+};
+
+export async function getTikTokChannelsApi(): Promise<ShopTikTokChannel[]> {
+  const data = await getRequest<any>("/me/tiktok-channels");
+  const list = data?.data?.channels ?? data?.data ?? data?.channels ?? data;
+  return normalizeTikTokChannels(list);
+}
+
+export async function createTikTokChannelApi(
+  payload: CreateTikTokChannelPayload,
+): Promise<ShopTikTokChannel> {
+  const data = await postRequest<any>("/me/tiktok-channels", payload);
+  const channel = normalizeTikTokChannel(data?.data?.channel ?? data?.channel ?? data?.data ?? data);
+
+  if (!channel) throw new Error("Dữ liệu kênh TikTok không hợp lệ");
+
+  return channel;
+}
+
+export async function updateTikTokChannelApi(
+  channelId: string,
+  payload: UpdateTikTokChannelPayload,
+): Promise<ShopTikTokChannel> {
+  const data = await patchRequest<any>(`/me/tiktok-channels/${channelId}`, payload);
+  const channel = normalizeTikTokChannel(data?.data?.channel ?? data?.channel ?? data?.data ?? data);
+
+  if (!channel) throw new Error("Dữ liệu kênh TikTok không hợp lệ");
+
+  return channel;
+}
+
+export async function deleteTikTokChannelApi(channelId: string): Promise<void> {
+  await deleteRequest<void>(`/me/tiktok-channels/${channelId}`);
 }
 
 export async function updateDefaultTiktokUsernameApi(tiktokUsername: string): Promise<void> {

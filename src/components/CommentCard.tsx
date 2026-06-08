@@ -71,10 +71,11 @@ export default function CommentCard({
   return (
     <article
       className={[
-        "mb-3 flex rounded-[20px] border p-3.5 shadow-[0_8px_16px_rgba(15,23,42,0.08)]",
-        (isPriority && !isOwner)
-          ? "border-orange-300 bg-orange-50"
-          : "border-gray-200 bg-white",
+        "mb-3 flex rounded-[20px] border p-4 shadow-sm",
+         isOwner && 'bg-[#d5e3f4]! border-[#eaf3ff]!',
+        isPriority
+          ? "border-green-400 bg-white"
+          : "border-blue-100 bg-white",
       ].join(" ")}
     >
       <Avatar
@@ -92,79 +93,73 @@ export default function CommentCard({
 
             {item.displayName && item.username && (
               <span className="mt-0.5 block truncate text-xs font-semibold text-slate-400">
-                {item.customerTikTokUsername || `@${item.username.replace("@", "")}`}
+                {item.customerTikTokUsername || `${item.username.replace("@", "")}`}
               </span>
             )}
           </div>
 
-          {/* <div className="flex shrink-0 items-center gap-1.5">
-            <span
+          {!isOwner && (
+            <button
+              type="button"
+              disabled={isCreatingOrder}
+              onClick={handleCreateOrder}
               className={[
-                "rounded-full px-2.5 py-1 text-xs font-black",
-                getScoreColor(score),
+                "shrink-0 rounded-full px-4 py-1.5 text-sm font-black",
+                isCreatingOrder
+                  ? "bg-slate-200 text-slate-400"
+                  : isCreatedOrder
+                    ? "bg-[#ffe4ee] text-[#ff5f8a]"
+                    : "bg-[#ffe4ee] text-[#ff5f8a] active:scale-95",
               ].join(" ")}
             >
-              {score}
-            </span>
-          </div> */}
+              {isCreatingOrder ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#ff5f8a] border-t-transparent" />
+                  Đang tạo
+                </span>
+              ) : isCreatedOrder ? (
+                "In lại"
+              ) : (
+                "Tạo đơn"
+              )}
+            </button>
+          )}
         </div>
 
-        <p className="mt-1.5 wrap-break-word text-base leading-6 text-slate-700">
-          <TikTokEmojiText
-            text={commentText}
-          />
+        <p className="mt-1.5 wrap-break-word text-[15px] leading-6 text-slate-700">
+          <TikTokEmojiText text={commentText} />
         </p>
 
         {!isOwner && (
-               <div className="mt-3 flex flex-wrap gap-2 text-xs">
-          <span
-            className={[
-              "rounded-full px-2.5 py-1 font-bold",
-              isPriority
-                ? "bg-orange-100 text-orange-700"
-                : "bg-slate-100 text-slate-600",
-            ].join(" ")}
-          >
-             {getIntentText(String(item.intent || "unknown"))}
-          </span>
+          <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
+            {isPriority && (
+              <span className="flex items-center gap-1 rounded-full bg-yellow-100 px-2.5 py-1 font-black text-yellow-700">
+                👑 VIP
+              </span>
+            )}
 
-          {item.aiStatus === "pending" && (
-            <span className="rounded-full bg-yellow-100 px-2.5 py-1 font-bold text-yellow-700">
-              AI đang phân tích
-            </span>
-          )}
+            {item.matchedReasons && item.matchedReasons.length > 0 && (
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 font-bold text-slate-600">
+                {item.matchedReasons.join(" · ")}
+              </span>
+            )}
 
-          {item.aiStatus === "done" && (
-            <span className="rounded-full bg-green-100 px-2.5 py-1 font-bold text-green-700">
-              AI đã phân tích
-            </span>
-          )}
+            {!isPriority && (
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 font-bold text-slate-500">
+                {getIntentText(String(item.intent || "unknown"))}
+              </span>
+            )}
 
-          {item.aiStatus === "error" && (
-            <span className="rounded-full bg-red-100 px-2.5 py-1 font-bold text-red-600">
-              AI lỗi
-            </span>
-          )}
-
-          {isCreatedOrder && (
-            <span className="rounded-full bg-blue-100 px-2.5 py-1 font-bold text-blue-700">
-              Đã tạo đơn
-            </span>
-          )}
-        </div>
-
-        )}
-
-   
-
-        {item.matchedReasons && item.matchedReasons.length > 0 && (
-          <div className="mt-2 text-xs font-medium leading-5 text-slate-500">
-            {item.matchedReasons.join(" · ")}
+            {isCreatedOrder && (
+              <span className="rounded-full bg-blue-100 px-2.5 py-1 font-bold text-blue-700">
+                Đã tạo đơn
+              </span>
+            )}
           </div>
         )}
 
         {item.aiReason && (
-          <div className="mt-2 rounded-xl bg-white p-2 text-xs leading-5 text-slate-600">
+          <div className="mt-2 rounded-xl bg-white/70 p-2 text-xs leading-5 text-slate-500">
             {item.aiReason}
           </div>
         )}
@@ -175,32 +170,9 @@ export default function CommentCard({
           </div>
         )}
 
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <span className="text-xs text-slate-400">
-            {formatTime(item.createdAt)}
-          </span>
-
-      {!isOwner && (
-            <button
-        type="button"
-        disabled={isCreatingOrder || item.isOrderCreated}
-        onClick={handleCreateOrder}
-        className={[
-          "flex items-center justify-center gap-2 rounded-2xl px-6 py-4 text-base font-black text-white transition",
-          isCreatingOrder || item.isOrderCreated
-            ? "bg-slate-300 text-slate-500"
-            : "bg-blue-600 active:scale-95",
-        ].join(" ")}
-      >
-        {isCreatingOrder && (
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-        )}
-
-        {item.isOrderCreated ? "Đã tạo" : "Tạo đơn"}
-      </button>
-      )}
-  
-        </div>
+        <span className="mt-2 block text-xs text-slate-400">
+          {formatTime(item.createdAt)}
+        </span>
       </div>
     </article>
   );

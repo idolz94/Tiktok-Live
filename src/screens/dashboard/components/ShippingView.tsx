@@ -4,7 +4,7 @@ import { Order } from "../../../types";
 
 export default function ShippingView({ orders }: { orders: Order[] }) {
   return (
-    <div className="overflow-auto px-3 pb-[26px] [-webkit-overflow-scrolling:touch]">
+    <div className="overflow-auto px-3 pb-[26px] [-webkit-overflow-scrolling:touch] pt-[26px]">
       <div className="px-0 pt-[18px] pb-3">
         <h1 className="m-0 text-[22px] font-black text-[#273044]">Vận đơn</h1>
         <p className="mt-1 text-sm leading-5 text-slate-500">
