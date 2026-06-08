@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { DrawlerBase } from "@/components/ui/Drawler";
 import type { ShopTikTokChannel } from "@/types/database";
 import { isPriorityComment, normalizeTikTokUsername } from "@/utils/comment";
@@ -49,6 +49,7 @@ export default function HomeView({
   showChannelSwitcher,
   onShowChannelSwitcherChange,
   onConnectTikTokLive,
+  onLiveControlsHiddenChange
 }: {
   topTab: TopTab;
   liveTab: LiveTab;
@@ -80,10 +81,38 @@ export default function HomeView({
   showChannelSwitcher: boolean;
   onShowChannelSwitcherChange: (open: boolean) => void;
   onConnectTikTokLive: (username: string) => Promise<boolean | void>;
+  onLiveControlsHiddenChange?: (hidden: boolean) => void;
 }) {
   const [commentTab, setCommentTab] = useState<CommentTab>("all");
   const [selectedUsername, setSelectedUsername] = useState(tiktokUsername || "");
   const [isConnecting, setIsConnecting] = useState(false);
+
+  const lastScrollTopRef = useRef(0);
+const tickingRef = useRef(false);
+
+const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
+  const element = event.currentTarget;
+
+  if (tickingRef.current) return;
+
+  tickingRef.current = true;
+
+  requestAnimationFrame(() => {
+    const currentScrollTop = element.scrollTop;
+    const diff = currentScrollTop - lastScrollTopRef.current;
+
+    // Tránh scroll nhẹ cũng bị ẩn/hiện liên tục
+    if (Math.abs(diff) > 8) {
+      const isScrollingDown = diff > 0;
+      const shouldHide = isScrollingDown && currentScrollTop > 40;
+
+      onLiveControlsHiddenChange?.(shouldHide);
+    }
+
+    lastScrollTopRef.current = currentScrollTop;
+    tickingRef.current = false;
+  });
+};
 
   const priorityComments = useMemo(() => {
     return comments.filter(isPriorityComment);
@@ -199,7 +228,8 @@ export default function HomeView({
 
           {/* Scrollable comment list */}
           <div
-            className="overflow-y-auto overscroll-contain px-4 pb-24 [-webkit-overflow-scrolling:touch] h-auto"
+            onScroll={handleCommentListScroll}
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-28 [-webkit-overflow-scrolling:touch]"
           >
             {currentComments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16">

@@ -94,9 +94,11 @@ const ROUTES: Record<BottomTab, string> = {
 export default function BottomNav({
   username,
   liveBar,
+  footerHidden = false,
 }: {
   username: string;
   liveBar?: LiveFooterBar;
+  footerHidden?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -110,18 +112,15 @@ export default function BottomNav({
         boxShadow: "-4px -4px 24px 0px rgba(0,0,0,0.10)",
       }}
     >
-      {/* Avatar */}
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] text-[16px] font-medium text-[#ff6b8a]">
         {normalizeTikTokUsername(liveBar.username).charAt(0).toUpperCase() || "L"}
       </div>
 
-      {/* Name + stats */}
       <div className="min-w-0 flex-1">
         <p className="truncate text-[16px] font-medium leading-6 text-black">
           {normalizeTikTokUsername(liveBar.username)}
         </p>
         <div className="mt-0.5 flex items-center gap-3">
-          {/* Viewers */}
           <div className="flex items-center gap-2">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#787878" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -132,7 +131,6 @@ export default function BottomNav({
             <span className="text-[12px] leading-4.5 text-[#787878]">{liveBar.commentsCount}</span>
           </div>
           <div className="h-3 w-px bg-[#dadada]" />
-          {/* Likes / orders */}
           <div className="flex items-center gap-2">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z" stroke="#787878" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -142,9 +140,7 @@ export default function BottomNav({
         </div>
       </div>
 
-      {/* Action icons */}
       <div className="flex shrink-0 items-center gap-3 text-[#2b2b2b]">
-        {/* Switch channel */}
         <button
           type="button"
           onClick={liveBar.onSwitchChannel}
@@ -158,7 +154,6 @@ export default function BottomNav({
             <path d="M21 13v2a4 4 0 0 1-4 4H3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        {/* Settings / filter */}
         <button
           type="button"
           aria-label="Cài đặt"
@@ -169,7 +164,6 @@ export default function BottomNav({
             <path d="M1 14h6M9 8h6M17 16h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
           </svg>
         </button>
-        {/* Stop / power */}
         <button
           type="button"
           onClick={liveBar.onDisconnect}
@@ -187,7 +181,11 @@ export default function BottomNav({
   ) : null;
 
   return (
-    <footer className="fixed bottom-0 left-1/2 z-30 w-full max-w-155 -translate-x-1/2 rounded-t-[28px] border border-black/10 bg-white shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
+    <footer
+      className={`fixed bottom-0 left-1/2 z-30 w-full max-w-155 -translate-x-1/2 rounded-t-[28px] border border-black/10 bg-white shadow-[0_-8px_30px_rgba(0,0,0,0.08)] transition-[transform,opacity] duration-300 ease-out ${
+        footerHidden ? "translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"
+      }`}
+    >
       {topRow}
       <nav className="flex h-20 px-4 pb-4 pt-3">
         {ITEMS.map((item) => {

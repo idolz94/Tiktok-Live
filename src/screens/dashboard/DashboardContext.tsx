@@ -16,6 +16,8 @@ type DashboardContextValue = {
   setTopTab: (tab: TopTab) => void;
   showChannelSwitcher: boolean;
   setShowChannelSwitcher: (value: boolean) => void;
+  liveControlsHidden: boolean;
+  setLiveControlsHidden: (hidden: boolean) => void;
   isDisconnecting: boolean;
   registeredTikTokUsername: string;
   live: ReturnType<typeof useTikTokLiveSocket>;
@@ -30,6 +32,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const { user, logout, refreshAuth } = useAuth();
   const [topTab, setTopTab] = useState<TopTab>("tiktok");
   const [showChannelSwitcher, setShowChannelSwitcher] = useState(false);
+  const [liveControlsHidden, setLiveControlsHidden] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const createdCommentKeysRef = useRef<Set<string>>(new Set());
 
@@ -95,6 +98,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       setTopTab,
       showChannelSwitcher,
       setShowChannelSwitcher,
+      liveControlsHidden,
+      setLiveControlsHidden,
       isDisconnecting,
       registeredTikTokUsername,
       live,
@@ -112,6 +117,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     refreshAuth,
     registeredTikTokUsername,
     showChannelSwitcher,
+    liveControlsHidden,
     topTab,
     user,
   ]);

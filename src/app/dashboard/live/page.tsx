@@ -6,6 +6,7 @@ import { useDashboardContext } from "@/screens/dashboard/DashboardContext";
 
 export default function DashboardLivePage() {
   const router = useRouter();
+
   const {
     user,
     topTab,
@@ -15,6 +16,7 @@ export default function DashboardLivePage() {
     live,
     orderManager,
     handleCreateOrder,
+    setLiveControlsHidden,
   } = useDashboardContext();
 
   return (
@@ -49,6 +51,7 @@ export default function DashboardLivePage() {
       showChannelSwitcher={showChannelSwitcher}
       onShowChannelSwitcherChange={setShowChannelSwitcher}
       onConnectTikTokLive={live.changeTikTokUsername}
+      onLiveControlsHiddenChange={setLiveControlsHidden}
     />
   );
 }

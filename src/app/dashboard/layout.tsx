@@ -27,6 +27,7 @@ function DashboardShell({ children }: { children: ReactNode }) {
     isDisconnecting,
     registeredTikTokUsername,
     setShowChannelSwitcher,
+    liveControlsHidden,
     disconnectLive,
   } = useDashboardContext();
   const activeTab = getDashboardTabFromPathname(pathname);
@@ -47,15 +48,30 @@ function DashboardShell({ children }: { children: ReactNode }) {
           liveDurationSeconds={live.liveDurationSeconds}
           liveNowText={live.liveNowText}
         />
-        {activeTab === "home" && <TopSegmentTabs activeTab={topTab} onChange={setTopTab} />}
+        {activeTab === "home" && (
+          <TopSegmentTabs
+            activeTab={topTab}
+            onChange={setTopTab}
+          />
+        )}
         <section
-          className={`flex min-h-0 flex-col ${usesFixedContentLayout ? "overflow-hidden" : "mb-42 flex-1"}`}
-          style={usesFixedContentLayout ? { height: activeTab === "home" ? "calc(100dvh - 76px - 44px - 80px)" : "calc(100dvh - 76px - 80px)" } : undefined}
+          className={`flex min-h-0 flex-col transition-none ${usesFixedContentLayout ? "overflow-hidden" : "mb-42 flex-1"}`}
+          style={
+            usesFixedContentLayout
+              ? {
+                  height:
+                    activeTab === "home"
+                      ? "calc(100dvh - 76px - 44px - 80px)"
+                      : "calc(100dvh - 76px - 80px)",
+                }
+              : undefined
+          }
         >
           <IphoneRouteTransition>{children}</IphoneRouteTransition>
         </section>
         <BottomNav
           username={user?.fullName || user?.phone || user?.username || "User"}
+          footerHidden={liveControlsHidden && live.isConnected && activeTab === "home"}
           liveBar={
             live.isConnected && activeTab === "home" && topTab === "tiktok" && orderManager.liveTab === "live"
               ? {
