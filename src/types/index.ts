@@ -42,8 +42,53 @@ export type LiveComment = {
   orderId?: string;
   dbId?: string;
   createdAt?: string;
-  raw?: unknown;
+  raw?: RawComment;
 };
+
+export type RawComment = {
+   id: string
+  shop_id: string
+  live_session_id: string
+  customer_id: any
+  tiktok_comment_id: string
+  tiktok_username: string
+  tiktok_unique_id: string
+  display_name: string
+  avatar_url: string
+  text: string
+  raw_text: string
+  intent: string
+  has_number: boolean
+  can_create_order: boolean
+  is_order_created: boolean
+  order_id: any
+  created_at: string
+  inserted_at: string
+  external_comment_id: string
+  comment_text: string
+  priority_level: string
+  final_score: number
+  updated_at: string
+  liveSessionId: string
+  dbLiveSessionId: string
+  collectorSessionId: string
+  liveUsername: string
+  rawSsePayload: RawSsePayload
+}
+
+export interface RawSsePayload {
+  eventId: string
+  eventType: string
+  source: string
+  shopId: string
+  liveSessionId: string
+  live_session_id: string
+  externalSessionId: string
+  collectorSessionId: string
+  liveUsername: string
+  comment: Comment
+  createdAt: string
+}
 
 export type OrderProduct = {
   id: string;

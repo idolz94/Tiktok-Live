@@ -23,24 +23,24 @@ function getIntentText(intent?: string) {
   return map[String(intent || "unknown")] || String(intent || "Chưa rõ");
 }
 
-function getPriorityText(level?: string) {
-  const map: Record<string, string> = {
-    high: "Ưu tiên cao",
-    medium: "Có khả năng mua",
-    low: "Quan tâm nhẹ",
-    normal: "Bình thường",
-  };
+// function getPriorityText(level?: string) {
+//   const map: Record<string, string> = {
+//     high: "Ưu tiên cao",
+//     medium: "Có khả năng mua",
+//     low: "Quan tâm nhẹ",
+//     normal: "Bình thường",
+//   };
 
-  return map[String(level || "normal")] || String(level || "Bình thường");
-}
+//   return map[String(level || "normal")] || String(level || "Bình thường");
+// }
 
-function getScoreColor(score: number) {
-  if (score >= 75) return "bg-red-600 text-white";
-  if (score >= 50) return "bg-orange-500 text-white";
-  if (score >= 25) return "bg-yellow-100 text-yellow-700";
+// function getScoreColor(score: number) {
+//   if (score >= 75) return "bg-red-600 text-white";
+//   if (score >= 50) return "bg-orange-500 text-white";
+//   if (score >= 25) return "bg-yellow-100 text-yellow-700";
 
-  return "bg-slate-100 text-slate-600";
-}
+//   return "bg-slate-100 text-slate-600";
+// }
 
 export default function CommentCard({
   item,
@@ -53,9 +53,9 @@ export default function CommentCard({
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const isPriority = isPriorityComment(item);
   const commentText = item.comment || "";
-  const score = Number(item.finalScore || 0);
+  // const score = Number(item.finalScore || 0);
   const isCreatedOrder = Boolean(item.isOrderCreated || item.orderId);
-
+  const isOwner = item?.raw?.liveUsername === item?.raw?.tiktok_username;
   const handleCreateOrder = async () => {
   if (isCreatingOrder || item.isOrderCreated) return;
 
@@ -72,7 +72,7 @@ export default function CommentCard({
     <article
       className={[
         "mb-3 flex rounded-[20px] border p-3.5 shadow-[0_8px_16px_rgba(15,23,42,0.08)]",
-        isPriority
+        (isPriority && !isOwner)
           ? "border-orange-300 bg-orange-50"
           : "border-gray-200 bg-white",
       ].join(" ")}
@@ -97,7 +97,7 @@ export default function CommentCard({
             )}
           </div>
 
-          <div className="flex shrink-0 items-center gap-1.5">
+          {/* <div className="flex shrink-0 items-center gap-1.5">
             <span
               className={[
                 "rounded-full px-2.5 py-1 text-xs font-black",
@@ -106,7 +106,7 @@ export default function CommentCard({
             >
               {score}
             </span>
-          </div>
+          </div> */}
         </div>
 
         <p className="mt-1.5 wrap-break-word text-base leading-6 text-slate-700">
@@ -115,7 +115,8 @@ export default function CommentCard({
           />
         </p>
 
-        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+        {!isOwner && (
+               <div className="mt-3 flex flex-wrap gap-2 text-xs">
           <span
             className={[
               "rounded-full px-2.5 py-1 font-bold",
@@ -152,6 +153,10 @@ export default function CommentCard({
           )}
         </div>
 
+        )}
+
+   
+
         {item.matchedReasons && item.matchedReasons.length > 0 && (
           <div className="mt-2 text-xs font-medium leading-5 text-slate-500">
             {item.matchedReasons.join(" · ")}
@@ -175,7 +180,8 @@ export default function CommentCard({
             {formatTime(item.createdAt)}
           </span>
 
-      <button
+      {!isOwner && (
+            <button
         type="button"
         disabled={isCreatingOrder || item.isOrderCreated}
         onClick={handleCreateOrder}
@@ -192,6 +198,8 @@ export default function CommentCard({
 
         {item.isOrderCreated ? "Đã tạo" : "Tạo đơn"}
       </button>
+      )}
+  
         </div>
       </div>
     </article>
