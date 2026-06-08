@@ -189,7 +189,7 @@ export default function BottomNav({
   return (
     <footer className="fixed bottom-0 left-1/2 z-30 w-full max-w-155 -translate-x-1/2 rounded-t-[28px] border border-black/10 bg-white shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
       {topRow}
-      <nav className="flex h-20 border-t border-black/8 px-4 pb-4 pt-3">
+      <nav className="flex h-20 px-4 pb-4 pt-3">
         {ITEMS.map((item) => {
           const isActive = item.key === active;
 

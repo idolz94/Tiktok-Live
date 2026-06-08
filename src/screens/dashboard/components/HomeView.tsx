@@ -15,7 +15,6 @@ import {
   OrderProduct,
   TopTab,
 } from "../../../types";
-import StatsRow from "./StatsRow";
 
 type CommentTab = "all" | "priority";
 
@@ -162,12 +161,6 @@ export default function HomeView({
           </div>
         </div>
 
-        {/* Stats row */}
-        <StatsRow
-          commentsCount={comments.length}
-          buyingCount={priorityComments.length || buyingCount}
-          ordersCount={orders.length}
-        />
 
         {/* Comment section: tab filter (sticky) + scrollable list */}
         <div className="flex min-h-0 flex-1 flex-col">
@@ -206,8 +199,7 @@ export default function HomeView({
 
           {/* Scrollable comment list */}
           <div
-            className="overflow-y-auto overscroll-contain px-4 pb-20 [-webkit-overflow-scrolling:touch]"
-            style={{ height: "calc(100dvh - 450px)" }}
+            className="overflow-y-auto overscroll-contain px-4 pb-24 [-webkit-overflow-scrolling:touch] h-auto"
           >
             {currentComments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16">
@@ -364,7 +356,7 @@ export default function HomeView({
           </div>
         </div>
       ) : (
-        <div className="overflow-auto pb-6.5 [-webkit-overflow-scrolling:touch]">
+        <div className="h-full overflow-y-auto pb-6.5 [-webkit-overflow-scrolling:touch]">
           <OrderFilterBar
             searchText={orderSearchText}
             onChangeSearch={onChangeOrderSearchText}
@@ -377,7 +369,7 @@ export default function HomeView({
             unpaidCount={orders.filter((o) => o.depositStatus !== "paid" && o.depositStatus !== "deposited").length}
           />
 
-          <div className="pb-6.5">
+          <div className="pb-20">
             <div className="flex items-center justify-between px-4 py-2">
               <span className="text-[13px] text-[#787878]">{filteredOrders.length} đơn</span>
               <button type="button" onClick={onClearOrders} className="text-[13px] font-medium text-[#ff4242]">Xóa đơn</button>

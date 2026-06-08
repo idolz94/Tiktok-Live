@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { DrawlerBase } from "./ui/Drawler";
 import { clearAuthToken, emitAuthChanged } from "@/lib/request";
 
 export default function SessionExpiredDrawer() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -19,6 +21,7 @@ export default function SessionExpiredDrawer() {
     setOpen(false);
     clearAuthToken();
     emitAuthChanged();
+    router.replace("/");
   };
 
   return (

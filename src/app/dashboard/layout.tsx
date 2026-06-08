@@ -30,7 +30,7 @@ function DashboardShell({ children }: { children: ReactNode }) {
     disconnectLive,
   } = useDashboardContext();
   const activeTab = getDashboardTabFromPathname(pathname);
-  const usesFixedContentLayout = activeTab === "customers" || activeTab === "shipping" || activeTab === "history";
+  const usesFixedContentLayout = activeTab === "home" || activeTab === "customers" || activeTab === "shipping" || activeTab === "history";
 
   if (isDetailPath(pathname)) {
     return <IphoneRouteTransition>{children}</IphoneRouteTransition>;
@@ -50,7 +50,7 @@ function DashboardShell({ children }: { children: ReactNode }) {
         {activeTab === "home" && <TopSegmentTabs activeTab={topTab} onChange={setTopTab} />}
         <section
           className={`flex min-h-0 flex-col ${usesFixedContentLayout ? "overflow-hidden" : "mb-42 flex-1"}`}
-          style={usesFixedContentLayout ? { height: "calc(100dvh - 76px - 80px)" } : undefined}
+          style={usesFixedContentLayout ? { height: activeTab === "home" ? "calc(100dvh - 76px - 44px - 80px)" : "calc(100dvh - 76px - 80px)" } : undefined}
         >
           <IphoneRouteTransition>{children}</IphoneRouteTransition>
         </section>

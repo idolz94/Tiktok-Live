@@ -617,8 +617,9 @@ export default function OrderOverviewScreen({
       <div className="flex-1 overflow-auto pb-[208px]">
         {/* Header */}
         <header className="bg-white px-4 pb-4 pt-3">
+          <div className="h-[47px]" />
           {/* Top bar */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pb-4 pt-3">
             <button
               type="button"
               onClick={onBack}
@@ -636,21 +637,23 @@ export default function OrderOverviewScreen({
           </div>
 
           {/* Title + meta */}
-          <div className="mt-3">
-            <h1 className="text-[22px] leading-7 font-semibold text-black">
-              Tổng quan đơn hàng
-            </h1>
-            <div className="mt-1 flex items-center gap-2">
-              <span className="text-[13px] leading-5 text-[#787878]">
-                #{order.orderCode}
-              </span>
-              <span className="h-3 w-px bg-[#dadada]" />
-              <span className="text-[13px] leading-5 text-[#787878]">
-                {formatOrderDate(order.createdAt)}
-              </span>
-              <span
-                className="ml-auto rounded-full bg-[#edfaf4] px-3 py-0.5 text-[13px] font-medium text-[#2ca87b]"
-              >
+          <div className="mt-3 min-w-0">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-[24px] leading-7 font-semibold text-black">
+                  Tổng quan đơn hàng
+                </h1>
+                <div className="mt-1 flex min-w-0 items-center gap-2 text-[12px] leading-[18px] text-[#484848]">
+                  <span className="min-w-0 flex-1 truncate">
+                    Order ID: {order.orderCode || order.id}
+                  </span>
+                  <span className="h-3 w-px shrink-0 bg-[#dadada]" />
+                  <span className="shrink-0 whitespace-nowrap">
+                    {formatOrderDate(order.createdAt)}
+                  </span>
+                </div>
+              </div>
+              <span className="shrink-0 rounded-full bg-[#d9ffee] px-3 py-1 text-[12px] leading-4 font-medium text-[#2ca87b]">
                 {statusLabel(order.status)}
               </span>
             </div>
@@ -839,17 +842,9 @@ export default function OrderOverviewScreen({
       </div>
 
       {/* ── Fixed bottom bar ────────────────────────────────────────────── */}
-      <div className="fixed bottom-0 left-1/2 w-full max-w-[620px] -translate-x-1/2 border-t border-black/8 bg-white px-4 pb-8 pt-3">
-        {/* Row 1: In đơn + Chốt đơn (deposit-status toggle) */}
+      <div className="fixed bottom-0 left-1/2 w-full max-w-[620px] -translate-x-1/2 border-t border-black/10 bg-white px-4 pb-8 pt-3">
+        {/* Row 1: Cọc + Chốt đơn */}
         <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="flex flex-1 items-center justify-center gap-2 rounded-[40px] bg-[#f5c842] py-3.5 text-[15px] font-medium text-black"
-          >
-            <PrinterIcon size={18} />
-            In đơn
-          </button>
           <button
             type="button"
             onClick={() => onToggleDeposit(order.id)}
@@ -864,32 +859,25 @@ export default function OrderOverviewScreen({
               ? "Đã cọc"
               : "Chưa cọc"}
           </button>
+          <button
+            type="button"
+            className="mt-0 flex flex-1 items-center justify-center gap-2 rounded-[40px] py-3.5 text-[15px] font-medium text-white"
+            style={{ backgroundImage: "linear-gradient(90deg, #5b8dee 0%, #7b5cf0 100%)" }}
+          >
+            <ShareIcon />
+            Chia sẻ hoá đơn
+          </button>
         </div>
 
-        {/* Row 2: Chia sẻ hoá đơn */}
-        <button
-          type="button"
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-[40px] py-3.5 text-[15px] font-medium text-white"
-          style={{ backgroundImage: "linear-gradient(90deg, #5b8dee 0%, #7b5cf0 100%)" }}
-        >
-          <ShareIcon />
-          Chia sẻ hoá đơn
-        </button>
-
-        {/* Row 3: Carrier selector + Ship button */}
+        {/* Row 2: In đơn hàng (Figma style) + Ship */}
         <div className="mt-2 flex gap-2">
           <button
             type="button"
-            onClick={() => setCarrierOpen(true)}
-            className="flex flex-1 items-center gap-2 rounded-[40px] border border-black/10 bg-white px-4 py-3"
+            onClick={handlePrint}
+            className="flex flex-1 items-center justify-center gap-2 rounded-[40px] bg-[#ffe8e8] py-3.5 text-[15px] font-medium text-[#ff6b8a]"
           >
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#d71920] text-[10px] font-bold text-white">
-              VTP
-            </div>
-            <span className="flex-1 text-left text-[14px] font-medium text-black">
-              VTP - Viettel Post
-            </span>
-            <ChevronDownIcon />
+            <PrinterIcon size={18} />
+            In đơn hàng
           </button>
           <button
             type="button"
