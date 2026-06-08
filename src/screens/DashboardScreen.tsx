@@ -34,6 +34,8 @@ const {
   currentLiveSession,
   currentLiveSessionId,
   liveHistory,
+  liveDurationSeconds,
+  liveNowText,
 } = useTikTokLiveSocket({
   initialUsername: registeredTikTokUsername,
 });
@@ -161,6 +163,8 @@ const handleCreateOrder = async (comment: LiveComment) => {
           status={status}
           tiktokUsername={tiktokUsername}
           currentLiveSession={currentLiveSession}
+          liveDurationSeconds={liveDurationSeconds}
+          liveNowText={liveNowText}
         />
         {bottomTab === "home" && <TopSegmentTabs activeTab={topTab} onChange={setTopTab} />}
         <section className="mb-16 flex min-h-0 flex-1 flex-col">

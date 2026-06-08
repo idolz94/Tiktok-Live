@@ -82,6 +82,8 @@ export function useTikTokLiveSession() {
   useEffect(() => {
     if (!isRunning) return;
 
+    // Chỉ phụ thuộc isRunning: interval không restart khi session object thay đổi reference
+    // (ví dụ mỗi khi nhận comment), tránh đếm lại từ đầu.
     const timer = window.setInterval(() => {
       setNowMs(Date.now());
     }, 1000);
@@ -89,7 +91,7 @@ export function useTikTokLiveSession() {
     return () => {
       window.clearInterval(timer);
     };
-  }, [isRunning, currentLiveSession?.sessionId, currentLiveSession?.startedAt]);
+  }, [isRunning]);
 
   const liveDurationSeconds = useMemo(() => {
     if (!currentLiveSession?.startedAt) return 0;

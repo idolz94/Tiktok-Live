@@ -1,16 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { getMeBootstrapApi } from "@/api/meApi";
-import { signInApi, signUpApi } from "@/api/authApi";
+import { signInApi, signOutApi, signUpApi } from "@/api/authApi";
 import { ForgotPasswordDrawer } from "@/features/auth/ForgotPassword";
 
 type Mode = "login" | "register";
 
 export default function AuthScreen() {
-  const router = useRouter();
-
   const [mode, setMode] = useState<Mode>("login");
 
   const [fullName, setFullName] = useState("");
@@ -72,12 +69,12 @@ export default function AuthScreen() {
       }
 
       if (!me.canUseApp) {
+        await signOutApi();
         alert("Shop đã hết hạn dùng thử hoặc chưa có license.");
         return;
       }
 
-      router.replace("/");
-      router.refresh();
+      window.location.href = "/";
     } catch (error) {
       alert(
         error instanceof Error

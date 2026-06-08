@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import { formatDate, formatDuration } from "@/utils/comment";
 import LiveStatusPill from "../../../components/LiveStatusPill";
 import { formatTime } from "@/utils/date";
@@ -20,46 +19,25 @@ export default function SessionHeader({
   status,
   tiktokUsername,
   currentLiveSession,
+  liveDurationSeconds,
+  liveNowText,
 }: {
   isConnected: boolean;
   status: string;
   tiktokUsername: string;
   currentLiveSession: LiveSession | null;
+  liveDurationSeconds: number;
+  liveNowText: string;
 }) {
-  const [now, setNow] = useState(() => Date.now());
-
   const isRunning = Boolean(currentLiveSession?.startedAt) && !currentLiveSession?.endedAt;
-
-  useEffect(() => {
-    if (!isRunning) return;
-
-    const timer = setInterval(() => {
-      setNow(Date.now());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isRunning, currentLiveSession?.sessionId, currentLiveSession?.startedAt]);
-
-  const duration = useMemo(() => {
-    if (!currentLiveSession?.startedAt) return 0;
-
-    if (currentLiveSession.endedAt) {
-      return currentLiveSession.durationSeconds || 0;
-    }
-
-    const start = new Date(currentLiveSession.startedAt).getTime();
-
-    if (!start) return 0;
-
-    return Math.max(0, Math.floor((now - start) / 1000));
-  }, [currentLiveSession, now]);
-
+  const duration = currentLiveSession?.endedAt
+    ? currentLiveSession.durationSeconds || 0
+    : liveDurationSeconds;
   const startTime = currentLiveSession?.startedAt ? formatTime(currentLiveSession.startedAt) : "";
-
   const endTime = currentLiveSession?.endedAt
     ? formatTime(currentLiveSession.endedAt)
     : isRunning
-      ? formatTime(new Date(now).toISOString())
+      ? liveNowText
       : "";
 
   return (
