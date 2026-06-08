@@ -1,5 +1,5 @@
 import { DEFAULT_WS_URL } from "@/constants/config";
-import { buildApiUrl, getAuthToken, postRequest } from "@/lib/request";
+import { buildApiUrl, postRequest } from "@/lib/request";
 
 function appendParams(url: string, params: Record<string, string | undefined>) {
   const searchParams = new URLSearchParams();
@@ -19,13 +19,10 @@ export function getSseBaseUrl() {
 }
 
 export function buildLiveStreamEventsUrl(clientId: string) {
-  const accessToken = getAuthToken();
   const url = buildApiUrl("/live-stream/events");
 
   return appendParams(url, {
     clientId,
-    // EventSource không gửi được Authorization header nên truyền token qua query.
-    accessToken: accessToken || undefined,
   });
 }
 
@@ -85,11 +82,7 @@ export function sendStopBeacon({
 }) {
   if (typeof navigator === "undefined") return;
 
-  const accessToken = getAuthToken();
-  const url = appendParams(buildApiUrl("/live-stream/stop"), {
-    // sendBeacon không gửi được Authorization header nên truyền token qua query.
-    accessToken: accessToken || undefined,
-  });
+  const url = buildApiUrl("/live-stream/stop");
 
   const data = JSON.stringify({ username, ...(clientId ? { clientId } : {}) });
 
