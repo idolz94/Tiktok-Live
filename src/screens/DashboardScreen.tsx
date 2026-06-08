@@ -170,7 +170,7 @@ const handleCreateOrder = async (comment: LiveComment) => {
       <OrderOverviewScreen
         order={orderManager.selectedOrder}
         onBack={orderManager.closeOrderOverview}
-        onConfirm={orderManager.confirmOrder}
+        onToggleDeposit={orderManager.toggleDepositStatus}
       />
     );
   }

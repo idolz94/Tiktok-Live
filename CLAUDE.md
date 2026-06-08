@@ -198,3 +198,91 @@ Flow code UI từ Figma:
 
 Prompt mẫu:
 "Use Figma MCP to inspect this Figma frame: <link>. Then update the corresponding Next.js page/component to match the design using Tailwind CSS. Do not change backend API logic."
+
+---
+
+# Frontend Code Rules
+
+## Tech stack chính
+
+Repo client dùng:
+
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- Prettier
+- prettier-plugin-tailwindcss
+- eslint-config-prettier
+- SWR
+- React Hook Form
+- Zod
+- Sonner
+- Vaul
+
+---
+
+## Next.js Rules
+
+- Ưu tiên dùng App Router nếu project đang dùng `app/`.
+- Chỉ thêm `"use client"` khi component thật sự cần:
+  - useState
+  - useEffect
+  - event handler
+  - localStorage
+  - EventSource
+  - React Hook Form
+- Không đặt `"use client"` ở page/layout nếu không cần.
+- Không viết logic API trực tiếp trong component lớn.
+- Tách logic thành:
+  - `services/`
+  - `hooks/`
+  - `lib/`
+  - `types/`
+- Page chỉ nên điều phối layout và gọi component.
+- Component UI nên nhỏ, dễ đọc, dễ reuse.
+- Không gọi API trực tiếp bằng `fetch` rải rác trong component.
+- Mọi API phải đi qua `lib/request.ts` hoặc service wrapper.
+
+Ví dụ đúng:
+
+```txt
+app/live/page.tsx
+features/live/components/LiveCommentList.tsx
+features/live/hooks/useLiveStreamSse.ts
+features/live/services/live-stream.api.ts
+features/live/types/live-comment.ts
+
+
+---
+
+# GitNexus Rules
+
+Repo này dùng GitNexus để giảm context/token khi làm việc với Claude Code.
+
+## Mục tiêu
+
+- Giúp Claude Code hiểu cấu trúc repo trước khi đọc nhiều file.
+- Giảm việc grep/read toàn bộ codebase.
+- Ưu tiên tìm đúng file, đúng flow, đúng dependency trước khi sửa code.
+- Tránh việc Claude sửa nhầm file vì thiếu context.
+- Tránh nạp quá nhiều file vào context.
+
+## Quy tắc bắt buộc
+
+- Khi task yêu cầu hiểu flow lớn, phải dùng GitNexus trước khi đọc nhiều file.
+- Không đọc toàn bộ repo nếu GitNexus đã có index.
+- Không grep lan man qua nhiều thư mục nếu có thể hỏi GitNexus trước.
+- Không mở quá nhiều file cùng lúc.
+- Chỉ đọc những file GitNexus hoặc architect-agent xác định là liên quan.
+- Sau khi refactor lớn, đổi nhiều function, đổi route, đổi service, phải re-index GitNexus.
+- Sau khi git pull hoặc merge branch lớn, phải re-index GitNexus.
+- Không để GitNexus tự ghi đè `CLAUDE.md`.
+- Luôn chạy GitNexus với `--skip-agents-md` hoặc dùng `.gitnexusrc` có `skipContextFiles: true`.
+
+## Commands
+
+Index repo:
+
+```bash
+gitnexus analyze --skip-agents-md
