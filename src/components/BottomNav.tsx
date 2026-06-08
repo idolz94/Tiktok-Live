@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { normalizeTikTokUsername } from "@/utils/comment";
 import { getDashboardTabFromPathname } from "@/screens/dashboard/DashboardContext";
@@ -102,7 +103,24 @@ export default function BottomNav({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const active = getDashboardTabFromPathname(pathname);
+  const pathnameActive = getDashboardTabFromPathname(pathname);
+  const [optimisticActive, setOptimisticActive] = useState<BottomTab>(pathnameActive);
+  const active = optimisticActive;
+
+  useEffect(() => {
+    const frameId = requestAnimationFrame(() => {
+      setOptimisticActive(pathnameActive);
+    });
+
+    return () => cancelAnimationFrame(frameId);
+  }, [pathnameActive]);
+
+  useEffect(() => {
+    Object.values(ROUTES).forEach((route) => {
+      router.prefetch(route);
+    });
+  }, [router]);
+
   const topRow = liveBar ? (
     <div
       className="flex items-center gap-4 rounded-t-[20px] p-4"
@@ -195,7 +213,10 @@ export default function BottomNav({
             <button
               key={item.key}
               className="relative flex flex-1 flex-col items-center justify-center gap-1"
-              onClick={() => router.push(ROUTES[item.key])}
+              onClick={() => {
+                setOptimisticActive(item.key);
+                router.push(ROUTES[item.key]);
+              }}
               type="button"
             >
               {isActive && <span className="absolute -top-3 h-0.5 w-10 rounded-full bg-[#ff5f8a]" />}

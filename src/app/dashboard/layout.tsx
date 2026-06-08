@@ -31,15 +31,25 @@ function DashboardShell({ children }: { children: ReactNode }) {
     disconnectLive,
   } = useDashboardContext();
   const activeTab = getDashboardTabFromPathname(pathname);
-  const usesFixedContentLayout = activeTab === "home" || activeTab === "customers" || activeTab === "shipping" || activeTab === "history";
-
   if (isDetailPath(pathname)) {
-    return <IphoneRouteTransition>{children}</IphoneRouteTransition>;
+    return (
+      <main className="h-dvh overflow-hidden bg-white">
+        <div className="mx-auto h-full max-w-155 bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
+          <IphoneRouteTransition>{children}</IphoneRouteTransition>
+        </div>
+      </main>
+    );
   }
 
+  // SessionHeader ~76px, TopSegmentTabs ~44px (home only), BottomNav fixed 80px
+  const sectionHeight =
+    activeTab === "home"
+      ? "calc(100dvh - 76px - 44px - 80px)"
+      : "calc(100dvh - 76px - 80px)";
+
   return (
-    <main className="min-h-screen bg-white">
-      <div className="mx-auto flex min-h-screen max-w-155 flex-col bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
+    <main className="h-dvh overflow-hidden bg-white">
+      <div className="mx-auto flex h-full max-w-155 flex-col bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
         <SessionHeader
           isConnected={live.isConnected}
           status={live.status}
@@ -55,17 +65,8 @@ function DashboardShell({ children }: { children: ReactNode }) {
           />
         )}
         <section
-          className={`flex min-h-0 flex-col transition-none ${usesFixedContentLayout ? "overflow-hidden" : "mb-42 flex-1"}`}
-          style={
-            usesFixedContentLayout
-              ? {
-                  height:
-                    activeTab === "home"
-                      ? "calc(100dvh - 76px - 44px - 80px)"
-                      : "calc(100dvh - 76px - 80px)",
-                }
-              : undefined
-          }
+          className="min-h-0 overflow-hidden"
+          style={{ height: sectionHeight }}
         >
           <IphoneRouteTransition>{children}</IphoneRouteTransition>
         </section>

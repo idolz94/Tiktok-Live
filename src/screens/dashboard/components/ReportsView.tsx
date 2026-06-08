@@ -14,7 +14,7 @@ export default function ReportsView({
   totalRevenue: number;
 }) {
   return (
-    <div className="overflow-auto px-3 pb-[26px] [-webkit-overflow-scrolling:touch] pt-[26px]">
+    <div className="h-full overflow-y-auto px-3 pb-[26px] pt-[26px] [-webkit-overflow-scrolling:touch]">
       <div className="px-0 pt-[18px] pb-3">
         <h1 className="m-0 text-[22px] font-black text-[#273044]">Báo cáo</h1>
         <p className="mt-1 text-sm leading-5 text-slate-500">

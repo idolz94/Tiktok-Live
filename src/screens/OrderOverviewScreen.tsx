@@ -277,30 +277,28 @@ function ShippingCreateScreen({
   const [dimWeight, setDimWeight] = useState("200");
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-[620px] flex-col bg-white text-black">
-      <div className="flex-1 overflow-auto pb-[124px]">
-        <header className="bg-white px-4 pb-4 pt-3">
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={onBack}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f2f2f2]"
-            >
-              <BackIcon />
-            </button>
-            <button
-              type="button"
-              onClick={() => setDimensionsOpen(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f2f2f2]"
-            >
-              <SettingsIcon />
-            </button>
-          </div>
-          <h1 className="mt-3 text-[22px] leading-7 font-semibold text-black">
-            Tạo đơn hàng
-          </h1>
-        </header>
+    <main className="mx-auto flex h-full max-w-[480px] flex-col bg-white text-black">
+      <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between bg-white px-4 pt-3">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]"
+        >
+          <BackIcon />
+        </button>
+        <h1 className="min-w-0 flex-1 px-4 text-center text-20 font-semibold leading-7 text-black">
+          Tạo đơn hàng
+        </h1>
+        <button
+          type="button"
+          onClick={() => setDimensionsOpen(true)}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]"
+        >
+          <SettingsIcon />
+        </button>
+      </header>
 
+      <div className="min-h-0 flex-1 overflow-y-auto pb-[124px] [-webkit-overflow-scrolling:touch]">
         <Divider />
 
         <section className="px-4 py-4">
@@ -461,7 +459,7 @@ function ShippingCreateScreen({
         </section>
       </div>
 
-      <div className="fixed bottom-0 left-1/2 w-full max-w-[620px] -translate-x-1/2 border-t border-black/8 bg-white px-4 pb-8 pt-3">
+      <div className="fixed bottom-0 left-1/2 w-full max-w-[480px] -translate-x-1/2 border-t border-black/8 bg-white px-4 pb-8 pt-3">
         <div className="mb-3 flex items-center justify-between">
           <span className="text-[14px] leading-[22px] text-[#484848]">
             Phí dự kiến
@@ -612,150 +610,160 @@ export default function OrderOverviewScreen({
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-[620px] flex-col bg-white text-black">
-      {/* ── Scrollable body ──────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-auto pb-[208px]">
-        {/* Header */}
-        <header className="bg-white px-4 pb-4 pt-3">
-          <div className="h-[47px]" />
-          {/* Top bar */}
-          <div className="flex items-center justify-between pb-4 pt-3">
-            <button
-              type="button"
-              onClick={onBack}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f2f2f2]"
-            >
-              <BackIcon />
-            </button>
-            <button
-              type="button"
-              onClick={() => setSettingsOpen(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f2f2f2]"
-            >
-              <SettingsIcon />
-            </button>
-          </div>
+    <main className="mx-auto flex h-full max-w-[480px] flex-col bg-white text-black">
+      <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between bg-white px-4 pt-3">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]"
+        >
+          <BackIcon />
+        </button>
+        <h1 className="min-w-0 flex-1 px-4 text-center text-20 font-semibold leading-7 text-black">
+          Tổng quan đơn hàng
+        </h1>
+        <button
+          type="button"
+          onClick={() => setSettingsOpen(true)}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]"
+        >
+          <SettingsIcon />
+        </button>
+      </header>
 
-          {/* Title + meta */}
-          <div className="mt-3 min-w-0">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <h1 className="text-[24px] leading-7 font-semibold text-black">
-                  Tổng quan đơn hàng
-                </h1>
-                <div className="mt-1 flex min-w-0 items-center gap-2 text-[12px] leading-[18px] text-[#484848]">
-                  <span className="min-w-0 flex-1 truncate">
-                    Order ID: {order.orderCode || order.id}
-                  </span>
-                  <span className="h-3 w-px shrink-0 bg-[#dadada]" />
-                  <span className="shrink-0 whitespace-nowrap">
-                    {formatOrderDate(order.createdAt)}
-                  </span>
-                </div>
-              </div>
-              <span className="shrink-0 rounded-full bg-[#d9ffee] px-3 py-1 text-[12px] leading-4 font-medium text-[#2ca87b]">
+      {/* ── Scrollable body ──────────────────────────────────────────────── */}
+      <div className="min-h-0 flex-1 overflow-y-auto pb-[208px] [-webkit-overflow-scrolling:touch]">
+        {/* Info section */}
+        <div className="flex flex-col gap-6 px-4 pb-5 pt-3">
+          {/* Order meta + status tag */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-[12px] leading-[18px] text-[#484848]">
+              <span className="min-w-0 flex-1 truncate">
+                Order ID: {order.orderCode || order.id}
+              </span>
+              <span className="h-3 w-px shrink-0 bg-[#dadada]" />
+              <span className="shrink-0 whitespace-nowrap">
+                {formatOrderDate(order.createdAt)}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="inline-flex h-6 items-center rounded-2xl bg-[#d9ffee] px-[6px] text-[12px] font-medium leading-[18px] text-[#2ca87b]">
                 {statusLabel(order.status)}
               </span>
             </div>
           </div>
 
-          {/* Customer */}
-          <div className="mt-4 flex items-center gap-3">
-            {order.avatarUrl ? (
-              <img
-                src={order.avatarUrl}
-                alt={order.username}
-                className="h-12 w-12 rounded-full object-cover"
-              />
-            ) : (
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ffe8e8] text-[18px] font-semibold text-[#ff6b8a]">
-                {(order.customerName || order.username || "?")[0].toUpperCase()}
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-[16px] font-semibold text-black">
+          {/* Customer info */}
+          <div className="flex flex-col gap-4">
+            {/* Avatar + name */}
+            <div className="flex items-center gap-4">
+              {order.avatarUrl ? (
+                <img
+                  src={order.avatarUrl}
+                  alt={order.username}
+                  className="h-10 w-10 shrink-0 rounded-full object-cover"
+                />
+              ) : (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] text-[15px] font-semibold text-[#ff6b8a]">
+                  {(order.customerName || order.username || "?")[0].toUpperCase()}
+                </div>
+              )}
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <p className="w-full text-[16px] font-medium leading-6 text-black">
                   {order.customerName || order.username}
-                </span>
-                <span className="rounded-[4px] bg-[#ffe8e8] px-1.5 py-0.5 text-[11px] font-medium text-[#ff6b8a]">
-                  VIP
-                </span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2l2.09 6.26L20 9.27l-4.91 4.79 1.18 6.94L12 17.77l-4.27 3.23 1.18-6.94L4 9.27l5.91-1.01z" fill="#f5c842" />
+                  </svg>
+                  <span className="text-[12px] leading-[18px] font-medium text-[#484848]">VIP</span>
+                </div>
               </div>
-              <span className="text-[13px] text-[#787878]">
-                @{order.username}
-              </span>
             </div>
-          </div>
 
-          {/* Contact info */}
-          <div className="mt-3 flex flex-col gap-2">
-            <div className="flex items-center gap-2 text-[14px] text-[#484848]">
-              <PhoneIcon />
-              <span>Chưa có số điện thoại</span>
+            {/* Contact details */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <span className="shrink-0 text-[#484848]"><PhoneIcon /></span>
+                <p className="text-[12px] leading-[18px] text-[#484848]">
+                  Chưa có số điện thoại
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="shrink-0 text-[#484848]"><AddressIcon /></span>
+                <p className="text-[12px] leading-[18px] text-[#484848]">
+                  Chưa có địa chỉ
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-[14px] text-[#484848]">
-              <AddressIcon />
-              <span>Chưa có địa chỉ</span>
-            </div>
-          </div>
 
-          {/* Action pills */}
-          <div className="mt-3 flex gap-2">
-            <button
-              type="button"
-              className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full border border-black/10 text-[13px] font-medium text-black"
-            >
-              <TikTokIcon />
-              TikTok
-            </button>
-            <button
-              type="button"
-              className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full border border-black/10 text-[13px] font-medium text-black"
-            >
-              <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
-                <circle cx="24" cy="24" r="24" fill="#06C755" />
-                <path d="M38 22.7c0-7-7-12.7-15.5-12.7S7 15.7 7 22.7c0 6.3 5.6 11.5 13.1 12.5.5.1 1.2.4 1.4.9.2.4.1 1 .1 1l-.2 1.3c-.1.4-.4 1.5 1.3.8s9.4-5.5 12.8-9.5A11.4 11.4 0 0 0 38 22.7Z" fill="white" />
-              </svg>
-              Zalo
-            </button>
-            <button
-              type="button"
-              className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full border border-black/10 text-[13px] font-medium text-black"
-            >
-              <PhoneIcon />
-              Điện thoại
-            </button>
+            {/* Action pills */}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-[#f2f2f2] text-[12px] font-medium text-black"
+              >
+                <TikTokIcon />
+                Tiktok
+              </button>
+              <button
+                type="button"
+                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-[#f2f2f2] text-[12px] font-medium text-black"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M20 4H4v12h8l4 4v-4h4V4Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                  <path d="M8 10h8M8 7h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+                Zalo
+              </button>
+              <button
+                type="button"
+                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-[#f2f2f2] text-[12px] font-medium text-black"
+              >
+                <PhoneIcon />
+                Điện thoại
+              </button>
+            </div>
           </div>
-        </header>
+        </div>
 
         <Divider />
 
         {/* Products section */}
-        <section className="px-4 py-4">
-          <h2 className="text-[16px] font-semibold text-black">
-            Danh sách sản phẩm
-          </h2>
+        <section className="px-4 py-5">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-[18px] font-semibold leading-6 text-black">
+              Danh sách sản phẩm
+            </h2>
+            <button
+              type="button"
+              onClick={() => setAddProductOpen(true)}
+              className="flex shrink-0 items-center gap-1 text-[14px] font-medium leading-[22px] text-black"
+            >
+              <PlusCircleIcon />
+              Thêm mới
+            </button>
+          </div>
 
-          <div className="mt-3 flex flex-col gap-3">
+          <div className="mt-1 flex flex-col">
             {displayProducts.map((product, index) => (
-              <div key={product.id || index} className="flex items-start gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#f2f2f2] text-[11px] font-semibold text-[#484848]">
-                  {product.code?.slice(0, 3) || "SP"}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[14px] font-medium text-black">
-                    {getProductLabel(product)}
+              <div
+                key={product.id || index}
+                className="flex items-start justify-between gap-4 border-b border-black/10 py-3"
+              >
+                <p className="min-w-0 flex-1 text-[14px] font-medium leading-[22px] text-black">
+                  {getProductLabel(product)}
+                </p>
+                <div className="shrink-0 text-right">
+                  <p className="text-[14px] font-medium leading-[22px] text-black">
+                    x{product.quantity}
                   </p>
-                  <p className="text-[13px] text-[#787878]">
-                    {formatMoneyFromK(Number(product.price || 0))} ×{" "}
-                    {product.quantity}
+                  <p className="text-[14px] font-medium leading-[22px] text-[#ff6b8a]">
+                    {formatMoneyFromK(
+                      Number(product.price || 0) * Number(product.quantity || 0),
+                    )}
                   </p>
                 </div>
-                <span className="shrink-0 text-[14px] font-semibold text-[#ff6b8a]">
-                  {formatMoneyFromK(
-                    Number(product.price || 0) * Number(product.quantity || 0),
-                  )}
-                </span>
               </div>
             ))}
           </div>
@@ -763,86 +771,100 @@ export default function OrderOverviewScreen({
           {products.length > 3 && (
             <button
               type="button"
-              onClick={() => setShowAllProducts((v) => !v)}
-              className="mt-3 text-[13px] text-[#787878] underline"
+              onClick={() => setShowAllProducts((value) => !value)}
+              className="flex h-11 w-full items-center justify-center gap-1 text-[14px] font-medium leading-[22px] text-[#484848]"
             >
-              {showAllProducts
-                ? "Thu gọn"
-                : `Xem thêm ${products.length - 3} sản phẩm`}
+              {showAllProducts ? "Thu gọn" : `Xem thêm (${products.length - 3})`}
+              <ChevronDownIcon />
             </button>
           )}
 
-          {/* Add product button */}
-          <button
-            type="button"
-            onClick={() => setAddProductOpen(true)}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#ff6b8a] py-3 text-[14px] font-medium text-[#ff6b8a]"
-          >
-            <PlusCircleIcon />
-            Thêm mới
-          </button>
-
-          <div className="mt-4 flex items-center justify-between border-t border-black/8 pt-3">
-            <span className="text-[14px] text-[#484848]">
-              Tổng sản phẩm ({totalQuantity})
-            </span>
-            <span className="text-[16px] font-semibold text-[#ff6b8a]">
-              {formatMoneyFromK(productTotal)}
-            </span>
+          <div className="mt-1 flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-[14px] leading-[22px] text-[#484848]">
+                Tổng sản phẩm
+              </span>
+              <span className="text-[14px] font-medium leading-[22px] text-black">
+                {totalQuantity}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-[14px] leading-[22px] text-[#484848]">
+                Tổng tiền
+              </span>
+              <span className="text-[16px] font-semibold leading-6 text-[#ff6b8a]">
+                {formatMoneyFromK(productTotal)}
+              </span>
+            </div>
           </div>
         </section>
 
         <Divider />
 
         {/* Shipping section */}
-        <section className="px-4 py-4">
-          <h2 className="text-[16px] font-semibold text-black">
+        <section className="px-4 pb-4 pt-5">
+          <h2 className="text-[18px] font-semibold leading-6 text-black">
             Đơn vị vận chuyển
           </h2>
 
-          <div className="mt-3 flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[14px] text-[#484848]">Phí vận chuyển</span>
-              <span className="text-[14px] font-medium text-black">
+          <div className="mt-4 flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-[14px] leading-[22px] text-[#484848]">Phí vận chuyển</span>
+              <span className="text-[14px] font-medium leading-[22px] text-black">
                 {formatMoneyFromK(shippingFee)}
               </span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[14px] text-[#484848]">Trả trước</span>
-              <span className="text-[14px] font-medium text-black">
-                - {formatMoneyFromK(prepaid)}
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-[14px] leading-[22px] text-[#484848]">Trả trước</span>
+              <span className="text-[14px] font-medium leading-[22px] text-black">
+                {formatMoneyFromK(prepaid)}
               </span>
             </div>
-            <div className="flex items-center justify-between border-t border-black/8 pt-2">
-              <span className="text-[14px] font-medium text-black">
-                Còn lại
-              </span>
-              <span className="text-[16px] font-semibold text-[#ff6b8a]">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-[14px] leading-[22px] text-[#484848]">Còn lại</span>
+              <span className="text-[16px] font-semibold leading-6 text-[#ff6b8a]">
                 {formatMoneyFromK(remain)}
               </span>
             </div>
           </div>
 
-          {/* VTP Carrier card */}
           <button
             type="button"
             onClick={() => setCarrierOpen(true)}
-            className="mt-4 flex w-full items-center gap-3 rounded-xl bg-[#f2f2f2] p-3"
+            className="mt-4 w-full overflow-hidden rounded-xl border border-black/10 bg-white text-left"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#d71920] text-[11px] font-bold text-white">
-              VTP
+            <div className="flex items-center justify-between gap-4 px-4 py-3">
+              <span className="text-[14px] font-medium leading-[22px] text-black">Mã VTP</span>
+              <span className="truncate text-[14px] leading-[22px] text-[#484848]">
+                {order.orderCode || order.id}
+              </span>
             </div>
-            <div className="min-w-0 flex-1 text-left">
-              <p className="text-[14px] font-medium text-black">Viettel Post</p>
-              <p className="text-[12px] text-[#787878]">Mặc định</p>
+            <div className="flex items-center gap-3 bg-[#f2f2f2] px-4 py-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#d71920] text-[11px] font-bold text-white">
+                VTP
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[14px] font-medium leading-[22px] text-black">Viettel Post</p>
+                  <span className="shrink-0 rounded-full bg-white px-2 py-1 text-[12px] font-medium leading-[18px] text-[#2ca87b]">
+                    Đang giao hàng
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <p className="truncate text-[12px] leading-[18px] text-[#787878]">
+                    {formatOrderDate(order.createdAt)} · {order.orderCode || order.id}
+                  </p>
+                  <span className="shrink-0 rounded-full bg-black px-3 py-1.5 text-[12px] font-medium leading-[18px] text-white">
+                    Theo dõi
+                  </span>
+                </div>
+              </div>
             </div>
-            <ChevronRightIcon />
           </button>
         </section>
       </div>
 
-      {/* ── Fixed bottom bar ────────────────────────────────────────────── */}
-      <div className="fixed bottom-0 left-1/2 w-full max-w-[620px] -translate-x-1/2 border-t border-black/10 bg-white px-4 pb-8 pt-3">
+      <div className="fixed bottom-0 left-1/2 w-full max-w-[480px] -translate-x-1/2 border-t border-black/10 bg-white px-4 py-3">
         {/* Row 1: Cọc + Chốt đơn */}
         <div className="flex gap-3">
           <button

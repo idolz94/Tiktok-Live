@@ -31,7 +31,7 @@ export function ShippingCreateScreen({
     : "40.000";
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-[620px] flex-col bg-white text-black">
+    <main className="mx-auto flex min-h-screen max-w-[480px] flex-col bg-white text-black">
       <div className="flex-1 overflow-auto pb-[124px]">
         <header className="bg-white px-4 pb-4 pt-3">
           <div className="flex items-center justify-between">
@@ -206,7 +206,7 @@ export function ShippingCreateScreen({
         </section>
       </div>
 
-      <div className="fixed bottom-0 left-1/2 w-full max-w-[620px] -translate-x-1/2 border-t border-black/8 bg-white px-4 pb-8 pt-3">
+      <div className="fixed bottom-0 left-1/2 w-full max-w-[480px] -translate-x-1/2 border-t border-black/8 bg-white px-4 pb-8 pt-3">
         <div className="mb-3 flex items-center justify-between">
           <span className="text-[14px] leading-5.5 text-[#484848]">Phí dự kiến</span>
           <span className="text-[18px] font-semibold text-black">0 ₫</span>

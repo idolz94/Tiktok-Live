@@ -346,7 +346,7 @@ export default function SettingsView({
 
   if (subScreen === "tiktokChannels") {
     return (
-      <div className="overflow-auto px-3 pb-[26px] [-webkit-overflow-scrolling:touch] pt-[26px]">
+      <div className="h-full overflow-y-auto px-3 pb-[26px] pt-[26px] [-webkit-overflow-scrolling:touch]">
         <div className="flex items-center gap-2 px-0 pt-[18px] pb-3">
           <button
             className="inline-flex h-11 w-11 items-center justify-center text-[36px] leading-none text-gray-900"
@@ -461,7 +461,7 @@ export default function SettingsView({
   }
 
   return (
-    <div className="overflow-auto px-3 pb-[26px] [-webkit-overflow-scrolling:touch] pt-[26px]">
+    <div className="h-full overflow-y-auto px-3 pb-[26px] pt-[26px] [-webkit-overflow-scrolling:touch]">
       <div className="px-0 pt-[18px] pb-3">
         <h1 className="m-0 text-[22px] font-black text-[#273044]">Cài đặt</h1>
         <p className="mt-1 text-sm leading-5 text-slate-500">Thông tin kết nối và tài khoản</p>
