@@ -64,7 +64,7 @@ export function useTikTokLiveSession() {
       setLiveHistory(history);
       return history;
     } catch (error) {
-      console.log("LOAD LIVE HISTORY ERROR:", error);
+      if (process.env.NODE_ENV === "development") console.error("LOAD LIVE HISTORY ERROR:", error);
       return [];
     }
   }, []);

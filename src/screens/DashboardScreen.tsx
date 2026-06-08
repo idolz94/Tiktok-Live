@@ -65,7 +65,7 @@ const handleCreateOrder = async (comment: LiveComment) => {
   } catch (error) {
     createdCommentKeysRef.current.delete(commentKey);
 
-    console.log("CREATE ORDER ERROR:", error);
+    if (process.env.NODE_ENV === "development") console.error("CREATE ORDER ERROR:", error);
     alert(error instanceof Error ? error.message : "Tạo đơn thất bại");
 
     return false;

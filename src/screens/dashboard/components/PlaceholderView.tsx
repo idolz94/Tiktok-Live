@@ -144,9 +144,7 @@ export default function PlaceholderView({ liveHistory }: { liveHistory: LiveHist
                       <button
                         type="button"
                         className="ml-3 text-3xl leading-none text-gray-500"
-                        onClick={() => {
-                          console.log("go detail session:", item);
-                        }}
+                        onClick={() => {}}
                       >
                         ›
                       </button>

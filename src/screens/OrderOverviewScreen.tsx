@@ -95,9 +95,6 @@ export default function OrderOverviewScreen({
 
   function connectPrinter() {
     setShowPrinterModal(false);
-    console.log(
-      "Kết nối máy in\nBước tiếp theo cần tích hợp máy in thật: AirPrint/WiFi hoặc máy in nhiệt Bluetooth."
-    );
   }
 
   function handlePrint() {
@@ -123,11 +120,11 @@ export default function OrderOverviewScreen({
     }
 
     await navigator.clipboard?.writeText(text);
-    console.log("Đã copy thông tin hoá đơn vào clipboard");
+    alert("Đã copy thông tin hoá đơn.");
   }
 
   function handleShip() {
-    console.log("Tạo vận đơn\nBạn có thể tích hợp Viettel Post API ở bước tiếp theo.");
+    alert("Tính năng tạo vận đơn sẽ được tích hợp ở bước tiếp theo.");
   }
 
   return (

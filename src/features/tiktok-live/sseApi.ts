@@ -30,6 +30,7 @@ export function buildLiveStreamEventsUrl(clientId: string) {
 }
 
 export async function subscribeTikTokLiveApi({
+  clientId,
   username,
 }: {
   clientId?: string;
@@ -37,10 +38,12 @@ export async function subscribeTikTokLiveApi({
 }) {
   return postRequest<any>("/live-stream/start", {
     username,
+    ...(clientId ? { clientId } : {}),
   });
 }
 
 export async function stopTikTokLiveApi(input: string | { clientId?: string; username?: string }) {
+  const clientId = typeof input === "string" ? undefined : input.clientId;
   const username = typeof input === "string" ? "" : String(input.username || "").trim();
 
   if (!username) {
@@ -53,18 +56,26 @@ export async function stopTikTokLiveApi(input: string | { clientId?: string; use
 
   return postRequest<any>("/live-stream/stop", {
     username,
+    ...(clientId ? { clientId } : {}),
   });
 }
 
-export function sendStopBeacon({ username }: { clientId?: string; username?: string }) {
+export function sendStopBeacon({
+  clientId,
+  username,
+}: {
+  clientId?: string;
+  username?: string;
+}) {
   if (typeof navigator === "undefined") return;
 
   const accessToken = getAuthToken();
   const url = appendParams(buildApiUrl("/live-stream/stop"), {
+    // sendBeacon không gửi được Authorization header nên truyền token qua query.
     accessToken: accessToken || undefined,
   });
 
-  const data = JSON.stringify({ username });
+  const data = JSON.stringify({ username, ...(clientId ? { clientId } : {}) });
 
   navigator.sendBeacon(
     url,

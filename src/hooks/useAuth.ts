@@ -78,7 +78,7 @@ export function useAuth(): AuthState {
           canUseApp: me.canUseApp,
         });
       } catch (authError) {
-        console.log("AUTH REFRESH ERROR:", authError);
+        if (process.env.NODE_ENV === "development") console.error("AUTH REFRESH ERROR:", authError);
 
         setUser(null);
         setError(

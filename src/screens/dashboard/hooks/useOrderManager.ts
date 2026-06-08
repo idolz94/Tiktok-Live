@@ -70,10 +70,9 @@ export function useOrderManager({
       setOrderError("");
 
       const nextOrders = await getOrdersApi();
-      console.log("nextOrders : ",nextOrders);
       setOrders(nextOrders);
     } catch (error) {
-      console.log("LOAD ORDERS ERROR:", error);
+      if (process.env.NODE_ENV === "development") console.error("LOAD ORDERS ERROR:", error);
       setOrderError(error instanceof Error ? error.message : "Không tải được đơn hàng.");
     } finally {
       setOrderLoading(false);
@@ -254,7 +253,7 @@ export function useOrderManager({
 
         return nextOrder;
       } catch (error) {
-        console.log("CREATE ORDER ERROR:", error);
+        if (process.env.NODE_ENV === "development") console.error("CREATE ORDER ERROR:", error);
         setOrderError(error instanceof Error ? error.message : "Tạo đơn thất bại.");
         throw error;
       }

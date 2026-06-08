@@ -5,7 +5,7 @@ Bản này được clone từ `src` React Native sang Next.js web app.
 ## Update mới
 
 - Đã bỏ `useContext` / `AuthProvider`.
-- Auth hiện dùng `SWR` trong `src/hooks/useAuth.ts`.
+- Auth dùng hook `src/hooks/useAuth.ts`.
 - Đã thêm `Tailwind CSS`.
 - Có sẵn component nhẹ tự viết ở `src/components/ui/Button.tsx` và `src/components/ui/Input.tsx`.
 - Có file `DESIGN_GUIDE.md` để chọn hướng UI mobile nhẹ.
@@ -32,22 +32,28 @@ Tài khoản demo:
 admin / 123456
 ```
 
-## WebSocket Python
+## Backend & SSE
 
-Mặc định app đọc URL từ `.env.local`:
+App kết nối backend qua biến môi trường trong `.env.local`:
 
 ```env
-NEXT_PUBLIC_WS_URL=ws://localhost:8765
-NEXT_PUBLIC_TIKTOK_USERNAME=conlavungday02
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
+NEXT_PUBLIC_TIKTOK_USERNAME=your_tiktok_username
 ```
 
-Nếu Python server đang chạy IP khác, sửa `NEXT_PUBLIC_WS_URL` rồi restart `npm run dev`.
+Backend cần expose các endpoint:
+
+- `POST /live-stream/start` — bắt đầu collector TikTok Live
+- `GET /live-stream/events` — SSE stream nhận comment realtime
+- `POST /live-stream/stop` — dừng collector
+
+Nếu deploy lên domain thật, đảm bảo backend chạy HTTPS và `NEXT_PUBLIC_API_URL` trỏ đúng host.
 
 ## Những phần đã chuyển
 
 - Login/Register UI
 - Dashboard
-- Kết nối WebSocket TikTok Live
+- Kết nối TikTok Live qua SSE/backend API
 - Realtime comment
 - Tạo đơn từ comment
 - Bộ lọc đơn
@@ -61,6 +67,6 @@ Nếu Python server đang chạy IP khác, sửa `NEXT_PUBLIC_WS_URL` rồi rest
 
 - Không còn `ios/`, `android/`, CocoaPods, Xcode.
 - Đây là web app, chạy bằng browser.
-- Nếu deploy lên domain thật, Python socket cũng phải deploy lên server thật và dùng `wss://...` thay vì `ws://localhost:8765`.
+- Nếu deploy lên domain thật, backend cần hỗ trợ REST API và SSE qua HTTPS.
 
 # Tiktok-Live
