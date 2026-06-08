@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { DEFAULT_WS_URL } from "../../../constants/config";
 import { normalizeTikTokUsername } from "@/utils/comment";
+import { updateDefaultTiktokUsernameApi } from "@/api/meApi";
 
 export default function SettingsView({
   username,
@@ -20,12 +22,23 @@ export default function SettingsView({
   onLogout: () => void;
 }) {
   const [inputUsername, setInputUsername] = useState(() => tiktokUsername);
-  
+  const [isSaving, setIsSaving] = useState(false);
 
-  const submitTikTokUsername = () => {
+  const submitTikTokUsername = async () => {
     const nextUsername = normalizeTikTokUsername(inputUsername);
     if (!nextUsername) return;
-    onChangeTikTokUsername(nextUsername);
+
+    setIsSaving(true);
+
+    try {
+      await updateDefaultTiktokUsernameApi(nextUsername);
+      onChangeTikTokUsername(nextUsername);
+      toast.success("Đã cập nhật TikTok username");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Cập nhật thất bại");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -58,11 +71,12 @@ export default function SettingsView({
           />
 
           <button
-            className="ml-2 min-h-[46px] rounded-xl bg-[#f2c300] px-[14px] text-[13px] font-black text-white"
+            className="ml-2 min-h-[46px] rounded-xl bg-[#f2c300] px-[14px] text-[13px] font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
             onClick={submitTikTokUsername}
             type="button"
+            disabled={isSaving}
           >
-            Start live
+            {isSaving ? "Đang lưu..." : "Start live"}
           </button>
         </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
 import BottomNav from "../components/BottomNav";
 import { useTikTokLiveSocket } from "../hooks/useTikTokLiveSocket";
 import { BottomTab, LiveComment, TopTab } from "../types";
@@ -15,7 +16,6 @@ import ShippingView from "./dashboard/components/ShippingView";
 import TopSegmentTabs from "./dashboard/components/TopSegmentTabs";
 import { useOrderManager } from "./dashboard/hooks/useOrderManager";
 import { createOrderCommentKey } from "@/utils/comment";
-import { DrawlerBase } from "@/components/ui/Drawler";
 
 type DashboardScreenProps = {
   user: AuthUser;
@@ -43,8 +43,6 @@ const {
 
   const [topTab, setTopTab] = useState<TopTab>("connect");
   const [bottomTab, setBottomTab] = useState<BottomTab>("home");
-  const [orderMessage, setOrderMessage] = useState("");
-  const [orderCode, setOrderCode] = useState("");
   const createdCommentKeysRef = useRef<Set<string>>(new Set());
   const orderManager = useOrderManager({
     comments,
@@ -67,8 +65,7 @@ const handleCreateOrder = async (comment: LiveComment) => {
     const result = await orderManager.createOrderFromComment(comment);
 
     if (result?.message) {
-      setOrderCode(result.orderCode || "");
-      setOrderMessage(result.message);
+      toast.success(result.message);
     }
 
     return true;
@@ -179,36 +176,6 @@ const handleCreateOrder = async (comment: LiveComment) => {
           {renderCurrentBottomView()}
         </section>
         <BottomNav active={bottomTab} onChange={setBottomTab} />
-        <DrawlerBase
-          open={Boolean(orderMessage)}
-          onOpenChange={(open) => {
-            if (!open) {
-              setOrderMessage("");
-              setOrderCode("");
-            }
-          }}
-          title="Thông báo đơn hàng"
-          height="auto"
-          footer={
-            <button
-              className="w-full rounded-xl bg-[#e9b834] py-3 text-base font-black text-white active:scale-[0.99]"
-              onClick={() => {
-                setOrderMessage("");
-                setOrderCode("");
-              }}
-              type="button"
-            >
-              Đã hiểu
-            </button>
-          }
-        >
-          <div className="text-center">
-            <p className="text-lg font-black text-[#273044]">{orderMessage}</p>
-            {orderCode ? (
-              <p className="mt-2 text-sm font-bold text-slate-500">Mã đơn: {orderCode}</p>
-            ) : null}
-          </div>
-        </DrawlerBase>
       </div>
     </main>
   );

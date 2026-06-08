@@ -1,6 +1,6 @@
 "use client";
 
-import { ApiError, getRequest } from "@/lib/request";
+import { ApiError, getRequest, patchRequest } from "@/lib/request";
 import { Profile, Shop, ShopLicense, ShopMember } from "@/types/database";
 
 type BootstrapUser = {
@@ -124,4 +124,8 @@ export async function getMeBootstrapApi(): Promise<MeBootstrapResponse> {
 
     throw error;
   }
+}
+
+export async function updateDefaultTiktokUsernameApi(tiktokUsername: string): Promise<void> {
+  await patchRequest<any>("/me/profile", { defaultTiktokUsername: tiktokUsername });
 }
