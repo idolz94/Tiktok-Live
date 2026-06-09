@@ -34,6 +34,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
   const abortControllerRef = useRef<AbortController | null>(null);
   const clientIdRef = useRef(createClientId());
   const isManualCloseRef = useRef(false);
+  const isAuthFailedRef = useRef(false);
   const tiktokUsernameRef = useRef(normalizeTikTokUsername(options.initialUsername || TIKTOK_USERNAME));
 
   const [status, setStatus] = useState("Đang kết nối Backend SSE...");
@@ -199,6 +200,17 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
   );
 
   const connectSse = useCallback(() => {
+    if (isAuthFailedRef.current) {
+      setStatus("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.");
+      return;
+    }
+
+    const accessToken = getRuntimeAuthToken();
+    if (!accessToken) {
+      setStatus("Chưa đăng nhập, không thể kết nối SSE.");
+      return;
+    }
+
     const clientId = clientIdRef.current;
     const url = buildLiveStreamEventsUrl(clientId);
 
@@ -229,11 +241,9 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
       "COMMENT_UPDATED",
     ];
 
-    const accessToken = getRuntimeAuthToken();
-
     fetchEventSource(url, {
       method: "GET",
-      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      headers: { Authorization: `Bearer ${accessToken}` },
       credentials: "include",
       signal: abortControllerRef.current.signal,
       openWhenHidden: true,
@@ -247,6 +257,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
 
         if (response.status === 401 || response.status === 403) {
           isManualCloseRef.current = true;
+          isAuthFailedRef.current = true;
           abortControllerRef.current?.abort();
           setIsConnected(false);
           setStatus("Phiên đăng nhập đã hết hạn, đã ngắt SSE.");
@@ -289,11 +300,12 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
       }
 
       const oldUsername = tiktokUsernameRef.current;
+      const oldUsernameWithoutAt = oldUsername.replace(/^@/, "");
 
       if (oldUsername && oldUsername !== nextUsername) {
         finalizeCurrentSessionLocally("change_username");
         try {
-          await stopTikTokLiveApi({ clientId: clientIdRef.current, username: oldUsername });
+          await stopTikTokLiveApi({ clientId: clientIdRef.current, username: oldUsernameWithoutAt });
         } catch {
           // ignore — best-effort stop of previous session
         }
@@ -305,10 +317,12 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
       connectSse();
       setStatus(`Đang yêu cầu Backend start Python collector: ${nextUsername}...`);
 
+      const usernameWithoutAt = nextUsername.replace(/^@/, "");
+
       try {
         const result = await subscribeTikTokLiveApi({
           clientId: clientIdRef.current,
-          username: nextUsername,
+          username: usernameWithoutAt,
         });
 
         if (result.username) {
@@ -336,7 +350,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     try {
       await stopTikTokLiveApi({
         clientId: clientIdRef.current,
-        username: tiktokUsernameRef.current,
+        username: tiktokUsernameRef.current.replace(/^@/, ""),
       });
     } catch (error) {
       if (process.env.NEXT_PUBLIC_NODE_ENV === "development") {
@@ -353,6 +367,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     finalizeCurrentSessionLocally("manual_reconnect");
 
     isManualCloseRef.current = false;
+    isAuthFailedRef.current = false;
 
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
@@ -368,7 +383,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     try {
       await stopTikTokLiveApi({
         clientId: clientIdRef.current,
-        username: tiktokUsernameRef.current,
+        username: tiktokUsernameRef.current.replace(/^@/, ""),
       });
     } catch (error) {
       if (process.env.NEXT_PUBLIC_NODE_ENV === "development") {

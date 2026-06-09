@@ -1,26 +1,56 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthScreen from "../screens/AuthScreen";
+import WelcomeScreen from "@/screens/WelcomeScreen";
 import SplashLoadingScreen from "@/components/SplashLoadingScreen";
 import { useAuth } from "../hooks/useAuth";
+
+type AppScreen = "splash" | "welcome" | "auth-login" | "auth-register";
+
+const HAS_SEEN_WELCOME_KEY = "lumi_has_seen_welcome";
 
 export default function HomePage() {
   const router = useRouter();
   const { user, isLoading, logout } = useAuth();
+  const [screen, setScreen] = useState<AppScreen>("splash");
 
   useEffect(() => {
     if (user?.canUseApp) {
       router.replace("/dashboard/live");
+      return;
     }
-  }, [router, user?.canUseApp]);
+    if (!isLoading && !user) {
+      const hasSeenWelcome = typeof window !== "undefined" && localStorage.getItem(HAS_SEEN_WELCOME_KEY) === "true";
+      const targetScreen = hasSeenWelcome ? "auth-login" : "welcome";
+      const timer = setTimeout(() => setScreen(targetScreen), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [router, user, isLoading]);
 
   if (isLoading || user?.canUseApp) {
     return <SplashLoadingScreen />;
   }
 
-  if (!user) return <AuthScreen />;
+  if (!user) {
+    if (screen === "splash") return <SplashLoadingScreen />;
+    if (screen === "welcome") {
+      const markSeen = () => localStorage.setItem(HAS_SEEN_WELCOME_KEY, "true");
+      return (
+        <WelcomeScreen
+          onLogin={() => { markSeen(); setScreen("auth-login"); }}
+          onRegister={() => { markSeen(); setScreen("auth-register"); }}
+          onTrial={() => { markSeen(); setScreen("auth-register"); }}
+        />
+      );
+    }
+    return (
+      <AuthScreen
+        initialMode={screen === "auth-register" ? "register" : "login"}
+      />
+    );
+  }
 
   if (!user.canUseApp) {
     return (

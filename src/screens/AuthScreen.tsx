@@ -8,9 +8,9 @@ import { ForgotPasswordDrawer } from "@/features/auth/ForgotPassword";
 
 type Mode = "login" | "register";
 
-export default function AuthScreen() {
+export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mode }) {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>(initialMode);
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
