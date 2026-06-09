@@ -2,7 +2,8 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Toaster } from "sonner";
 import SessionExpiredDrawer from "@/components/SessionExpiredDrawer";
-import { SpeedInsights } from "@vercel/speed-insights/next"
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 import "./tailwind.css";
 
 export const metadata: Metadata = {
@@ -26,10 +27,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="vi">
-      <body className="min-h-screen bg-[#f4f7f8] text-[#273044] antialiased overflow-hidden">
+      <body className="min-h-screen overflow-hidden bg-[#f4f7f8] text-[#273044] antialiased">
         {children}
         <SessionExpiredDrawer />
-        <SpeedInsights/>
+        <SpeedInsights />
+        <Analytics />
         <Toaster position="top-center" richColors />
       </body>
     </html>
