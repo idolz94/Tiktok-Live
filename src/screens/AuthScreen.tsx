@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { getMeBootstrapApi } from "@/api/meApi";
+import { useRouter } from "next/navigation";
 import { signInApi, signOutApi, signUpApi } from "@/api/authApi";
+import { bootstrapAuth } from "@/hooks/useAuth";
 import { ForgotPasswordDrawer } from "@/features/auth/ForgotPassword";
 
 type Mode = "login" | "register";
 
 export default function AuthScreen() {
+  const router = useRouter();
   const [mode, setMode] = useState<Mode>("login");
 
   const [fullName, setFullName] = useState("");
@@ -46,35 +48,26 @@ export default function AuthScreen() {
       setIsSubmitting(true);
 
       if (isLogin) {
-        await signInApi({
-          phone,
-          password,
-          remember,
-        });
+        await signInApi({ phone, password, remember });
       } else {
-        await signUpApi({
-          fullName,
-          phone,
-          password,
-          tiktokId,
-        });
+        await signUpApi({ fullName, phone, password, tiktokId });
       }
 
-      const me = await getMeBootstrapApi();
+      const user = await bootstrapAuth();
 
-      if (!me.user) {
+      if (!user) {
         alert("Tài khoản đã tạo. Vui lòng đăng nhập lại.");
         setMode("login");
         return;
       }
 
-      if (!me.canUseApp) {
+      if (!user.canUseApp) {
         await signOutApi();
         alert("Shop đã hết hạn dùng thử hoặc chưa có license.");
         return;
       }
 
-      window.location.href = "/";
+      router.push("/");
     } catch (error) {
       alert(
         error instanceof Error

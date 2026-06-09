@@ -17,6 +17,7 @@ type LiveSessionDetailScreenProps = {
   onToggleDeposit: (orderId: string) => Promise<void> | void;
   onConfirmOrder: (orderId: string) => Promise<void> | void;
   onOpenOrderOverview: (orderId: string) => void;
+  depositLoadingIds: Set<string>;
 };
 
 function ChevronLeftIcon() {
@@ -103,6 +104,7 @@ export default function LiveSessionDetailScreen({
   onToggleDeposit,
   onConfirmOrder,
   onOpenOrderOverview,
+  depositLoadingIds,
 }: LiveSessionDetailScreenProps) {
   const [orders, setOrders] = useState<OrderWithTikTok[]>(() =>
     (session.orders || []).map((o) => normalizeApiOrderForUi(o))
@@ -118,7 +120,7 @@ export default function LiveSessionDetailScreen({
   const handleToggleDeposit = async (orderId: string) => {
     const current = orders.find((o) => o.id === orderId);
     if (!current) return;
-    const next: DepositStatus = current.depositStatus === "paid" ? "unpaid" : "paid";
+    const next: DepositStatus = current.depositStatus === "paid" || current.depositStatus === "deposited" ? "unpaid" : "paid";
     await onToggleDeposit(orderId);
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, depositStatus: next } : o)));
   };
@@ -208,6 +210,7 @@ export default function LiveSessionDetailScreen({
               onToggleDeposit={handleToggleDeposit}
               onConfirmOrder={handleConfirmOrder}
               onOpenOverview={onOpenOrderOverview}
+              isDepositLoading={depositLoadingIds.has(order.id)}
             />
           ))}
         </div>

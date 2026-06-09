@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getMeBootstrapApi } from "@/api/meApi";
 import { signOutApi } from "@/api/authApi";
+import type { AuthChangeReason } from "@/lib/request";
+import { restoreTokenFromCookie } from "@/lib/request";
 import type { ShopTikTokChannel } from "@/types/database";
 
 export type AuthUser = {
@@ -27,84 +29,93 @@ type AuthState = {
   logout: () => Promise<void>;
 };
 
+let bootstrapInFlight: Promise<AuthUser | null> | null = null;
+let bootstrapDone = false;
+let cachedUser: AuthUser | null = null;
+
+function mapBootstrapUser(me: Awaited<ReturnType<typeof getMeBootstrapApi>>): AuthUser | null {
+  if (!me.user) return null;
+
+  return {
+    id: me.user.id,
+    email: me.user.email,
+    username:
+      me.profile?.full_name ||
+      me.profile?.phone ||
+      me.user.user_metadata?.full_name ||
+      "User",
+    fullName: me.profile?.full_name || me.user.user_metadata?.full_name || "",
+    phone: me.profile?.phone || me.user.user_metadata?.phone || "",
+    shopId: me.shop?.id || null,
+    shopName: me.shop?.name || null,
+    tiktokUsername:
+      me.shop?.default_tiktok_username ||
+      me.user.user_metadata?.default_tiktok_username ||
+      me.user.user_metadata?.tiktok_id ||
+      "",
+    tiktokChannels: me.tiktokChannels,
+    role: me.shopMember?.role || null,
+    canUseApp: me.canUseApp,
+  };
+}
+
+export async function bootstrapAuth() {
+  if (bootstrapInFlight) return bootstrapInFlight;
+
+  restoreTokenFromCookie();
+
+  bootstrapInFlight = (async () => {
+    const me = await getMeBootstrapApi();
+    cachedUser = mapBootstrapUser(me);
+    bootstrapDone = true;
+    return cachedUser;
+  })().finally(() => {
+    bootstrapInFlight = null;
+  });
+
+  return bootstrapInFlight;
+}
+
+function clearAuthCache() {
+  bootstrapDone = false;
+  cachedUser = null;
+}
+
 export function useAuth(): AuthState {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<AuthUser | null>(cachedUser);
+  const [isLoading, setIsLoading] = useState(!bootstrapDone);
   const [error, setError] = useState<string | null>(null);
 
-  // Chống gọi /me/bootstrap liên tục khi component re-render hoặc event auth bắn nhiều lần.
-  const refreshInFlightRef = useRef<Promise<void> | null>(null);
-  const lastRefreshAtRef = useRef(0);
+  const runBootstrap = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const nextUser = await bootstrapAuth();
+      setUser(nextUser);
+      setError(null);
+    } catch (authError) {
+      if (process.env.NEXT_PUBLIC_NODE_ENV === "development") {
+        console.error("AUTH BOOTSTRAP ERROR:", authError);
+      }
+      clearAuthCache();
+      setUser(null);
+      setError(
+        authError instanceof Error ? authError.message : "Không thể kiểm tra đăng nhập",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const refreshAuth = useCallback(async () => {
-    if (refreshInFlightRef.current) {
-      return refreshInFlightRef.current;
-    }
-
-    const now = Date.now();
-
-    if (now - lastRefreshAtRef.current < 1200) {
-      return;
-    }
-
-    const task = (async () => {
-      try {
-        lastRefreshAtRef.current = Date.now();
-        const me = await getMeBootstrapApi();
-
-        setError(null);
-
-        if (!me.user) {
-          setUser(null);
-          return;
-        }
-
-        setUser({
-          id: me.user.id,
-          email: me.user.email,
-          username:
-            me.profile?.full_name ||
-            me.profile?.phone ||
-            me.user.user_metadata?.full_name ||
-            "User",
-          fullName: me.profile?.full_name || me.user.user_metadata?.full_name || "",
-          phone: me.profile?.phone || me.user.user_metadata?.phone || "",
-          shopId: me.shop?.id || null,
-          shopName: me.shop?.name || null,
-          tiktokUsername:
-            me.shop?.default_tiktok_username ||
-            me.user.user_metadata?.default_tiktok_username ||
-            me.user.user_metadata?.tiktok_id ||
-            "",
-          tiktokChannels: me.tiktokChannels,
-          role: me.shopMember?.role || null,
-          canUseApp: me.canUseApp,
-        });
-      } catch (authError) {
-        if (process.env.NODE_ENV === "development") console.error("AUTH REFRESH ERROR:", authError);
-
-        setUser(null);
-        setError(
-          authError instanceof Error
-            ? authError.message
-            : "Không thể kiểm tra đăng nhập",
-        );
-      } finally {
-        setIsLoading(false);
-        refreshInFlightRef.current = null;
-      }
-    })();
-
-    refreshInFlightRef.current = task;
-    return task;
-  }, []);
+    clearAuthCache();
+    return runBootstrap();
+  }, [runBootstrap]);
 
   const logout = useCallback(async () => {
     try {
       setIsLoading(true);
-
       await signOutApi();
-
+      clearAuthCache();
       setUser(null);
       setError(null);
     } catch (logoutError) {
@@ -115,29 +126,32 @@ export function useAuth(): AuthState {
   }, []);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void refreshAuth();
-    }, 0);
+    if (!bootstrapDone) {
+      void runBootstrap();
+    }
+  }, [runBootstrap]);
 
-    const handleAuthChanged = () => {
-      void refreshAuth();
+  useEffect(() => {
+    const handleAuthChanged = (e: Event) => {
+      const reason = (e as CustomEvent<{ reason: AuthChangeReason }>).detail?.reason;
+
+      if (reason === "login" || reason === "register") {
+        clearAuthCache();
+        void runBootstrap();
+        return;
+      }
+
+      if (reason === "logout") {
+        clearAuthCache();
+        setUser(null);
+        setError(null);
+        setIsLoading(false);
+      }
     };
 
-    // Chỉ refresh khi login/register/logout thay đổi token.
-    // Không nghe window focus để tránh DevTools/tab focus làm spam /me/bootstrap.
     window.addEventListener("lumi-auth-change", handleAuthChanged);
+    return () => window.removeEventListener("lumi-auth-change", handleAuthChanged);
+  }, [runBootstrap]);
 
-    return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener("lumi-auth-change", handleAuthChanged);
-    };
-  }, [refreshAuth]);
-
-  return {
-    user,
-    isLoading,
-    error,
-    refreshAuth,
-    logout,
-  };
+  return { user, isLoading, error, refreshAuth, logout };
 }

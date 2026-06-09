@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DrawlerBase } from "./ui/Drawler";
-import { clearAuthToken, emitAuthChanged } from "@/lib/request";
+import { emitAuthChanged } from "@/lib/request";
 
 export default function SessionExpiredDrawer() {
   const router = useRouter();
@@ -19,8 +19,7 @@ export default function SessionExpiredDrawer() {
 
   const handleLogin = () => {
     setOpen(false);
-    clearAuthToken();
-    emitAuthChanged();
+    emitAuthChanged("logout");
     router.replace("/");
   };
 

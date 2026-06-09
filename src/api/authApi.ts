@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  clearAuthToken,
-  emitAuthChanged,
-  postRequest,
-  setAuthToken,
-} from "@/lib/request";
+import { clearRuntimeAuthToken, emitAuthChanged, postRequest, setRuntimeAuthToken } from "@/lib/request";
 import { phoneToAuthEmail } from "@/utils/phone";
 
 export type SignUpPayload = {
@@ -32,25 +27,22 @@ type AuthApiResponse = {
   [key: string]: any;
 };
 
-function extractAccessToken(response: any) {
-  return String(
-    response?.accessToken ||
+function extractAndSaveToken(response: AuthApiResponse) {
+  const token = String(
+    response?.data?.accessToken ||
+      response?.data?.access_token ||
+      response?.data?.token ||
+      response?.accessToken ||
       response?.access_token ||
       response?.token ||
       response?.session?.accessToken ||
       response?.session?.access_token ||
       "",
   ).trim();
-}
-
-function saveAuthFromResponse(response: AuthApiResponse) {
-  const token = extractAccessToken(response);
 
   if (token) {
-    setAuthToken(token);
+    setRuntimeAuthToken(token);
   }
-
-  emitAuthChanged();
 }
 
 export async function signUpApi(payload: SignUpPayload) {
@@ -68,7 +60,8 @@ export async function signUpApi(payload: SignUpPayload) {
     loginType: "phone_password",
   });
 
-  saveAuthFromResponse(data);
+  extractAndSaveToken(data);
+  emitAuthChanged("register");
   return data;
 }
 
@@ -83,7 +76,8 @@ export async function signInApi(payload: SignInPayload) {
     loginType: "phone_password",
   });
 
-  saveAuthFromResponse(data);
+  extractAndSaveToken(data);
+  emitAuthChanged("login");
   return data;
 }
 
@@ -91,11 +85,9 @@ export async function signOutApi() {
   try {
     await postRequest("/auth/logout", {});
   } catch {
-    // Token có thể đã hết hạn hoặc backend trả 401.
-    // Dù vậy phía client vẫn cần xóa trạng thái đăng nhập local.
   } finally {
-    clearAuthToken();
-    emitAuthChanged();
+    clearRuntimeAuthToken();
+    emitAuthChanged("logout");
   }
 
   return true;

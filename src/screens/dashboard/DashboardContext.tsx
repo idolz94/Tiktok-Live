@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTikTokLiveSocket } from "@/hooks/useTikTokLiveSocket";
 import type { BottomTab, LiveComment, TopTab } from "@/types";
 import { createOrderCommentKey } from "@/utils/comment";
+import DashboardSkeleton from "./components/DashboardSkeleton";
 import { useOrderManager } from "./hooks/useOrderManager";
 
 type DashboardContextValue = {
@@ -29,7 +30,7 @@ type DashboardContextValue = {
 const DashboardContext = createContext<DashboardContextValue | null>(null);
 
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
-  const { user, logout, refreshAuth } = useAuth();
+  const { user, isLoading, logout, refreshAuth } = useAuth();
   const [topTab, setTopTab] = useState<TopTab>("tiktok");
   const [showChannelSwitcher, setShowChannelSwitcher] = useState(false);
   const [liveControlsHidden, setLiveControlsHidden] = useState(false);
@@ -78,7 +79,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         createdCommentKeysRef.current.delete(commentKey);
 
-        if (process.env.NODE_ENV === "development") console.error("CREATE ORDER ERROR:", error);
+        if (process.env.NEXT_PUBLIC_NODE_ENV === "development") console.error("CREATE ORDER ERROR:", error);
         alert(error instanceof Error ? error.message : "Tạo đơn thất bại");
 
         return false;
@@ -87,7 +88,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     [orderManager],
   );
 
-  const value = useMemo<DashboardContextValue | null>(() => {
+  const dashboardContextValue = useMemo<DashboardContextValue | null>(() => {
     if (!user) return null;
 
     return {
@@ -122,9 +123,10 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     user,
   ]);
 
-  if (!value) return null;
+  if (isLoading) return <DashboardSkeleton />;
+  if (!dashboardContextValue) return null;
 
-  return <DashboardContext.Provider value={value}>{children}</DashboardContext.Provider>;
+  return <DashboardContext.Provider value={dashboardContextValue}>{children}</DashboardContext.Provider>;
 }
 
 export function useDashboardContext() {

@@ -43,6 +43,7 @@ export default function HomeView({
   onToggleDeposit,
   onConfirmOrder,
   onOpenOrderOverview,
+  depositLoadingIds,
   tiktokUsername,
   tiktokChannels,
   isConnected,
@@ -75,6 +76,7 @@ export default function HomeView({
   onToggleDeposit: (orderId: string) => void;
   onConfirmOrder: (orderId: string) => void;
   onOpenOrderOverview: (orderId: string) => void;
+  depositLoadingIds: Set<string>;
   tiktokUsername: string;
   tiktokChannels: ShopTikTokChannel[];
   isConnected: boolean;
@@ -229,7 +231,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
           {/* Scrollable comment list */}
           <div
             onScroll={handleCommentListScroll}
-            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-28 [-webkit-overflow-scrolling:touch]"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 [-webkit-overflow-scrolling:touch]"
           >
             {currentComments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16">
@@ -422,6 +424,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
                   onToggleDeposit={onToggleDeposit}
                   onConfirmOrder={onConfirmOrder}
                   onOpenOverview={onOpenOrderOverview}
+                  isDepositLoading={depositLoadingIds.has(item.id)}
                 />
               ))
             )}

@@ -148,7 +148,9 @@ function normalizeMeBootstrap(raw: any): MeBootstrapResponse {
 
 export async function getMeBootstrapApi(): Promise<MeBootstrapResponse> {
   try {
-    const data = await getRequest<any>("/me/bootstrap");
+    const data = await getRequest<any>("/me/bootstrap", undefined, {
+      skipSessionExpired: true,
+    });
     return normalizeMeBootstrap(data);
   } catch (error) {
     if (error instanceof ApiError && [401, 403].includes(error.status)) {

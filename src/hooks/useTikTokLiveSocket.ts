@@ -8,11 +8,11 @@ import { useTikTokComments } from "@/features/tiktok-live/useTikTokComments";
 import { useTikTokLiveSession } from "@/features/tiktok-live/useTikTokLiveSession";
 import {
   buildLiveStreamEventsUrl,
-  buildSseHeaders,
   stopTikTokLiveApi,
   subscribeTikTokLiveApi,
 } from "@/features/tiktok-live/sseApi";
 import { normalizeTikTokUsername, unwrapSseCommentPayload } from "@/utils/comment";
+import { getRuntimeAuthToken } from "@/lib/request";
 
 function createClientId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -229,9 +229,11 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
       "COMMENT_UPDATED",
     ];
 
+    const accessToken = getRuntimeAuthToken();
+
     fetchEventSource(url, {
       method: "GET",
-      headers: buildSseHeaders(),
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
       credentials: "include",
       signal: abortControllerRef.current.signal,
       openWhenHidden: true,
@@ -255,7 +257,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
           const payload = JSON.parse(event.data || "{}");
           handleServerEvent(type, payload);
         } catch (error) {
-          if (process.env.NODE_ENV === "development") {
+          if (process.env.NEXT_PUBLIC_NODE_ENV === "development") {
             console.error("SSE parse error:", error);
           }
         }
@@ -305,7 +307,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
         setStatus(result.message || `Đã gửi lệnh start collector cho ${nextUsername}, đang chờ comment...`);
         return result.success;
       } catch (error) {
-        if (process.env.NODE_ENV === "development") {
+        if (process.env.NEXT_PUBLIC_NODE_ENV === "development") {
           console.error("START LIVE STREAM ERROR:", error);
         }
 
@@ -325,7 +327,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
         username: tiktokUsernameRef.current,
       });
     } catch (error) {
-      if (process.env.NODE_ENV === "development") {
+      if (process.env.NEXT_PUBLIC_NODE_ENV === "development") {
         console.error("STOP LIVE STREAM ERROR:", error);
       }
     }
@@ -357,7 +359,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
         username: tiktokUsernameRef.current,
       });
     } catch (error) {
-      if (process.env.NODE_ENV === "development") {
+      if (process.env.NEXT_PUBLIC_NODE_ENV === "development") {
         console.error("DISCONNECT LIVE STREAM ERROR:", error);
       }
     }

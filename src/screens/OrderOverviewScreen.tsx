@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { DrawlerBase } from "../components/ui/Drawler";
 import { Order, OrderProduct } from "../types";
 import { formatMoneyFromK, getOrderTotal } from "../utils/order";
+import { addOrderItemApi, deleteOrderItemApi } from "@/api/ordersApi";
 
 // ─── Print helper (unchanged) ──────────────────────────────────────────────
 
@@ -102,6 +104,9 @@ function PlusIcon() {
 function ConfirmIcon() {
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="2" /><path d="m8.5 12 2.2 2.2 4.8-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
+function DepositSpinner() {
+  return <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />;
+}
 function ShareIcon() {
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 15V4m0 0 4 4m-4-4L8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M5 13v4a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>;
 }
@@ -110,6 +115,9 @@ function ChevronDownIcon() {
 }
 function ShipIcon() {
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 7h11v9H3V7Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /><path d="M14 10h3l3 3v3h-6v-6Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /><circle cx="7" cy="18" r="2" stroke="currentColor" strokeWidth="2" /><circle cx="17" cy="18" r="2" stroke="currentColor" strokeWidth="2" /></svg>;
+}
+function TrashIcon() {
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7V4h6v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
 // ─── Small shared UI ────────────────────────────────────────────────────────
@@ -535,10 +543,16 @@ export default function OrderOverviewScreen({
   order,
   onBack,
   onToggleDeposit,
+  onAddProduct,
+  onDeleteProduct,
+  isDepositLoading = false,
 }: {
   order: Order;
   onBack: () => void;
   onToggleDeposit: (orderId: string) => void;
+  onAddProduct?: (orderId: string, product: OrderProduct) => void;
+  onDeleteProduct?: (orderId: string, itemId: string) => void;
+  isDepositLoading?: boolean;
 }) {
   // ── Drawer open states
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -556,6 +570,8 @@ export default function OrderOverviewScreen({
   const [newCode, setNewCode] = useState("");
   const [newPrice, setNewPrice] = useState("");
   const [newQty, setNewQty] = useState(1);
+  const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const [deletingProductId, setDeletingProductId] = useState("");
 
   // ── Link-carrier drawer state
   const [selectedCarrier, setSelectedCarrier] = useState<
@@ -578,6 +594,72 @@ export default function OrderOverviewScreen({
   const remain = productTotal + shippingFee - prepaid;
   const totalQuantity = products.reduce((s, p) => s + Number(p.quantity || 0), 0);
   const displayProducts = showAllProducts ? products : products.slice(0, 3);
+  const canSaveProduct = newCode.trim() && Number(newPrice) > 0 && newQty > 0;
+
+  async function handleAddProduct() {
+    const productCode = newCode.trim();
+    const price = Number(newPrice);
+
+    if (!productCode) {
+      alert("Vui lòng nhập mã sản phẩm");
+      return;
+    }
+
+    if (!price || price <= 0) {
+      alert("Vui lòng nhập giá sản phẩm");
+      return;
+    }
+
+    try {
+      setIsAddingProduct(true);
+      const item = await addOrderItemApi(order.id, {
+        productCode,
+        productName: `Mã ${productCode}`,
+        price,
+        quantity: newQty,
+      });
+
+      const itemId = String(item.id || item.itemId || item.item_id || item.orderItemId || item.order_item_id || "");
+
+      onAddProduct?.(order.id, {
+        id: itemId,
+        code: String(item.productCode || item.product_code || productCode),
+        name: String(item.productName || item.product_name || `Mã ${productCode}`),
+        price: Number(item.price || price),
+        quantity: Number(item.quantity || newQty),
+      });
+
+      setNewCode("");
+      setNewPrice("");
+      setNewQty(1);
+      setAddProductOpen(false);
+      toast.success("Đã thêm sản phẩm");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Thêm sản phẩm thất bại");
+    } finally {
+      setIsAddingProduct(false);
+    }
+  }
+
+  async function handleDeleteProduct(product: OrderProduct) {
+    const itemId = String(product.id || "").trim();
+
+    if (!itemId) {
+      toast.error("Không tìm thấy ID sản phẩm để xoá");
+      return;
+    }
+
+    try {
+      setDeletingProductId(itemId);
+      await deleteOrderItemApi(order.id, itemId);
+      onDeleteProduct?.(order.id, itemId);
+      toast.success("Đã xoá sản phẩm");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Xoá sản phẩm thất bại");
+    } finally {
+      setDeletingProductId("");
+    }
+  }
 
   // ── Print
   function handlePrint() {
@@ -754,15 +836,28 @@ export default function OrderOverviewScreen({
                 <p className="min-w-0 flex-1 text-[14px] font-medium leading-[22px] text-black">
                   {getProductLabel(product)}
                 </p>
-                <div className="shrink-0 text-right">
-                  <p className="text-[14px] font-medium leading-[22px] text-black">
-                    x{product.quantity}
-                  </p>
-                  <p className="text-[14px] font-medium leading-[22px] text-[#ff6b8a]">
-                    {formatMoneyFromK(
-                      Number(product.price || 0) * Number(product.quantity || 0),
-                    )}
-                  </p>
+                <div className="flex shrink-0 items-start gap-2 text-right">
+                  <div>
+                    <p className="text-[14px] font-medium leading-[22px] text-black">
+                      x{product.quantity}
+                    </p>
+                    <p className="text-[14px] font-medium leading-[22px] text-[#ff6b8a]">
+                      {formatMoneyFromK(
+                        Number(product.price || 0) * Number(product.quantity || 0),
+                      )}
+                    </p>
+                  </div>
+                  {product.id && (
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteProduct(product)}
+                      disabled={deletingProductId === product.id}
+                      className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-[#fff0f0] text-[#ff6b8a] disabled:opacity-40"
+                      aria-label="Xoá sản phẩm"
+                    >
+                      <TrashIcon />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -870,16 +965,19 @@ export default function OrderOverviewScreen({
           <button
             type="button"
             onClick={() => onToggleDeposit(order.id)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-[40px] py-3.5 text-[15px] font-medium ${
+            disabled={isDepositLoading}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-[40px] py-3.5 text-[15px] font-medium disabled:cursor-not-allowed disabled:opacity-70 ${
               order.depositStatus === "paid" || order.depositStatus === "deposited"
                 ? "bg-[#2ca87b] text-white"
                 : "bg-[#f5c842] text-black"
             }`}
           >
-            <ConfirmIcon />
-            {order.depositStatus === "paid" || order.depositStatus === "deposited"
-              ? "Đã cọc"
-              : "Chưa cọc"}
+            {isDepositLoading ? <DepositSpinner /> : <ConfirmIcon />}
+            {isDepositLoading
+              ? "Đang cập nhật..."
+              : order.depositStatus === "paid" || order.depositStatus === "deposited"
+                ? "Đã cọc"
+                : "Chưa cọc"}
           </button>
           <button
             type="button"
@@ -976,8 +1074,9 @@ export default function OrderOverviewScreen({
         footer={
           <div className="px-4 pb-2 pt-1">
             <GradientButton
-              label="Lưu lại"
-              onClick={() => setAddProductOpen(false)}
+              label={isAddingProduct ? "Đang lưu..." : "Lưu lại"}
+              disabled={!canSaveProduct || isAddingProduct}
+              onClick={() => void handleAddProduct()}
             />
           </div>
         }

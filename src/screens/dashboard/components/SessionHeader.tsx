@@ -15,13 +15,6 @@ export default function SessionHeader({}: {
           P
         </div>
       </div>
-      <button
-        className="flex h-13 w-13 items-center justify-center rounded-full bg-white text-[26px] text-[#273044] shadow-[0_8px_22px_rgba(15,23,42,0.08)] active:scale-95"
-        type="button"
-        aria-label="Tìm kiếm"
-      >
-        ⌕
-      </button>
     </header>
   );
 }

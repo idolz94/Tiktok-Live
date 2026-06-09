@@ -44,7 +44,7 @@ function DashboardShell({ children }: { children: ReactNode }) {
   // SessionHeader ~76px, TopSegmentTabs ~44px (home only), BottomNav fixed 80px
   const sectionHeight =
     activeTab === "home"
-      ? "calc(100dvh - 76px - 44px - 80px)"
+      ? "calc(100dvh - 100px)"
       : "calc(100dvh - 76px - 80px)";
 
   return (

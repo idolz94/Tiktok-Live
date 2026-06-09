@@ -32,6 +32,9 @@ export default function DashboardOrderOverviewPage() {
       order={order}
       onBack={() => router.back()}
       onToggleDeposit={orderManager.toggleDepositStatus}
+      onAddProduct={orderManager.addProductToOrder}
+      onDeleteProduct={orderManager.removeProductFromOrder}
+      isDepositLoading={orderManager.depositLoadingIds.has(order.id)}
     />
   );
 }

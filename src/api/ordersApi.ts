@@ -121,3 +121,31 @@ export async function updateOrderStatusApi({
 export async function deleteOrderApi(orderId: string) {
   return deleteRequest<{ ok: boolean }>(`/orders/${orderId}`);
 }
+
+export type AddOrderItemPayload = {
+  productCode: string;
+  productName: string;
+  price: number;
+  quantity: number;
+};
+
+export type AddOrderItemResult = {
+  id: string;
+  productCode?: string;
+  productName?: string;
+  price: number;
+  quantity: number;
+  [key: string]: any;
+};
+
+export async function addOrderItemApi(
+  orderId: string,
+  payload: AddOrderItemPayload,
+): Promise<AddOrderItemResult> {
+  const data = await postRequest<any>(`/orders/${orderId}/items`, payload);
+  return (data?.item ?? data?.orderItem ?? data?.order_item ?? data) as AddOrderItemResult;
+}
+
+export async function deleteOrderItemApi(orderId: string, itemId: string) {
+  return deleteRequest<{ ok: boolean }>(`/orders/${orderId}/items/${itemId}`);
+}

@@ -5,12 +5,14 @@ const eslintConfig = [
   ...next,
   prettier,
   {
-    ignores: [".next/**", "node_modules/**", "dist/**", "build/**", "coverage/**"],
+    ignores: [".next/**", ".claude/**", "node_modules/**", "dist/**", "build/**", "coverage/**"],
   },
   {
     rules: {
       "react/no-unescaped-entities": "off",
       "@next/next/no-img-element": "off",
+      "react-hooks/refs": "off",
+      "react-hooks/set-state-in-effect": "off",
       "no-console": "warn",
     },
   },

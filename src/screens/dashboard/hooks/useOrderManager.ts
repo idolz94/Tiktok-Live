@@ -58,6 +58,7 @@ export function useOrderManager({
   const [orders, setOrders] = useState<OrderWithTikTok[]>([]);
   const [orderLoading, setOrderLoading] = useState(false);
   const [orderError, setOrderError] = useState("");
+  const [depositLoadingIds, setDepositLoadingIds] = useState<Set<string>>(new Set());
 
   const [liveTab, setLiveTab] = useState<LiveTab>("live");
   const [orderFilter, setOrderFilter] = useState<OrderFilter>("all");
@@ -71,7 +72,7 @@ export function useOrderManager({
       const nextOrders = await getOrdersApi();
       setOrders(nextOrders);
     } catch (error) {
-      if (process.env.NODE_ENV === "development") console.error("LOAD ORDERS ERROR:", error);
+      if (process.env.NEXT_PUBLIC_NODE_ENV === "development") console.error("LOAD ORDERS ERROR:", error);
       setOrderError(error instanceof Error ? error.message : "Không tải được đơn hàng.");
     } finally {
       setOrderLoading(false);
@@ -239,7 +240,7 @@ export function useOrderManager({
 
         return result;
       } catch (error) {
-        if (process.env.NODE_ENV === "development") console.error("CREATE ORDER ERROR:", error);
+        if (process.env.NEXT_PUBLIC_NODE_ENV === "development") console.error("CREATE ORDER ERROR:", error);
         setOrderError(error instanceof Error ? error.message : "Tạo đơn thất bại.");
         throw error;
       }
@@ -274,24 +275,43 @@ export function useOrderManager({
     );
   }, []);
 
-  const toggleDepositStatus = useCallback(async (orderId: string) => {
-    const currentOrder = orders.find((order) => order.id === orderId);
-    if (!currentOrder) return;
-
-    const nextDepositStatus = currentOrder.depositStatus === "paid" ? "unpaid" : "paid";
-
-    await updateOrderDepositStatusApi({
-      orderId,
-      depositStatus: nextDepositStatus,
-    });
-
+  const removeProductFromOrder = useCallback((orderId: string, itemId: string) => {
     setOrders((prev) =>
       prev.map((order) => {
         if (order.id !== orderId) return order;
-        return { ...order, depositStatus: nextDepositStatus };
+        return { ...order, products: order.products.filter((p) => p.id !== itemId) };
       }),
     );
-  }, [orders]);
+  }, []);
+
+  const toggleDepositStatus = useCallback(async (orderId: string) => {
+    const currentOrder = orders.find((order) => order.id === orderId);
+    if (!currentOrder || depositLoadingIds.has(orderId)) return;
+
+    const nextDepositStatus = currentOrder.depositStatus === "paid" || currentOrder.depositStatus === "deposited" ? "unpaid" : "paid";
+
+    setDepositLoadingIds((prev) => new Set(prev).add(orderId));
+
+    try {
+      await updateOrderDepositStatusApi({
+        orderId,
+        depositStatus: nextDepositStatus,
+      });
+
+      setOrders((prev) =>
+        prev.map((order) => {
+          if (order.id !== orderId) return order;
+          return { ...order, depositStatus: nextDepositStatus };
+        }),
+      );
+    } finally {
+      setDepositLoadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(orderId);
+        return next;
+      });
+    }
+  }, [depositLoadingIds, orders]);
 
   const confirmOrder = useCallback(async (orderId: string) => {
     const currentOrder = orders.find((order) => order.id === orderId);
@@ -345,7 +365,9 @@ export function useOrderManager({
     clearOrders,
     updateOrder,
     addProductToOrder,
+    removeProductFromOrder,
     toggleDepositStatus,
+    depositLoadingIds,
     confirmOrder,
     deleteOrder,
   };

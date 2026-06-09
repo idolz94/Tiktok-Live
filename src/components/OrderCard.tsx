@@ -34,6 +34,10 @@ function CheckIcon() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.2 4.2L19 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
+function LoadingSpinner() {
+  return <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />;
+}
+
 function formatProductMeta(product: OrderProduct, fallbackCreatedAt: string) {
   const parts = [product.code, product.color, product.size, product.variantName].filter(Boolean);
   const time = new Date(fallbackCreatedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
@@ -64,6 +68,7 @@ export default function OrderCard({
   onToggleDeposit,
   onConfirmOrder,
   onOpenOverview,
+  isDepositLoading = false,
 }: {
   item: Order;
   onUpdate: (id: string, field: keyof Order, value: string) => void;
@@ -72,6 +77,7 @@ export default function OrderCard({
   onToggleDeposit?: (orderId: string) => void;
   onConfirmOrder?: (orderId: string) => void;
   onOpenOverview?: (orderId: string) => void;
+  isDepositLoading?: boolean;
 }) {
   const products = item.products?.length ? item.products : [];
   const total = item.totalAmount || item.subtotalAmount || getOrderTotal(products);
@@ -146,9 +152,9 @@ export default function OrderCard({
         </div>
 
         <div className="flex gap-4 pt-4">
-          <button type="button" onClick={() => onToggleDeposit?.(item.id)} className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[40px] text-[14px] font-medium ${isPaid ? "bg-[#edfaf4] text-[#2ca87b]" : "bg-[#ffe8e8] text-[#ff6b8a]"}`}>
-            {isPaid ? <CheckIcon /> : null}
-            {isPaid ? "Đã cọc" : "Chưa cọc"}
+          <button type="button" onClick={() => onToggleDeposit?.(item.id)} disabled={isDepositLoading} className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[40px] text-[14px] font-medium disabled:cursor-not-allowed disabled:opacity-70 ${isPaid ? "bg-[#edfaf4] text-[#2ca87b]" : "bg-[#ffe8e8] text-[#ff6b8a]"}`}>
+            {isDepositLoading ? <LoadingSpinner /> : isPaid ? <CheckIcon /> : null}
+            {isDepositLoading ? "Đang cập nhật..." : isPaid ? "Đã cọc" : "Chưa cọc"}
           </button>
           <button type="button" onClick={() => onOpenOverview?.(item.id)} className="h-10 flex-1 rounded-[40px] bg-[linear-gradient(128deg,#ff6b8a_13%,#ffa66d_52%,#ffc86a_118%)] px-4 text-[14px] font-medium text-black">
             Tổng quan đơn hàng

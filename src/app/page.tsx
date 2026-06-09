@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AuthScreen from "../screens/AuthScreen";
+import SplashLoadingScreen from "@/components/SplashLoadingScreen";
 import { useAuth } from "../hooks/useAuth";
 
 export default function HomePage() {
@@ -15,15 +16,8 @@ export default function HomePage() {
     }
   }, [router, user?.canUseApp]);
 
-  if (isLoading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4 text-slate-700">
-        <div className="rounded-3xl bg-white px-6 py-5 text-center shadow-sm">
-          <p className="text-base font-bold">Đang mở ứng dụng...</p>
-          <p className="mt-1 text-sm text-slate-500">Vui lòng đợi vài giây</p>
-        </div>
-      </main>
-    );
+  if (isLoading || user?.canUseApp) {
+    return <SplashLoadingScreen />;
   }
 
   if (!user) return <AuthScreen />;
@@ -51,11 +45,5 @@ export default function HomePage() {
     );
   }
 
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4 text-slate-700">
-      <div className="rounded-3xl bg-white px-6 py-5 text-center shadow-sm">
-        <p className="text-base font-bold">Đang chuyển sang dashboard...</p>
-      </div>
-    </main>
-  );
+  return <SplashLoadingScreen />;
 }

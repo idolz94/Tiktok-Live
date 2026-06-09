@@ -45,6 +45,7 @@ export default function DashboardLivePage() {
       onToggleDeposit={orderManager.toggleDepositStatus}
       onConfirmOrder={orderManager.confirmOrder}
       onOpenOrderOverview={(orderId) => router.push(`/dashboard/orders/${orderId}`)}
+      depositLoadingIds={orderManager.depositLoadingIds}
       tiktokUsername={live.tiktokUsername || registeredTikTokUsername}
       tiktokChannels={user?.tiktokChannels || []}
       isConnected={live.isConnected}

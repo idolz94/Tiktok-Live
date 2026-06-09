@@ -1,5 +1,5 @@
 import { DEFAULT_WS_URL } from "@/constants/config";
-import { buildApiUrl, getAuthToken, postRequest } from "@/lib/request";
+import { buildApiUrl, postRequest } from "@/lib/request";
 
 function appendParams(url: string, params: Record<string, string | undefined>) {
   const searchParams = new URLSearchParams();
@@ -24,12 +24,6 @@ export function buildLiveStreamEventsUrl(clientId: string) {
   return appendParams(url, {
     clientId,
   });
-}
-
-export function buildSseHeaders(): Record<string, string> {
-  const token = getAuthToken();
-
-  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export type SubscribeTikTokLiveResult = {

@@ -37,6 +37,7 @@ export default function DashboardLiveSessionDetailPage() {
       onToggleDeposit={orderManager.toggleDepositStatus}
       onConfirmOrder={orderManager.confirmOrder}
       onOpenOrderOverview={(orderId) => router.push(`/dashboard/orders/${orderId}`)}
+      depositLoadingIds={orderManager.depositLoadingIds}
     />
   );
 }
