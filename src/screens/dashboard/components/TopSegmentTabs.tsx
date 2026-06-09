@@ -10,7 +10,7 @@ export default function TopSegmentTabs({
   onChange: (tab: TopTab) => void;
 }) {
   return (
-    <div className="flex items-center justify-center gap-12 px-3 pb-3 pt-4">
+    <div className="flex items-center justify-center gap-12 px-3 pb-3">
       <button
         className={`border-b-2 px-1 pb-2 text-[20px] font-medium ${activeTab === "tiktok" ? "border-[#ff5f8a] text-[#ff5f8a]" : "border-transparent text-[#7e7474]"}`}
         onClick={() => onChange("tiktok")}

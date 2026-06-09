@@ -16,6 +16,7 @@ export default function DashboardLivePage() {
     live,
     orderManager,
     handleCreateOrder,
+    isCommentOrderCreated,
     setLiveControlsHidden,
   } = useDashboardContext();
 
@@ -39,6 +40,7 @@ export default function DashboardLivePage() {
       onClearComments={live.clearComments}
       onClearOrders={orderManager.clearOrders}
       onCreateOrderFromComment={handleCreateOrder}
+      isCommentOrderCreated={isCommentOrderCreated}
       onUpdateOrder={orderManager.updateOrder}
       onDeleteOrder={orderManager.deleteOrder}
       onAddProductToOrder={orderManager.addProductToOrder}

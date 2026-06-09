@@ -37,6 +37,7 @@ export default function HomeView({
   onClearComments,
   onClearOrders,
   onCreateOrderFromComment,
+  isCommentOrderCreated,
   onUpdateOrder,
   onDeleteOrder,
   onAddProductToOrder,
@@ -70,6 +71,7 @@ export default function HomeView({
   onClearComments: () => void;
   onClearOrders: () => void;
   onCreateOrderFromComment: (item: LiveComment) => void;
+  isCommentOrderCreated: (item: LiveComment) => boolean;
   onUpdateOrder: (id: string, field: keyof Order, value: string) => void;
   onDeleteOrder: (id: string) => void;
   onAddProductToOrder: (orderId: string, product: OrderProduct) => void;
@@ -103,12 +105,12 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
     const currentScrollTop = element.scrollTop;
     const diff = currentScrollTop - lastScrollTopRef.current;
 
-    // Tránh scroll nhẹ cũng bị ẩn/hiện liên tục
-    if (Math.abs(diff) > 8) {
-      const isScrollingDown = diff > 0;
-      const shouldHide = isScrollingDown && currentScrollTop > 40;
+    const isAtBottom = currentScrollTop + element.clientHeight >= element.scrollHeight - 8;
 
-      onLiveControlsHiddenChange?.(shouldHide);
+    if (isAtBottom) {
+      onLiveControlsHiddenChange?.(false);
+    } else if (Math.abs(diff) > 8) {
+      onLiveControlsHiddenChange?.(diff > 0);
     }
 
     lastScrollTopRef.current = currentScrollTop;
@@ -172,7 +174,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
     return (
       <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#f2f2f2]">
         {/* Tab switcher */}
-        <div className="px-4 pt-3 pb-2">
+        <div className="px-4 pt-4">
           <div className="flex gap-2 rounded-full bg-white p-1 shadow-[0_10px_24px_rgba(255,95,138,0.08)]">
             <button
               type="button"
@@ -193,10 +195,8 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
         </div>
 
 
-        {/* Comment section: tab filter (sticky) + scrollable list */}
         <div className="flex min-h-0 flex-1 flex-col">
-          {/* Tab filter — neo trên đầu vùng scroll */}
-          <div className="shrink-0 flex gap-2 px-4 pb-2 mt-3">
+          <div className="shrink-0 flex gap-2 px-4 my-3">
             <button
               type="button"
               onClick={() => setCommentTab("all")}
@@ -231,7 +231,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
           {/* Scrollable comment list */}
           <div
             onScroll={handleCommentListScroll}
-            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 [-webkit-overflow-scrolling:touch]"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-40 [-webkit-overflow-scrolling:touch]"
           >
             {currentComments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16">
@@ -247,6 +247,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
                   key={item.id}
                   item={item}
                   onCreateOrder={onCreateOrderFromComment}
+                  isOrderCreated={isCommentOrderCreated(item)}
                 />
               ))
             )}

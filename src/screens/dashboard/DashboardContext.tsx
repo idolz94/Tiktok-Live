@@ -24,6 +24,7 @@ type DashboardContextValue = {
   live: ReturnType<typeof useTikTokLiveSocket>;
   orderManager: ReturnType<typeof useOrderManager>;
   handleCreateOrder: (comment: LiveComment) => Promise<boolean>;
+  isCommentOrderCreated: (comment: LiveComment) => boolean;
   disconnectLive: () => Promise<void>;
 };
 
@@ -36,6 +37,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [liveControlsHidden, setLiveControlsHidden] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const createdCommentKeysRef = useRef<Set<string>>(new Set());
+  const [createdCommentKeys, setCreatedCommentKeys] = useState<Set<string>>(new Set());
 
   const registeredTikTokUsername = user?.tiktokUsername || "";
   const live = useTikTokLiveSocket({
@@ -69,6 +71,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
       try {
         createdCommentKeysRef.current.add(commentKey);
+        setCreatedCommentKeys((prev) => new Set(prev).add(commentKey));
         const result = await orderManager.createOrderFromComment(comment);
 
         if (result?.message) {
@@ -78,6 +81,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         return true;
       } catch (error) {
         createdCommentKeysRef.current.delete(commentKey);
+        setCreatedCommentKeys((prev) => {
+          const next = new Set(prev);
+          next.delete(commentKey);
+          return next;
+        });
 
         if (process.env.NEXT_PUBLIC_NODE_ENV === "development") console.error("CREATE ORDER ERROR:", error);
         alert(error instanceof Error ? error.message : "Tạo đơn thất bại");
@@ -86,6 +94,13 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       }
     },
     [orderManager],
+  );
+
+  const isCommentOrderCreated = useCallback(
+    (comment: LiveComment) => {
+      return Boolean(comment.isOrderCreated || comment.orderId || createdCommentKeys.has(createOrderCommentKey(comment)));
+    },
+    [createdCommentKeys],
   );
 
   const dashboardContextValue = useMemo<DashboardContextValue | null>(() => {
@@ -106,11 +121,13 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       live,
       orderManager,
       handleCreateOrder,
+      isCommentOrderCreated,
       disconnectLive,
     };
   }, [
     disconnectLive,
     handleCreateOrder,
+    isCommentOrderCreated,
     isDisconnecting,
     live,
     logout,

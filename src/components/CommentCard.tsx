@@ -44,17 +44,17 @@ function getIntentText(intent?: string) {
 
 export default function CommentCard({
   item,
-  onCreateOrder
+  onCreateOrder,
+  isOrderCreated: isOrderCreatedProp,
 }: {
   item: LiveComment;
   onCreateOrder: (item: LiveComment) => void;
-
+  isOrderCreated?: boolean;
 }) {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const isPriority = isPriorityComment(item);
   const commentText = item.comment || "";
-  // const score = Number(item.finalScore || 0);
-  const isCreatedOrder = Boolean(item.isOrderCreated || item.orderId);
+  const isCreatedOrder = Boolean(isOrderCreatedProp || item.isOrderCreated || item.orderId);
   const isOwner = item?.raw?.liveUsername === item?.raw?.tiktok_username;
   const handleCreateOrder = async () => {
   if (isCreatingOrder || item.isOrderCreated) return;
@@ -98,18 +98,14 @@ export default function CommentCard({
             )}
           </div>
 
-          {!isOwner && (
+          {!isOwner && !isCreatedOrder && (
             <button
               type="button"
               disabled={isCreatingOrder}
               onClick={handleCreateOrder}
               className={[
                 "shrink-0 rounded-full px-4 py-1.5 text-sm font-black",
-                isCreatingOrder
-                  ? "bg-slate-200 text-slate-400"
-                  : isCreatedOrder
-                    ? "bg-[#ffe4ee] text-[#ff5f8a]"
-                    : "bg-[#ffe4ee] text-[#ff5f8a] active:scale-95",
+                isCreatingOrder ? "bg-slate-200 text-slate-400" : "bg-[#ffe4ee] text-[#ff5f8a] active:scale-95",
               ].join(" ")}
             >
               {isCreatingOrder ? (
@@ -117,8 +113,6 @@ export default function CommentCard({
                   <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#ff5f8a] border-t-transparent" />
                   Đang tạo
                 </span>
-              ) : isCreatedOrder ? (
-                "In lại"
               ) : (
                 "Tạo đơn"
               )}
