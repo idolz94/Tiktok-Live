@@ -126,6 +126,7 @@ export type Order = {
   id: string;
   orderCode: string;
   username: string;
+  customerId?: string | null;
   customerName?: string;
   customerTikTokUsername?: string;
   customerTikTokName?: string;

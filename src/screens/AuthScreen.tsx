@@ -88,7 +88,7 @@ export default function AuthScreen() {
   return (
     <main className="h-dvh overflow-hidden bg-[#f3f4f6] bg-[url('/assets/login-background.png')] bg-cover bg-center bg-no-repeat">
       <div className="mx-auto h-full w-full max-w-[560px]">
-        <div className="h-full overflow-y-auto px-3 pt-[22px] pb-10 [-webkit-overflow-scrolling:touch]">
+        <div className="h-full overflow-y-auto px-3 pt-[calc(22px+env(safe-area-inset-top))] pb-10 [-webkit-overflow-scrolling:touch]">
           <img
             src="/assets/login-banner.png"
             alt="Flive banner"

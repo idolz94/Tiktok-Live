@@ -205,24 +205,24 @@ export default function BottomNav({
       }`}
     >
       {topRow}
-      <nav className="flex h-20 px-4 pb-4 pt-3">
+      <nav className="flex h-14  pt-2">
         {ITEMS.map((item) => {
           const isActive = item.key === active;
 
           return (
             <button
               key={item.key}
-              className="relative flex flex-1 flex-col items-center justify-center gap-1"
+              className="relative flex flex-1 pb-1 flex-col items-center justify-between gap-1"
               onClick={() => {
                 setOptimisticActive(item.key);
                 router.push(ROUTES[item.key]);
               }}
               type="button"
             >
-              {isActive && <span className="absolute -top-3 h-0.5 w-10 rounded-full bg-[#ff5f8a]" />}
+              {isActive && <span className="absolute bottom-0 h-0.5 w-10 rounded-full bg-[#ff5f8a]" />}
               {item.icon(isActive)}
               <span
-                className={`text-[11px] font-medium ${isActive ? "text-[#ff5f8a]" : "text-[#787878]"}`}
+                className={`text-[10px] font-medium ${isActive ? "text-[#ff5f8a]" : "text-[#787878]"}`}
               >
                 {item.label}
               </span>

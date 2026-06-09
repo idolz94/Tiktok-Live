@@ -231,7 +231,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
           {/* Scrollable comment list */}
           <div
             onScroll={handleCommentListScroll}
-            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-40 [-webkit-overflow-scrolling:touch]"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-10 [-webkit-overflow-scrolling:touch]"
           >
             {currentComments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16">
@@ -402,7 +402,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
             unpaidCount={orders.filter((o) => o.depositStatus !== "paid" && o.depositStatus !== "deposited").length}
           />
 
-          <div className="pb-20">
+          <div className="pb-32">
             <div className="flex items-center justify-between px-4 py-2">
               <span className="text-[13px] text-[#787878]">{filteredOrders.length} đơn</span>
               <button type="button" onClick={onClearOrders} className="text-[13px] font-medium text-[#ff4242]">Xóa đơn</button>

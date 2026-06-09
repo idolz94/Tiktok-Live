@@ -6,6 +6,11 @@ export type CustomerSummary = {
   latestComment: string;
 };
 
+export type CustomerWithTikTok = CustomerSummary & {
+  customerId?: string | null;
+  customerTikTokUsername?: string;
+};
+
 export type DashboardCounts = {
   buyingCount: number;
   paidOrders: number;

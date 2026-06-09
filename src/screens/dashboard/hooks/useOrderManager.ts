@@ -10,7 +10,7 @@ import type {
   OrderWithTikTok,
 } from "../../../types";
 import { getOrderTotal } from "../../../utils/order";
-import { CustomerSummary } from "../types";
+import { CustomerWithTikTok } from "../types";
 import {
   createOrderFromCommentApi,
   deleteOrderApi,
@@ -24,10 +24,6 @@ type UseOrderManagerParams = {
   comments: LiveComment[];
   liveSessionId?: string | null;
   onAfterCreateOrder?: () => void;
-};
-
-type CustomerSummaryWithTikTok = CustomerSummary & {
-  customerTikTokUsername?: string;
 };
 
 function getCommentText(comment: LiveComment) {
@@ -156,8 +152,8 @@ export function useOrderManager({
     });
   }, [orderFilter, orderSearchText, orders]);
 
-  const customers = useMemo<CustomerSummaryWithTikTok[]>(() => {
-    const map = new Map<string, CustomerSummaryWithTikTok>();
+  const customers = useMemo<CustomerWithTikTok[]>(() => {
+    const map = new Map<string, CustomerWithTikTok>();
 
     comments.forEach((comment) => {
       const displayName = getCommentDisplayName(comment);
@@ -167,9 +163,16 @@ export function useOrderManager({
       const current = map.get(customerKey);
 
       if (!current) {
+        const matchingOrder = orders.find((order) => {
+          return (
+            getOrderTikTokUsername(order) === customerTikTokUsername ||
+            order.username === username
+          );
+        });
         map.set(customerKey, {
           username,
           avatar: getCommentAvatar(comment),
+          customerId: matchingOrder?.customerId ?? null,
           customerTikTokUsername,
           totalComments: 1,
           totalOrders: orders.filter((order) => {
@@ -201,6 +204,7 @@ export function useOrderManager({
         map.set(customerKey, {
           username,
           avatar: order.avatar,
+          customerId: order.customerId ?? null,
           customerTikTokUsername,
           totalComments: 0,
           totalOrders: 1,
@@ -208,6 +212,10 @@ export function useOrderManager({
         });
 
         return;
+      }
+
+      if (!current.customerId && order.customerId) {
+        current.customerId = order.customerId;
       }
 
       current.totalOrders = orders.filter((item) => {

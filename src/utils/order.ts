@@ -128,6 +128,7 @@ export function normalizeApiOrderForUi(order: any): OrderWithTikTok {
         customerTikTokUsername ||
         "Khách live",
     ),
+    customerId: order?.customerId || order?.customer_id || null,
     customerName: String(order?.customerName || order?.customer_name || order?.username || ""),
     customerTikTokUsername,
     customerTikTokName: customerTikTokUsername,

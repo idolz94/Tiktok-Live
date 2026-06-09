@@ -245,6 +245,13 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
           return;
         }
 
+        if (response.status === 401 || response.status === 403) {
+          isManualCloseRef.current = true;
+          abortControllerRef.current?.abort();
+          setIsConnected(false);
+          setStatus("Phiên đăng nhập đã hết hạn, đã ngắt SSE.");
+        }
+
         throw new Error(`SSE open failed: ${response.status}`);
       },
 
@@ -285,6 +292,11 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
 
       if (oldUsername && oldUsername !== nextUsername) {
         finalizeCurrentSessionLocally("change_username");
+        try {
+          await stopTikTokLiveApi({ clientId: clientIdRef.current, username: oldUsername });
+        } catch {
+          // ignore — best-effort stop of previous session
+        }
       }
 
       tiktokUsernameRef.current = nextUsername;

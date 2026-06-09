@@ -1,19 +1,41 @@
 "use client";
 
-export default function SessionHeader({}: {
+import { TopTab } from "../../../types";
+
+export default function SessionHeader({
+  activeTab,
+  onChangeTab,
+}: {
   isConnected: boolean;
   status: string;
   tiktokUsername: string;
   currentLiveSession: unknown;
   liveDurationSeconds: number;
   liveNowText: string;
+  activeTab: TopTab;
+  onChangeTab: (tab: TopTab) => void;
 }) {
   return (
-    <header className="flex justify-between bg-linear-to-b from-[#FF6B8A]/30 via-[#FFA66D]/20 to-white/0 px-3 pb-2 pt-3">
-      <div className="flex h-13 w-13 items-center justify-center rounded-full bg-white shadow-[0_8px_22px_rgba(67,137,220,0.18)]">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-[#4389dc] to-[#62b4ff] text-base font-black text-white">
-          P
-        </div>
+    <header className="bg-linear-to-b from-[#FF6B8A]/30 via-[#FFA66D]/20 to-white/0 px-3 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3">
+      <div className="flex items-center justify-center gap-12">
+        <button
+          className={`border-b-2 px-1 pb-2 text-[20px] font-medium ${activeTab === "tiktok" ? "border-[#ff5f8a] text-[#ff5f8a]" : "border-transparent text-[#7e7474]"}`}
+          onClick={() => onChangeTab("tiktok")}
+          type="button"
+        >
+          Tiktok
+        </button>
+
+        <button
+          className="relative border-b-2 border-transparent px-1 pb-2 text-[20px] font-medium text-[#7e7474] opacity-60"
+          onClick={() => onChangeTab("facebook")}
+          type="button"
+        >
+          Facebook
+          <span className="absolute -right-9 -top-1.5 rounded-full bg-slate-200 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">
+            Soon
+          </span>
+        </button>
       </div>
     </header>
   );

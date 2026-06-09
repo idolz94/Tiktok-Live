@@ -10,7 +10,6 @@ import {
   useDashboardContext,
 } from "@/screens/dashboard/DashboardContext";
 import SessionHeader from "@/screens/dashboard/components/SessionHeader";
-import TopSegmentTabs from "@/screens/dashboard/components/TopSegmentTabs";
 
 function isDetailPath(pathname: string) {
   return pathname.startsWith("/dashboard/history/") || pathname.startsWith("/dashboard/orders/");
@@ -41,11 +40,8 @@ function DashboardShell({ children }: { children: ReactNode }) {
     );
   }
 
-  // SessionHeader ~76px, TopSegmentTabs ~44px (home only), BottomNav fixed 80px
-  const sectionHeight =
-    activeTab === "home"
-      ? "calc(100dvh - 100px)"
-      : "calc(100dvh - 76px - 80px)";
+  // SessionHeader merged with tabs ~76px, BottomNav fixed 80px
+  const sectionHeight = "calc(100dvh - 156px)";
 
   return (
     <main className="h-dvh overflow-hidden bg-white">
@@ -57,13 +53,9 @@ function DashboardShell({ children }: { children: ReactNode }) {
           currentLiveSession={live.currentLiveSession}
           liveDurationSeconds={live.liveDurationSeconds}
           liveNowText={live.liveNowText}
+          activeTab={topTab}
+          onChangeTab={setTopTab}
         />
-        {activeTab === "home" && (
-          <TopSegmentTabs
-            activeTab={topTab}
-            onChange={setTopTab}
-          />
-        )}
         <section
           className="min-h-0 overflow-hidden"
           style={{ height: sectionHeight }}

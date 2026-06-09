@@ -1,11 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CustomerSummary } from "../types";
-
-type CustomerWithTikTok = CustomerSummary & {
-  customerTikTokUsername?: string;
-};
+import { CustomerWithTikTok } from "../types";
 
 type CustomerTab = "all" | "new" | "tiktok";
 
@@ -51,7 +47,13 @@ function AvatarPlaceholder({ letter }: { letter: string }) {
   );
 }
 
-export default function CustomersView({ customers }: { customers: CustomerWithTikTok[] }) {
+export default function CustomersView({
+  customers,
+  onOpenCustomer,
+}: {
+  customers: CustomerWithTikTok[];
+  onOpenCustomer?: (customerKey: string) => void;
+}) {
   const [activeTab, setActiveTab] = useState<CustomerTab>("all");
 
   const allCount = customers.length;
@@ -129,9 +131,15 @@ export default function CustomersView({ customers }: { customers: CustomerWithTi
               const letter = item.username.charAt(0).toUpperCase();
               const isLast = index === displayed.length - 1;
 
+              const customerKey = tiktokUsername || item.username;
+
               return (
-                <div key={tiktokUsername || item.username}>
-                  <div className="flex items-center gap-3 py-3.5">
+                <div key={customerKey}>
+                  <button
+                    type="button"
+                    onClick={() => onOpenCustomer?.(customerKey)}
+                    className="flex w-full items-center gap-3 py-3.5 text-left"
+                  >
                     <AvatarPlaceholder letter={letter} />
                     <div className="min-w-0 flex-1">
                       <p className="text-[15px] font-medium leading-6 text-[#2b2b2b]">{item.username}</p>
@@ -146,7 +154,10 @@ export default function CustomersView({ customers }: { customers: CustomerWithTi
                         <span className="text-[11px] text-[#8c8c8c]">{item.totalOrders} đơn</span>
                       </div>
                     </div>
-                  </div>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-[#c0c0c0]">
+                      <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
                   {!isLast && <div className="h-px bg-[#f0f0f0]" />}
                 </div>
               );
