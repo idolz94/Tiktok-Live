@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { getMeBootstrapApi } from "@/api/meApi";
 import { signOutApi } from "@/api/authApi";
 import type { AuthChangeReason } from "@/lib/request";
-import { restoreTokenFromCookie } from "@/lib/request";
+import { getRuntimeAuthToken, restoreTokenFromCookie } from "@/lib/request";
 import type { ShopTikTokChannel } from "@/types/database";
 
 export type AuthUser = {
@@ -64,6 +65,13 @@ export async function bootstrapAuth() {
 
   restoreTokenFromCookie();
 
+  const token = getRuntimeAuthToken();
+  if (!token) {
+    bootstrapDone = true;
+    cachedUser = null;
+    return null;
+  }
+
   bootstrapInFlight = (async () => {
     const me = await getMeBootstrapApi();
     cachedUser = mapBootstrapUser(me);
@@ -119,7 +127,7 @@ export function useAuth(): AuthState {
       setUser(null);
       setError(null);
     } catch (logoutError) {
-      alert(logoutError instanceof Error ? logoutError.message : "Đăng xuất thất bại");
+      toast.error(logoutError instanceof Error ? logoutError.message : "Đăng xuất thất bại");
     } finally {
       setIsLoading(false);
     }

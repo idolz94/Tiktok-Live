@@ -22,10 +22,11 @@ export function getTikTokProfileUrl(username?: string | null) {
 }
 
 export function openTikTokProfile(username?: string | null) {
+  const { toast } = require("sonner");
   const url = getTikTokProfileUrl(username);
 
   if (!url) {
-    alert("Không tìm thấy TikTok username của khách.");
+    toast.warning("Không tìm thấy TikTok username của khách.");
     return;
   }
 

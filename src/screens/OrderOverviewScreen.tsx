@@ -601,12 +601,12 @@ export default function OrderOverviewScreen({
     const price = Number(newPrice);
 
     if (!productCode) {
-      alert("Vui lòng nhập mã sản phẩm");
+      toast.warning("Vui lòng nhập mã sản phẩm");
       return;
     }
 
     if (!price || price <= 0) {
-      alert("Vui lòng nhập giá sản phẩm");
+      toast.warning("Vui lòng nhập giá sản phẩm");
       return;
     }
 
@@ -635,7 +635,7 @@ export default function OrderOverviewScreen({
       setAddProductOpen(false);
       toast.success("Đã thêm sản phẩm");
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Thêm sản phẩm thất bại");
+      toast.error(error instanceof Error ? error.message : "Thêm sản phẩm thất bại");
     } finally {
       setIsAddingProduct(false);
     }
@@ -655,7 +655,7 @@ export default function OrderOverviewScreen({
       onDeleteProduct?.(order.id, itemId);
       toast.success("Đã xoá sản phẩm");
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Xoá sản phẩm thất bại");
+      toast.error(error instanceof Error ? error.message : "Xoá sản phẩm thất bại");
     } finally {
       setDeletingProductId("");
     }

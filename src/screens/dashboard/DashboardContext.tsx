@@ -65,7 +65,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       const commentKey = createOrderCommentKey(comment);
 
       if (createdCommentKeysRef.current.has(commentKey)) {
-        alert("Comment này đã tạo đơn rồi.");
+        toast.warning("Comment này đã tạo đơn rồi.");
         return false;
       }
 
@@ -88,7 +88,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (process.env.NEXT_PUBLIC_NODE_ENV === "development") console.error("CREATE ORDER ERROR:", error);
-        alert(error instanceof Error ? error.message : "Tạo đơn thất bại");
+        toast.error(error instanceof Error ? error.message : "Tạo đơn thất bại");
 
         return false;
       }

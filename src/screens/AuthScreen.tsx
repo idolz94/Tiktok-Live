@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { signInApi, signOutApi, signUpApi } from "@/api/authApi";
 import { bootstrapAuth } from "@/hooks/useAuth";
@@ -25,22 +26,22 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
 
   async function handleSubmit() {
     if (!phone.trim()) {
-      alert("Vui lòng nhập số điện thoại");
+      toast.warning("Vui lòng nhập số điện thoại");
       return;
     }
 
     if (!password.trim()) {
-      alert("Vui lòng nhập mật khẩu");
+      toast.warning("Vui lòng nhập mật khẩu");
       return;
     }
 
     if (!isLogin && !fullName.trim()) {
-      alert("Vui lòng nhập họ tên");
+      toast.warning("Vui lòng nhập họ tên");
       return;
     }
 
     if (!isLogin && !tiktokId.trim()) {
-      alert("Vui lòng nhập TikTok ID");
+      toast.warning("Vui lòng nhập TikTok ID");
       return;
     }
 
@@ -56,20 +57,20 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
       const user = await bootstrapAuth();
 
       if (!user) {
-        alert("Tài khoản đã tạo. Vui lòng đăng nhập lại.");
+        toast.info("Tài khoản đã tạo. Vui lòng đăng nhập lại.");
         setMode("login");
         return;
       }
 
       if (!user.canUseApp) {
         await signOutApi();
-        alert("Shop đã hết hạn dùng thử hoặc chưa có license.");
+        toast.warning("Shop đã hết hạn dùng thử hoặc chưa có license.");
         return;
       }
 
       router.push("/");
     } catch (error) {
-      alert(
+      toast.error(
         error instanceof Error
           ? error.message
           : isLogin
