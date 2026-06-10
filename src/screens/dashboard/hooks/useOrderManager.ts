@@ -243,7 +243,6 @@ export function useOrderManager({
         });
 
         await reloadOrders();
-        setLiveTab("orders");
         onAfterCreateOrder?.();
 
         return result;
