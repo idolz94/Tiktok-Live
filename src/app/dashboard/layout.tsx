@@ -9,10 +9,13 @@ import {
   getDashboardTabFromPathname,
   useDashboardContext,
 } from "@/screens/dashboard/DashboardContext";
-import SessionHeader from "@/screens/dashboard/components/SessionHeader";
 
 function isDetailPath(pathname: string) {
-  return pathname.startsWith("/dashboard/history/") || pathname.startsWith("/dashboard/orders/");
+  return (
+    pathname.startsWith("/dashboard/customers/") ||
+    pathname.startsWith("/dashboard/history/") ||
+    pathname.startsWith("/dashboard/orders/")
+  );
 }
 
 function DashboardShell({ children }: { children: ReactNode }) {
@@ -20,7 +23,6 @@ function DashboardShell({ children }: { children: ReactNode }) {
   const {
     user,
     topTab,
-    setTopTab,
     live,
     orderManager,
     isDisconnecting,
@@ -30,6 +32,7 @@ function DashboardShell({ children }: { children: ReactNode }) {
     disconnectLive,
   } = useDashboardContext();
   const activeTab = getDashboardTabFromPathname(pathname);
+
   if (isDetailPath(pathname)) {
     return (
       <main className="h-dvh overflow-hidden bg-white">
@@ -43,19 +46,7 @@ function DashboardShell({ children }: { children: ReactNode }) {
   return (
     <main className="h-dvh overflow-hidden bg-white">
       <div className="mx-auto flex h-full max-w-155 flex-col bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
-        <SessionHeader
-          isConnected={live.isConnected}
-          status={live.status}
-          tiktokUsername={live.tiktokUsername}
-          currentLiveSession={live.currentLiveSession}
-          liveDurationSeconds={live.liveDurationSeconds}
-          liveNowText={live.liveNowText}
-          activeTab={topTab}
-          onChangeTab={setTopTab}
-        />
-        <section className="min-h-0 flex-1 overflow-hidden">
-          <IphoneRouteTransition>{children}</IphoneRouteTransition>
-        </section>
+        <IphoneRouteTransition>{children}</IphoneRouteTransition>
         <BottomNav
           username={user?.fullName || user?.phone || user?.username || "User"}
           footerHidden={liveControlsHidden && live.isConnected && activeTab === "home"}

@@ -1,8 +1,12 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { DrawlerBase } from "@/components/ui/Drawler";
+import liveDotAnimation from "../../../../public/assets/animations/dot.json";
 import type { ShopTikTokChannel } from "@/types/database";
+import type { UserJoinedEvent } from "@/features/tiktok-live/types";
+import UserJoinedBanner from "./UserJoinedBanner";
 import { isPriorityComment, normalizeTikTokUsername } from "@/utils/comment";
 import CommentCard from "../../../components/CommentCard";
 import OrderCard from "../../../components/OrderCard";
@@ -15,6 +19,8 @@ import {
   OrderProduct,
   TopTab,
 } from "../../../types";
+
+const liveDotAnimationData = JSON.stringify(liveDotAnimation);
 
 type CommentTab = "all" | "priority";
 
@@ -51,7 +57,8 @@ export default function HomeView({
   showChannelSwitcher,
   onShowChannelSwitcherChange,
   onConnectTikTokLive,
-  onLiveControlsHiddenChange
+  onLiveControlsHiddenChange,
+  joinEvent,
 }: {
   topTab: TopTab;
   liveTab: LiveTab;
@@ -86,6 +93,7 @@ export default function HomeView({
   onShowChannelSwitcherChange: (open: boolean) => void;
   onConnectTikTokLive: (username: string) => Promise<boolean | void>;
   onLiveControlsHiddenChange?: (hidden: boolean) => void;
+  joinEvent?: UserJoinedEvent | null;
 }) {
   const [commentTab, setCommentTab] = useState<CommentTab>("all");
   const [selectedUsername, setSelectedUsername] = useState(tiktokUsername || "");
@@ -181,7 +189,12 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
               onClick={() => onChangeLiveTab("live")}
               className="relative flex h-10 flex-1 items-center justify-center gap-2 rounded-full text-[14px] font-semibold bg-[#ff6b8a] text-white shadow-sm"
             >
-              <span className="h-2 w-2 rounded-full bg-white opacity-90" />
+              <DotLottieReact
+                data={liveDotAnimationData}
+                loop
+                autoplay
+                className="h-8 w-8 shrink-0"
+              />
               Live
             </button>
             <button
@@ -193,7 +206,6 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
             </button>
           </div>
         </div>
-
 
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="shrink-0 flex gap-2 px-4 my-3">
@@ -233,12 +245,12 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
             onScroll={handleCommentListScroll}
             className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-35 [-webkit-overflow-scrolling:touch]"
           >
-            {currentComments.length === 0 ? (
+            {joinEvent && <UserJoinedBanner event={joinEvent} />}
+
+            {(currentComments.length === 0) ? (
               <div className="flex flex-col items-center justify-center py-16">
                 <p className="text-center text-[15px] leading-5.5 text-[#787878]">
-                  {commentTab === "priority"
-                    ? "Chưa có comment ưu tiên."
-                    : "Đang chờ comment realtime từ TikTok LIVE."}
+                    Đang chờ comment
                 </p>
               </div>
             ) : (
@@ -334,10 +346,15 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
           onClick={() => onChangeLiveTab("live")}
           type="button"
         >
-          {liveTab === "live" && (
-            <span className="h-2.5 w-2.5 rounded-full bg-white opacity-90" />
-          )}
-          Live
+          {/* {liveTab === "live" && ( */}
+            <DotLottieReact
+              data={liveDotAnimationData}
+              autoplay
+              loop
+              className="h-10 w-10 shrink-0"
+            />
+          {/* )} */}
+          <span className="-ml-3">Live</span>
         </button>
 
         <button

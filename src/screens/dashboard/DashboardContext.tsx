@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTikTokLiveSocket } from "@/hooks/useTikTokLiveSocket";
@@ -48,6 +48,15 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     comments: live.comments,
     liveSessionId: live.currentLiveSessionId,
   });
+
+  useEffect(() => {
+    if (!live.liveError) return;
+
+    toast.error(live.liveError);
+    orderManager.setLiveTab("live");
+    setLiveControlsHidden(false);
+    live.clearLiveError();
+  }, [live, orderManager]);
 
   const disconnectLive = useCallback(async () => {
     if (isDisconnecting) return;

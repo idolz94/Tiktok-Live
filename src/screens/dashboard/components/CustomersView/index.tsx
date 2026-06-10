@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CustomerWithTikTok } from "../types";
+import { CustomerWithTikTok } from "../../types";
 
 type CustomerTab = "all" | "new" | "tiktok";
 
@@ -12,29 +12,6 @@ function TikTokIcon() {
         d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.34 6.34 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V9.01a8.16 8.16 0 0 0 4.77 1.52V7.07a4.85 4.85 0 0 1-1-.38z"
         fill="#484848"
       />
-    </svg>
-  );
-}
-
-function ScanQRIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-      <path d="M3 7V5a2 2 0 0 1 2-2h2" stroke="#2b2b2b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M17 3h2a2 2 0 0 1 2 2v2" stroke="#2b2b2b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M21 17v2a2 2 0 0 1-2 2h-2" stroke="#2b2b2b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M7 21H5a2 2 0 0 1-2-2v-2" stroke="#2b2b2b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <rect x="7" y="7" width="3" height="3" rx="0.5" fill="#2b2b2b" />
-      <rect x="14" y="7" width="3" height="3" rx="0.5" fill="#2b2b2b" />
-      <rect x="7" y="14" width="3" height="3" rx="0.5" fill="#2b2b2b" />
-      <rect x="14" y="14" width="3" height="3" rx="0.5" fill="#2b2b2b" />
-    </svg>
-  );
-}
-
-function FilterIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <path d="M4 6h16M7 12h10M10 18h4" stroke="#2b2b2b" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
@@ -66,29 +43,7 @@ export default function CustomersView({
 
   return (
     <div className="flex h-full flex-col ">
-      <div
-      >
-        <div className="flex items-center justify-between p-4">
-          <h1 className="text-[24px] font-semibold leading-7 text-[#2b2b2b]">Khách hàng</h1>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              aria-label="Lọc"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm"
-            >
-              <FilterIcon />
-            </button>
-            <button
-              type="button"
-              aria-label="Quét QR"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm"
-            >
-              <ScanQRIcon />
-            </button>
-          </div>
-        </div>
-
-        <div className="flex gap-2 px-4 pb-4">
+      <div className="flex gap-2 px-4 pb-4">
           <button
             type="button"
             onClick={() => setActiveTab("all")}
@@ -116,7 +71,6 @@ export default function CustomersView({
           >
             TikTok ({tiktokCount})
           </button>
-        </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 [-webkit-overflow-scrolling:touch]">

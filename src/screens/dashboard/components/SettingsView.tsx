@@ -91,8 +91,6 @@ export default function SettingsView({
   tiktokChannels = [],
   isConnected,
   status,
-  onChangeTikTokUsername,
-  onRefreshAuth,
   onLogout,
 }: {
   username?: string;
@@ -100,8 +98,6 @@ export default function SettingsView({
   tiktokChannels?: ShopTikTokChannel[];
   isConnected: boolean;
   status: string;
-  onChangeTikTokUsername: (username: string) => void;
-  onRefreshAuth?: () => Promise<void>;
   onLogout: () => void;
 }) {
   const [subScreen, setSubScreen] = useState<"main" | "tiktokChannels">("main");
@@ -128,13 +124,10 @@ export default function SettingsView({
     return [...channels].sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
   }, [channels]);
 
-  const reloadChannelsAndSyncLiveUsername = async () => {
+  const reloadChannels = async () => {
     const nextChannels = await getTikTokChannelsApi();
     setChannels(nextChannels);
-
-    const nextDefault = nextChannels.find((channel) => channel.isDefault);
-    onChangeTikTokUsername(nextDefault?.tiktokUsername || "");
-    await onRefreshAuth?.();
+    return nextChannels;
   };
 
   const openTikTokChannelsScreen = async () => {
@@ -225,7 +218,7 @@ export default function SettingsView({
       }
 
       closeDrawer();
-      await reloadChannelsAndSyncLiveUsername();
+      await reloadChannels();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Thao tác thất bại");
     } finally {
@@ -242,7 +235,7 @@ export default function SettingsView({
       await updateTikTokChannelApi(confirmTarget.channel.id, { isDefault: true });
       toast.success("Đã đặt làm kênh mặc định");
       setConfirmTarget(null);
-      await reloadChannelsAndSyncLiveUsername();
+      await reloadChannels();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không thể đặt mặc định");
     } finally {
@@ -259,7 +252,7 @@ export default function SettingsView({
       await deleteTikTokChannelApi(confirmTarget.channel.id);
       toast.success("Đã xoá kênh TikTok");
       setConfirmTarget(null);
-      await reloadChannelsAndSyncLiveUsername();
+      await reloadChannels();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không thể xoá kênh");
     } finally {

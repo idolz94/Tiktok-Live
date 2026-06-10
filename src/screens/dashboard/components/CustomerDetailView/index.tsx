@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { CustomerWithTikTok } from "../types";
+import { CustomerWithTikTok } from "../../types";
 import { updateCustomerApi } from "@/api/customersApi";
 
 function ChevronLeftIcon() {
@@ -106,18 +106,6 @@ export default function CustomerDetailView({
 
   return (
     <div className="flex h-full flex-col bg-white">
-      <div className="relative flex shrink-0 items-center justify-center px-4 pt-6 pb-4">
-        <button
-          type="button"
-          aria-label="Quay lại"
-          onClick={onBack}
-          className="absolute left-4 flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]"
-        >
-          <ChevronLeftIcon />
-        </button>
-        <h1 className="text-[16px] font-semibold leading-6 text-black">Chi tiết khách hàng</h1>
-      </div>
-
       <div className="min-h-0 flex-1 overflow-y-auto pb-32 [-webkit-overflow-scrolling:touch]">
         <div className="px-4 pb-5 pt-2">
           <div className="flex flex-col gap-4">
@@ -135,12 +123,6 @@ export default function CustomerDetailView({
               )}
               <div className="min-w-0 flex-1">
                 <p className="text-[16px] font-medium leading-6 text-black">{customer.username}</p>
-                <div className="mt-0.5 flex items-center gap-2">
-                  <HashIcon />
-                  <span className="text-[12px] leading-4.5 text-[#484848]">
-                    {tiktokHandle ? `@${tiktokHandle}` : customer.username}
-                  </span>
-                </div>
               </div>
             </div>
 
