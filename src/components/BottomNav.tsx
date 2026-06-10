@@ -1,7 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import type { DotLottie } from "@lottiefiles/dotlottie-react";
 import { usePathname, useRouter } from "next/navigation";
 import { normalizeTikTokUsername } from "@/utils/comment";
 import { getDashboardTabFromPathname } from "@/screens/dashboard/DashboardContext";
@@ -16,72 +17,43 @@ type LiveFooterBar = {
   onDisconnect: () => void;
 };
 
-const ITEMS: { key: BottomTab; label: string; icon: (active: boolean) => ReactNode }[] = [
-  {
-    key: "home",
-    label: "Home",
-    icon: (active) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M3 9.5L12 3L21 9.5V20C21 20.55 20.55 21 20 21H15V15H9V21H4C3.45 21 3 20.55 3 20V9.5Z" fill={active ? "#ff5f8a" : "#b0b8c9"} />
-      </svg>
-    ),
-  },
-  {
-    key: "customers",
-    label: "Khách hàng",
-    icon: (active) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="9" cy="7" r="4" fill={active ? "#ff5f8a" : "#b0b8c9"} />
-        <path d="M1 20C1 16.13 4.13 13 8 13H10C13.87 13 17 16.13 17 20" stroke={active ? "#ff5f8a" : "#b0b8c9"} strokeWidth="2" strokeLinecap="round" />
-        <circle cx="18" cy="8" r="3" fill={active ? "#ff5f8a" : "#b0b8c9"} />
-        <path d="M15 20C15 17.33 16.79 15.12 19 14.24" stroke={active ? "#ff5f8a" : "#b0b8c9"} strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    key: "shipping",
-    label: "Vận đơn",
-    icon: (active) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="6" width="13" height="11" rx="1" fill={active ? "#ff5f8a" : "#b0b8c9"} />
-        <path d="M14 9H18L21 13V17H14V9Z" fill={active ? "#ff5f8a" : "#b0b8c9"} />
-        <circle cx="6" cy="18.5" r="1.5" fill="white" />
-        <circle cx="18" cy="18.5" r="1.5" fill="white" />
-      </svg>
-    ),
-  },
-  {
-    key: "reports",
-    label: "Báo cáo",
-    icon: (active) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="3" y="12" width="4" height="9" rx="1" fill={active ? "#ff5f8a" : "#b0b8c9"} />
-        <rect x="10" y="7" width="4" height="14" rx="1" fill={active ? "#ff5f8a" : "#b0b8c9"} />
-        <rect x="17" y="3" width="4" height="18" rx="1" fill={active ? "#ff5f8a" : "#b0b8c9"} />
-      </svg>
-    ),
-  },
-  {
-    key: "history",
-    label: "Lịch sử",
-    icon: (active) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="12" r="8" stroke={active ? "#ff5f8a" : "#b0b8c9"} strokeWidth="2" />
-        <path d="M12 7V12L15.5 14" stroke={active ? "#ff5f8a" : "#b0b8c9"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
-    key: "settings",
-    label: "Cài đặt",
-    icon: (active) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="12" r="3" fill={active ? "#ff5f8a" : "#b0b8c9"} />
-        <path fillRule="evenodd" clipRule="evenodd" d="M10.3 2.3a1 1 0 0 1 3.4 0l.5 1.5a8 8 0 0 1 1.7 1l1.6-.4a1 1 0 0 1 1.1.5l1.7 2.9a1 1 0 0 1-.2 1.3l-1.2 1a8.1 8.1 0 0 1 0 2l1.2 1a1 1 0 0 1 .2 1.3l-1.7 2.9a1 1 0 0 1-1.1.5l-1.6-.4a8 8 0 0 1-1.7 1l-.5 1.5a1 1 0 0 1-3.4 0l-.5-1.5a8 8 0 0 1-1.7-1l-1.6.4a1 1 0 0 1-1.1-.5L3.7 15a1 1 0 0 1 .2-1.3l1.2-1a8.1 8.1 0 0 1 0-2l-1.2-1A1 1 0 0 1 3.7 8.4l1.7-2.9a1 1 0 0 1 1.1-.5l1.6.4a8 8 0 0 1 1.7-1l.5-1.5Z" fill={active ? "#ff5f8a" : "#b0b8c9"} />
-      </svg>
-    ),
-  },
+const ITEMS: { key: BottomTab; label: string; animationSrc: string }[] = [
+  { key: "home", label: "Home", animationSrc: "/assets/animations/home.json" },
+  { key: "customers", label: "Khách hàng", animationSrc: "/assets/animations/customers.json" },
+  { key: "shipping", label: "Vận đơn", animationSrc: "/assets/animations/shipping.json" },
+  { key: "reports", label: "Báo cáo", animationSrc: "/assets/animations/reports.json" },
+  { key: "history", label: "Lịch sử", animationSrc: "/assets/animations/history.json" },
+  { key: "settings", label: "Cài đặt", animationSrc: "/assets/animations/settings.json" },
 ];
+
+function LottieIcon({ src, isActive }: { src: string; isActive: boolean }) {
+  const dotLottieRef = useRef<DotLottie | null>(null);
+  const prevActiveRef = useRef(false);
+
+  useEffect(() => {
+    if (isActive && !prevActiveRef.current) {
+      dotLottieRef.current?.play();
+    }
+
+    if (!isActive && prevActiveRef.current) {
+      dotLottieRef.current?.stop();
+    }
+
+    prevActiveRef.current = isActive;
+  }, [isActive]);
+
+  return (
+    <DotLottieReact
+      src={src}
+      dotLottieRefCallback={(ref) => {
+        dotLottieRef.current = ref;
+      }}
+      autoplay={false}
+      loop={false}
+      style={{ width: 24, height: 24 }}
+    />
+  );
+}
 
 const ROUTES: Record<BottomTab, string> = {
   home: "/dashboard/live",
@@ -228,7 +200,7 @@ export default function BottomNav({
               type="button"
             >
               {isActive && <span className="absolute bottom-0 h-0.5 w-10 rounded-full bg-[#ff5f8a]" />}
-              {item.icon(isActive)}
+              <LottieIcon src={item.animationSrc} isActive={isActive} />
               <span
                 className={`text-[10px] font-medium ${isActive ? "text-[#ff5f8a]" : "text-[#787878]"}`}
               >
