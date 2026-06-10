@@ -59,8 +59,8 @@ Client Next.js
   - `SUPABASE_SERVICE_ROLE_KEY`
   - `NODE_INTERNAL_API_KEY`
   - `COLLECTOR_CONTROL_API_KEY`
-- Không gửi lại `Authorization: Bearer <accessToken>` theo auth flow cũ nếu backend đang dùng Clerk session/cookie.
-- Backend request từ client phải dùng `credentials: "include"` để gửi Clerk/session cookie.
+- Không gửi Bearer token tự quản lý theo auth flow cũ.
+- Backend request từ client phải dùng `credentials: "include"` và để `src/lib/request.ts` tự gắn Clerk token nếu session đang active.
 
 ## Auth contract hiện tại
 
@@ -70,9 +70,9 @@ Quy tắc:
 
 - Login/register dùng Clerk client SDK.
 - Sau khi Clerk login/register `complete`, gọi `setActive(...)` để active session.
-- API backend dựa trên Clerk session/cookie, không dựa trên Bearer token cũ.
+- API backend xác thực bằng Clerk session: `src/lib/request.ts` gửi `credentials: "include"` và tự gắn `Authorization: Bearer <Clerk token>` khi Clerk đã active.
 - `src/lib/request.ts` phải mặc định gửi `credentials: "include"`.
-- Không tự đọc/gửi access token trong component.
+- Không tự đọc/gửi access token trong component; chỉ `ClerkTokenSync` và `src/lib/request.ts` được xử lý token.
 - Không tự gọi `/api/me/bootstrap` nhiều lần trong cùng một flow.
 
 Sau login/register thành công:

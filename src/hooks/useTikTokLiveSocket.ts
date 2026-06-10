@@ -206,10 +206,6 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     }
 
     const accessToken = await getAuthToken();
-    if (!accessToken) {
-      setStatus("Chưa đăng nhập, không thể kết nối SSE.");
-      return;
-    }
 
     const clientId = clientIdRef.current;
     const url = buildLiveStreamEventsUrl(clientId);
@@ -243,7 +239,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
 
     fetchEventSource(url, {
       method: "GET",
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
       credentials: "include",
       signal: abortControllerRef.current.signal,
       openWhenHidden: true,

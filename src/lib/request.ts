@@ -1,4 +1,11 @@
+import axios from "axios";
+
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
+
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true,
+});
 
 let hasEmittedSessionExpired = false;
 
@@ -87,10 +94,6 @@ export function buildApiUrl(path: string, params?: RequestParams) {
   return appendParams(joinUrl(API_BASE_URL, path), params);
 }
 
-function buildUrl(path: string, params?: RequestParams) {
-  return buildApiUrl(path, params);
-}
-
 function getErrorMessage(result: any, fallback: string) {
   return String(
     result?.message ||
@@ -101,64 +104,71 @@ function getErrorMessage(result: any, fallback: string) {
   );
 }
 
-async function parseResponse(response: Response) {
-  if (response.status === 204) return null;
+function cleanParams(params?: RequestParams) {
+  if (!params) return undefined;
 
-  const contentType = response.headers.get("content-type") || "";
-
-  if (contentType.includes("application/json")) {
-    return response.json().catch(() => null);
-  }
-
-  const text = await response.text().catch(() => "");
-  return text || null;
+  return Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== ""),
+  );
 }
 
-async function handleResponse<T>(response: Response, options?: RequestOptions): Promise<T> {
-  const result = await parseResponse(response);
+function maybeEmitSessionExpired(status: number, data: any, skip?: boolean) {
+  if (!skip && (status === 401 || data?.code === "UNAUTHORIZED")) {
+    emitSessionExpired();
+  }
+}
 
-  if (!response.ok) {
-    if (!options?.skipSessionExpired && (response.status === 401 || result?.code === "UNAUTHORIZED")) {
-      emitSessionExpired();
+function unwrapEnvelope<T>(data: any, status: number, skip?: boolean): T {
+  if (data && typeof data === "object") {
+    if ("ok" in data && !data.ok) {
+      maybeEmitSessionExpired(status, data, skip);
+      throw new ApiError(getErrorMessage(data, "API request failed"), status, data);
     }
 
-    throw new ApiError(
-      getErrorMessage(result, `API request failed: ${response.status}`),
-      response.status,
-      result,
+    if ("success" in data && !data.success) {
+      maybeEmitSessionExpired(status, data, skip);
+      throw new ApiError(getErrorMessage(data, "API request failed"), status, data);
+    }
+
+    if (("ok" in data || "success" in data) && "data" in data) {
+      return data.data as T;
+    }
+  }
+
+  return data as T;
+}
+
+function toApiError(error: unknown, skip?: boolean): ApiError {
+  if (error instanceof ApiError) return error;
+
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status ?? 0;
+    const data = error.response?.data;
+
+    maybeEmitSessionExpired(status, data, skip);
+
+    return new ApiError(
+      getErrorMessage(data, error.message || "API request failed"),
+      status,
+      data,
     );
   }
 
-  if (result && typeof result === "object") {
-    if ("ok" in result && !result.ok) {
-      if (!options?.skipSessionExpired && (response.status === 401 || result.code === "UNAUTHORIZED")) {
-        emitSessionExpired();
-      }
-
-      throw new ApiError(getErrorMessage(result, "API request failed"), response.status, result);
-    }
-
-    if ("success" in result && !result.success) {
-      if (!options?.skipSessionExpired && (response.status === 401 || result.code === "UNAUTHORIZED")) {
-        emitSessionExpired();
-      }
-
-      throw new ApiError(getErrorMessage(result, "API request failed"), response.status, result);
-    }
-
-    if (("ok" in result || "success" in result) && "data" in result) {
-      return result.data as T;
-    }
-  }
-
-  return result as T;
+  return new ApiError(error instanceof Error ? error.message : "API request failed", 0);
 }
 
-function buildHeaders(options?: RequestOptions, hasBody = false) {
+async function buildHeaders(options?: RequestOptions, hasBody = false) {
+  const token = await getAuthToken();
+
   return {
     ...(hasBody ? { "Content-Type": "application/json" } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options?.headers,
   };
+}
+
+function resolveWithCredentials(options?: RequestOptions) {
+  return options?.credentials === "omit" ? false : true;
 }
 
 export async function getRequest<T>(
@@ -166,14 +176,19 @@ export async function getRequest<T>(
   params?: RequestParams,
   options?: RequestOptions,
 ): Promise<T> {
-  const response = await fetch(buildUrl(path, params), {
-    method: "GET",
-    headers: buildHeaders(options),
-    cache: "no-store",
-    credentials: options?.credentials || "include",
-  });
+  try {
+    const response = await apiClient.get<T>(path, {
+      params: cleanParams(params),
+      withCredentials: resolveWithCredentials(options),
+      headers: await buildHeaders(options),
+    });
 
-  return handleResponse<T>(response, options);
+    if (response.status === 204) return null as T;
+
+    return unwrapEnvelope<T>(response.data, response.status, options?.skipSessionExpired);
+  } catch (error) {
+    throw toApiError(error, options?.skipSessionExpired);
+  }
 }
 
 export async function postRequest<T>(
@@ -181,14 +196,18 @@ export async function postRequest<T>(
   data?: unknown,
   options?: RequestOptions,
 ): Promise<T> {
-  const response = await fetch(buildUrl(path), {
-    method: "POST",
-    headers: buildHeaders(options, true),
-    body: JSON.stringify(data || {}),
-    credentials: options?.credentials || "include",
-  });
+  try {
+    const response = await apiClient.post<T>(path, data ?? {}, {
+      withCredentials: resolveWithCredentials(options),
+      headers: await buildHeaders(options, true),
+    });
 
-  return handleResponse<T>(response, options);
+    if (response.status === 204) return null as T;
+
+    return unwrapEnvelope<T>(response.data, response.status, options?.skipSessionExpired);
+  } catch (error) {
+    throw toApiError(error, options?.skipSessionExpired);
+  }
 }
 
 export async function patchRequest<T>(
@@ -196,14 +215,18 @@ export async function patchRequest<T>(
   data?: unknown,
   options?: RequestOptions,
 ): Promise<T> {
-  const response = await fetch(buildUrl(path), {
-    method: "PATCH",
-    headers: buildHeaders(options, true),
-    body: JSON.stringify(data || {}),
-    credentials: options?.credentials || "include",
-  });
+  try {
+    const response = await apiClient.patch<T>(path, data ?? {}, {
+      withCredentials: resolveWithCredentials(options),
+      headers: await buildHeaders(options, true),
+    });
 
-  return handleResponse<T>(response, options);
+    if (response.status === 204) return null as T;
+
+    return unwrapEnvelope<T>(response.data, response.status, options?.skipSessionExpired);
+  } catch (error) {
+    throw toApiError(error, options?.skipSessionExpired);
+  }
 }
 
 export async function deleteRequest<T>(
@@ -211,11 +234,17 @@ export async function deleteRequest<T>(
   params?: RequestParams,
   options?: RequestOptions,
 ): Promise<T> {
-  const response = await fetch(buildUrl(path, params), {
-    method: "DELETE",
-    headers: buildHeaders(options),
-    credentials: options?.credentials || "include",
-  });
+  try {
+    const response = await apiClient.delete<T>(path, {
+      params: cleanParams(params),
+      withCredentials: resolveWithCredentials(options),
+      headers: await buildHeaders(options),
+    });
 
-  return handleResponse<T>(response, options);
+    if (response.status === 204) return null as T;
+
+    return unwrapEnvelope<T>(response.data, response.status, options?.skipSessionExpired);
+  } catch (error) {
+    throw toApiError(error, options?.skipSessionExpired);
+  }
 }
