@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useSignIn, useSignUp } from "@clerk/nextjs/legacy";
 import { createTikTokChannelApi } from "@/api/meApi";
+import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { ForgotPasswordDrawer } from "@/features/auth/ForgotPassword";
 
 function mapClerkError(err: { code?: string; message?: string; longMessage?: string }): string {
@@ -195,104 +196,82 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
             )}
 
             {!isLogin && (
-              <>
-                <label className="mt-6 mb-2 block text-lg font-black text-[#273044]">
-                  Full Name
-                </label>
-
-                <div className="flex min-h-14 items-center rounded-[13px] border border-[#a3a8b0] bg-white px-[14px]">
-                  <input
-                    value={fullName}
-                    onChange={(event) => setFullName(event.target.value)}
-                    autoCapitalize="words"
-                    autoCorrect="off"
-                    placeholder="Nhập họ tên"
-                    className="min-w-0 flex-1 border-0 bg-transparent text-xl text-[#273044] outline-none"
-                  />
-
-                  {fullName.trim() && (
-                    <span className="ml-2.5 text-[22px] font-bold text-[#4caf50]">
+              <FloatingLabelInput
+                id="fullName"
+                label="Họ tên"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                autoCapitalize="words"
+                autoCorrect="off"
+                className="mt-6"
+                rightSlot={
+                  fullName.trim() ? (
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[22px] font-bold text-[#4caf50]">
                       ✓
                     </span>
-                  )}
-                </div>
-              </>
+                  ) : null
+                }
+              />
             )}
 
-            <label className="mt-6 mb-2 block text-lg font-black text-[#273044]">
-              Tên đăng nhập
-            </label>
+            <FloatingLabelInput
+              id="username"
+              label="Tài khoản"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoCapitalize="none"
+              autoCorrect="off"
+              autoComplete="username"
+              className="mt-6"
+              rightSlot={
+                username.trim() ? (
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[22px] font-bold text-[#4caf50]">
+                    ✓
+                  </span>
+                ) : null
+              }
+            />
 
-            <div className="flex min-h-14 items-center rounded-[13px] border border-[#a3a8b0] bg-white px-[14px]">
-              <input
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                autoCapitalize="none"
-                autoCorrect="off"
-                autoComplete="username"
-                placeholder="Nhập tên đăng nhập"
-                className="min-w-0 flex-1 border-0 bg-transparent text-xl text-[#273044] outline-none"
-              />
-
-              {username.trim() && (
-                <span className="ml-2.5 text-[22px] font-bold text-[#4caf50]">
-                  ✓
-                </span>
-              )}
-            </div>
-
-            <label className="mt-6 mb-2 block text-lg font-black text-[#273044]">
-              Mật khẩu
-            </label>
-
-            <div className="flex min-h-14 items-center rounded-[13px] border border-[#a3a8b0] bg-white px-[14px]">
-              <input
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                type={isPasswordVisible ? "text" : "password"}
-                autoComplete={isLogin ? "current-password" : "new-password"}
-                placeholder="Nhập mật khẩu"
-                className="min-w-0 flex-1 border-0 bg-transparent text-xl text-[#273044] outline-none"
-              />
-
-              <button
-                className="ml-2 text-[25px] text-[#273044]"
-                onClick={() => setIsPasswordVisible((value) => !value)}
-                type="button"
-              >
-                {isPasswordVisible ? "◉" : "◉̸"}
-              </button>
-
-              {password.trim() && (
-                <span className="ml-2.5 text-[22px] font-bold text-[#4caf50]">
-                  ✓
-                </span>
-              )}
-            </div>
+            <FloatingLabelInput
+              id="password"
+              label="Mật khẩu"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type={isPasswordVisible ? "text" : "password"}
+              autoComplete={isLogin ? "current-password" : "new-password"}
+              className="mt-6"
+              rightSlot={
+                <button
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[25px] text-[#273044]"
+                  onClick={() => setIsPasswordVisible((v) => !v)}
+                  type="button"
+                >
+                  {isPasswordVisible ?  
+                  '%': <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M8.94418 4.23002C10.8853 3.99869 12.8489 4.40904 14.5349 5.39839C16.221 6.38775 17.5369 7.90175 18.2817 9.70919C18.3511 9.89628 18.3511 10.1021 18.2817 10.2892C17.9754 11.0317 17.5707 11.7296 17.0783 12.3642M11.7367 11.7984C11.2652 12.2537 10.6337 12.5057 9.97818 12.5C9.32269 12.4943 8.69565 12.2314 8.23213 11.7679C7.76861 11.3044 7.50569 10.6773 7.5 10.0219C7.4943 9.36636 7.74629 8.73486 8.20168 8.26335M14.5658 14.5825C13.4604 15.2373 12.2271 15.6467 10.9495 15.7828C9.6719 15.919 8.37997 15.7787 7.16137 15.3716C5.94277 14.9644 4.82601 14.2999 3.88686 13.4231C2.94771 12.5464 2.20814 11.4778 1.71835 10.29C1.6489 10.1029 1.6489 9.89712 1.71835 9.71002C2.45721 7.91823 3.75724 6.41439 5.42335 5.42419M1.66668 1.66669L18.3333 18.3334" stroke="#484848" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+}
+                </button>
+              }
+            />
 
             {!isLogin && (
-              <>
-                <label className="mt-6 mb-2 block text-lg font-black text-[#273044]">
-                  TikTok ID
-                </label>
-
-                <div className="flex min-h-14 items-center rounded-[13px] border border-[#a3a8b0] bg-white px-[14px]">
-                  <input
-                    value={tiktokId}
-                    onChange={(event) => setTiktokId(event.target.value)}
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    placeholder="Nhập TikTok ID"
-                    className="min-w-0 flex-1 border-0 bg-transparent text-xl text-[#273044] outline-none"
-                  />
-
-                  {tiktokId.trim() && (
-                    <span className="ml-2.5 text-[22px] font-bold text-[#4caf50]">
+              <FloatingLabelInput
+                id="tiktokId"
+                label="TikTok ID"
+                value={tiktokId}
+                onChange={(e) => setTiktokId(e.target.value)}
+                autoCapitalize="none"
+                autoCorrect="off"
+                className="mt-6"
+                rightSlot={
+                  tiktokId.trim() ? (
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[22px] font-bold text-[#4caf50]">
                       ✓
                     </span>
-                  )}
-                </div>
-              </>
+                  ) : null
+                }
+              />
             )}
 
             {isLogin && (
@@ -337,27 +316,29 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
               <span className="h-px flex-1 bg-gray-300" />
             </div>
 
-            <div className="mt-6 flex items-center justify-evenly">
+            <div className="mt-6 flex items-center justify-center gap-x-3">
               <button
-                className="inline-flex h-16 w-16 items-center justify-center rounded-[14px] bg-white [&_img]:h-16 [&_img]:w-16 [&_img]:object-contain"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-[14px]"
                 type="button"
               >
-                <img src="/assets/login-facebook.png" alt="Facebook" />
+                <img src="/assets/icon/fb.png" alt="Facebook" />
               </button>
 
               <button
-                className="inline-flex h-16 w-16 items-center justify-center rounded-[14px] bg-white [&_img]:h-16 [&_img]:w-16 [&_img]:object-contain"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-[14px]"
                 type="button"
               >
-                <img src="/assets/login-zalo.png" alt="Zalo" />
+                <img src="/assets/icon/tiktok.png" alt="TikTok" />
               </button>
 
               <button
-                className="inline-flex h-16 w-16 items-center justify-center rounded-[14px] bg-white [&_img]:h-16 [&_img]:w-16 [&_img]:object-contain"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-[14px]"
                 type="button"
               >
-                <img src="/assets/login-tiktok.png" alt="TikTok" />
+                <img src="/assets/icon/zalo.png" alt="Zalo" />
               </button>
+
+           
             </div>
 
             <button
