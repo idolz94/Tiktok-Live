@@ -55,6 +55,36 @@ function SocialButton({ label, children }: { label: string; children: React.Reac
   );
 }
 
+function ChannelBone({ className }: { className: string }) {
+  return <div className={`animate-pulse rounded-full bg-[#e4e4e4] ${className}`} />;
+}
+
+function TikTokChannelsLoadingSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[0, 1, 2].map((item) => (
+        <div key={item} className="flex items-center gap-4 rounded-2xl bg-[#f2f2f2] p-4">
+          <ChannelBone className="h-10 w-10 shrink-0" />
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <ChannelBone className="h-3.5 w-32" />
+            <ChannelBone className="h-3 w-44 max-w-full" />
+          </div>
+          <ChannelBone className="h-8 w-14 shrink-0" />
+        </div>
+      ))}
+
+      <div className="rounded-lg border border-dashed border-[#d1d1d1] px-4 py-3 opacity-60">
+        <div className="flex items-center justify-center gap-2">
+          <ChannelBone className="h-4 w-4" />
+          <ChannelBone className="h-3.5 w-20" />
+        </div>
+      </div>
+
+      <ChannelBone className="h-3 w-64 max-w-full rounded-md" />
+    </div>
+  );
+}
+
 export default function SettingsView({
   username,
   tiktokUsername,
@@ -268,9 +298,7 @@ export default function SettingsView({
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-28 [-webkit-overflow-scrolling:touch]">
             {isLoadingChannels ? (
-              <div className="rounded-3xl bg-white p-5 text-center text-[14px] font-medium text-[#787878]">
-                Đang tải danh sách kênh...
-              </div>
+              <TikTokChannelsLoadingSkeleton />
             ) : sortedChannels.length === 0 ? (
               <div className="rounded-3xl bg-white p-6 text-center shadow-sm">
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#ffe8ef] text-[24px]">

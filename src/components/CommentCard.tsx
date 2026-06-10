@@ -5,7 +5,11 @@ import { formatTime } from "../utils/date";
 import { isPriorityComment } from "../utils/comment";
 import Avatar from "./Avatar";
 import { useState } from "react";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import orderButtonAnimation from "../../public/assets/animations/button.json";
 import { TikTokEmojiText } from "@/components/TikTokEmojiText";
+const orderButtonAnimationData = JSON.stringify(orderButtonAnimation);
+
 function getIntentText(intent?: string) {
   const map: Record<string, string> = {
     buying: "Muốn mua",
@@ -103,19 +107,26 @@ export default function CommentCard({
               type="button"
               disabled={isCreatingOrder}
               onClick={handleCreateOrder}
-              className={[
-                "shrink-0 rounded-full px-4 py-1.5 text-sm font-black",
-                isCreatingOrder ? "bg-slate-200 text-slate-400" : "bg-[#ffe4ee] text-[#ff5f8a] active:scale-95",
-              ].join(" ")}
+              className="relative h-9 w-24 shrink-0 overflow-hidden rounded-full text-sm font-black text-white transition-transform active:scale-95 disabled:opacity-70"
             >
-              {isCreatingOrder ? (
-                <span className="flex items-center gap-1.5">
-                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#ff5f8a] border-t-transparent" />
-                  Đang tạo
-                </span>
-              ) : (
-                "Tạo đơn"
+              {!isCreatingOrder && (
+                <DotLottieReact
+                  data={orderButtonAnimationData}
+                  autoplay
+                  loop
+                  className="absolute inset-0 h-full w-full"
+                />
               )}
+              <span className="relative z-10 flex h-full items-center justify-center gap-1.5 px-3 drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">
+                {isCreatingOrder ? (
+                  <>
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Đang tạo
+                  </>
+                ) : (
+                  "Tạo đơn"
+                )}
+              </span>
             </button>
           )}
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth as useClerkAuth, useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { getMeBootstrapApi, MeBootstrapResponse } from "@/api/meApi";
@@ -62,31 +62,42 @@ export function useAuth(): AuthState {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const bootstrappedUserIdRef = useRef<string | null>(null);
 
-  const fetchProfile = useCallback(async () => {
+  const fetchProfile = useCallback(async (options?: { background?: boolean }) => {
+    const isBackground = options?.background ?? false;
+
     try {
-      setIsLoading(true);
+      if (!isBackground) {
+        setIsLoading(true);
+      }
       setError(null);
 
       const profile = await getMeBootstrapApi();
 
       const mapped = mapProfileToAuthUser(clerkUser, profile);
       setAuthUser(mapped);
+      bootstrappedUserIdRef.current = clerkUser?.id || mapped.id || null;
     } catch (err) {
       if (process.env.NEXT_PUBLIC_NODE_ENV === "development") {
         console.error("AUTH PROFILE ERROR:", err);
       }
-      setAuthUser(null);
+
+      if (!isBackground) {
+        setAuthUser(null);
+      }
       setError(err instanceof Error ? err.message : "Không thể tải thông tin tài khoản");
     } finally {
-      setIsLoading(false);
+      if (!isBackground) {
+        setIsLoading(false);
+      }
     }
-  }, [clerkUser]);
+  }, [clerkUser?.id]);
 
   const refreshAuth = useCallback(async () => {
     if (!isSignedIn) return;
-    await fetchProfile();
-  }, [isSignedIn, fetchProfile]);
+    await fetchProfile({ background: Boolean(authUser) });
+  }, [authUser, isSignedIn, fetchProfile]);
 
   const logout = useCallback(async () => {
     try {
@@ -105,14 +116,18 @@ export function useAuth(): AuthState {
     if (!authLoaded || !userLoaded) return;
 
     if (!isSignedIn) {
+      bootstrappedUserIdRef.current = null;
       setAuthUser(null);
       setIsLoading(false);
       setError(null);
       return;
     }
 
-    void fetchProfile();
-  }, [authLoaded, userLoaded, isSignedIn, fetchProfile]);
+    const clerkUserId = clerkUser?.id || null;
+    const hasBootstrappedCurrentUser = bootstrappedUserIdRef.current === clerkUserId;
+
+    void fetchProfile({ background: hasBootstrappedCurrentUser });
+  }, [authLoaded, userLoaded, isSignedIn, clerkUser?.id, fetchProfile]);
 
   const combinedLoading = !authLoaded || !userLoaded || isLoading;
 
