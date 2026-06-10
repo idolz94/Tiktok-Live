@@ -40,9 +40,6 @@ function DashboardShell({ children }: { children: ReactNode }) {
     );
   }
 
-  // SessionHeader merged with tabs ~76px, BottomNav fixed 80px
-  const sectionHeight = "calc(100dvh - 156px)";
-
   return (
     <main className="h-dvh overflow-hidden bg-white">
       <div className="mx-auto flex h-full max-w-155 flex-col bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
@@ -56,10 +53,7 @@ function DashboardShell({ children }: { children: ReactNode }) {
           activeTab={topTab}
           onChangeTab={setTopTab}
         />
-        <section
-          className="min-h-0 overflow-hidden"
-          style={{ height: sectionHeight }}
-        >
+        <section className="min-h-0 flex-1 overflow-hidden">
           <IphoneRouteTransition>{children}</IphoneRouteTransition>
         </section>
         <BottomNav

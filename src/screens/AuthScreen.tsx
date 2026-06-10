@@ -3,18 +3,41 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { signInApi, signOutApi, signUpApi } from "@/api/authApi";
-import { bootstrapAuth } from "@/hooks/useAuth";
+import { useSignIn, useSignUp } from "@clerk/nextjs/legacy";
+import { createTikTokChannelApi } from "@/api/meApi";
 import { ForgotPasswordDrawer } from "@/features/auth/ForgotPassword";
+
+function mapClerkError(err: { code?: string; message?: string; longMessage?: string }): string {
+  switch (err.code) {
+    case "form_password_pwned":
+      return "Mật khẩu này đã bị lộ trong các vụ rò rỉ dữ liệu. Vui lòng dùng mật khẩu khác.";
+    case "form_password_not_strong_enough":
+      return "Mật khẩu quá yếu. Hãy dùng mật khẩu có chữ hoa, chữ thường và số.";
+    case "form_identifier_exists":
+      return "Tên đăng nhập này đã được sử dụng.";
+    case "form_identifier_not_found":
+      return "Tên đăng nhập không tồn tại.";
+    case "form_password_incorrect":
+      return "Mật khẩu không đúng.";
+    case "too_many_requests":
+      return "Bạn đã thử quá nhiều lần. Vui lòng thử lại sau.";
+    case "session_exists":
+      return "Bạn đang đăng nhập rồi.";
+    default:
+      return err.longMessage || err.message || "Có lỗi xảy ra, vui lòng thử lại.";
+  }
+}
 
 type Mode = "login" | "register";
 
 export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mode }) {
   const router = useRouter();
+  const { signIn, setActive: setSignInActive } = useSignIn();
+  const { signUp, setActive: setSignUpActive } = useSignUp();
   const [mode, setMode] = useState<Mode>(initialMode);
 
   const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [tiktokId, setTiktokId] = useState("");
 
@@ -25,13 +48,40 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
   const isLogin = mode === "login";
 
   async function handleSubmit() {
-    if (!phone.trim()) {
-      toast.warning("Vui lòng nhập số điện thoại");
+    const trimmedUsername = username.trim();
+
+    if (!trimmedUsername) {
+      toast.warning("Vui lòng nhập tên đăng nhập");
+      return;
+    }
+
+    if (trimmedUsername.length < 4) {
+      toast.warning("Tên đăng nhập phải có ít nhất 4 ký tự");
+      return;
+    }
+
+    if (/^\d+$/.test(trimmedUsername)) {
+      toast.warning("Tên đăng nhập không được chỉ chứa số");
       return;
     }
 
     if (!password.trim()) {
       toast.warning("Vui lòng nhập mật khẩu");
+      return;
+    }
+
+    if (password.length < 8) {
+      toast.warning("Mật khẩu phải có ít nhất 8 ký tự");
+      return;
+    }
+
+    if (!isLogin && /^(.)\1+$/.test(password)) {
+      toast.warning("Mật khẩu quá đơn giản, vui lòng dùng mật khẩu khác");
+      return;
+    }
+
+    if (!isLogin && /^(?:012|123|234|345|456|567|678|789|890|987|876|765|654|543|432|321|210)/.test(password)) {
+      toast.warning("Mật khẩu không được dùng dãy số liên tiếp");
       return;
     }
 
@@ -49,34 +99,57 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
       setIsSubmitting(true);
 
       if (isLogin) {
-        await signInApi({ phone, password, remember });
+        if (!signIn) throw new Error("Sign in not available");
+
+        const result = await signIn.create({
+          identifier: username.trim(),
+          password,
+        });
+
+        if (result.status === "complete") {
+          await setSignInActive({ session: result.createdSessionId });
+          router.replace("/dashboard/live");
+        } else {
+          toast.info("Vui lòng hoàn tất xác minh.");
+        }
       } else {
-        await signUpApi({ fullName, phone, password, tiktokId });
+        if (!signUp) throw new Error("Sign up not available");
+
+        const result = await signUp.create({
+          username: username.trim(),
+          password,
+          firstName: fullName.trim(),
+          unsafeMetadata: {
+            tiktokId: tiktokId.trim(),
+          },
+        });
+
+        if (result.status === "complete") {
+          await setSignUpActive({ session: result.createdSessionId });
+
+          await createTikTokChannelApi({
+            tiktokUsername: tiktokId.trim(),
+            isDefault: true,
+          });
+
+          router.replace("/dashboard/live");
+        } else {
+          toast.info("Tài khoản đã tạo. Vui lòng hoàn tất xác minh.");
+        }
       }
-
-      const user = await bootstrapAuth();
-
-      if (!user) {
-        toast.info("Tài khoản đã tạo. Vui lòng đăng nhập lại.");
-        setMode("login");
-        return;
+    } catch (error: any) {
+      const clerkErrors = error?.errors;
+      if (clerkErrors?.length) {
+        toast.error(mapClerkError(clerkErrors[0]));
+      } else {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : isLogin
+              ? "Đăng nhập thất bại"
+              : "Đăng ký thất bại",
+        );
       }
-
-      if (!user.canUseApp) {
-        await signOutApi();
-        toast.warning("Shop đã hết hạn dùng thử hoặc chưa có license.");
-        return;
-      }
-
-      router.push("/");
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : isLogin
-            ? "Đăng nhập thất bại"
-            : "Đăng ký thất bại",
-      );
     } finally {
       setIsSubmitting(false);
     }
@@ -147,22 +220,21 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
             )}
 
             <label className="mt-6 mb-2 block text-lg font-black text-[#273044]">
-              Phone
+              Tên đăng nhập
             </label>
 
             <div className="flex min-h-14 items-center rounded-[13px] border border-[#a3a8b0] bg-white px-[14px]">
               <input
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-                inputMode="tel"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
                 autoCapitalize="none"
                 autoCorrect="off"
-                autoComplete="tel"
-                placeholder="Nhập số điện thoại"
+                autoComplete="username"
+                placeholder="Nhập tên đăng nhập"
                 className="min-w-0 flex-1 border-0 bg-transparent text-xl text-[#273044] outline-none"
               />
 
-              {phone.trim() && (
+              {username.trim() && (
                 <span className="ml-2.5 text-[22px] font-bold text-[#4caf50]">
                   ✓
                 </span>

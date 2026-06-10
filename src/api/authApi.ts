@@ -1,7 +1,6 @@
-"use client";
-
-import { clearRuntimeAuthToken, emitAuthChanged, postRequest, setRuntimeAuthToken } from "@/lib/request";
-import { phoneToAuthEmail } from "@/utils/phone";
+// Auth is now handled entirely by Clerk.
+// This file is kept as a stub so existing imports don't break during migration.
+// Remove references to these exports from any remaining callers.
 
 export type SignUpPayload = {
   fullName: string;
@@ -16,79 +15,17 @@ export type SignInPayload = {
   remember?: boolean;
 };
 
-type AuthApiResponse = {
-  user?: any;
-  session?: any;
-  token?: string;
-  accessToken?: string;
-  access_token?: string;
-  refreshToken?: string;
-  refresh_token?: string;
-  [key: string]: any;
-};
-
-function extractAndSaveToken(response: AuthApiResponse) {
-  const token = String(
-    response?.data?.accessToken ||
-      response?.data?.access_token ||
-      response?.data?.token ||
-      response?.accessToken ||
-      response?.access_token ||
-      response?.token ||
-      response?.session?.accessToken ||
-      response?.session?.access_token ||
-      "",
-  ).trim();
-
-  if (token) {
-    setRuntimeAuthToken(token);
-  }
+/** @deprecated Use Clerk useSignIn hook instead */
+export async function signInApi(_payload: SignInPayload): Promise<void> {
+  throw new Error("signInApi is deprecated — use Clerk useSignIn hook");
 }
 
-export async function signUpApi(payload: SignUpPayload) {
-  const rawPhone = payload.phone.trim();
-  const tiktokId = payload.tiktokId.trim();
-
-  const data = await postRequest<AuthApiResponse>("/auth/register", {
-    fullName: payload.fullName.trim(),
-    phone: rawPhone,
-    email: phoneToAuthEmail(rawPhone),
-    password: payload.password,
-    tiktokId,
-    defaultTikTokUsername: tiktokId,
-    shopName: `${payload.fullName.trim()}'s Shop`,
-    loginType: "phone_password",
-  });
-
-  extractAndSaveToken(data);
-  emitAuthChanged("register");
-  return data;
+/** @deprecated Use Clerk useSignUp hook instead */
+export async function signUpApi(_payload: SignUpPayload): Promise<void> {
+  throw new Error("signUpApi is deprecated — use Clerk useSignUp hook");
 }
 
-export async function signInApi(payload: SignInPayload) {
-  const rawPhone = payload.phone.trim();
-
-  const data = await postRequest<AuthApiResponse>("/auth/login", {
-    phone: rawPhone,
-    email: phoneToAuthEmail(rawPhone),
-    password: payload.password,
-    remember: payload.remember ?? true,
-    loginType: "phone_password",
-  });
-
-  extractAndSaveToken(data);
-  emitAuthChanged("login");
-  return data;
-}
-
-export async function signOutApi() {
-  try {
-    await postRequest("/auth/logout", {});
-  } catch {
-  } finally {
-    clearRuntimeAuthToken();
-    emitAuthChanged("logout");
-  }
-
-  return true;
+/** @deprecated Use Clerk signOut() instead */
+export async function signOutApi(): Promise<boolean> {
+  throw new Error("signOutApi is deprecated — use Clerk signOut()");
 }

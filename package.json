@@ -16,6 +16,7 @@
     "gn:setup": "gitnexus setup"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.4.3",
     "@hookform/resolvers": "^5.4.0",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@supabase/ssr": "^0.10.3",

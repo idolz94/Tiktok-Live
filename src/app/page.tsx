@@ -13,11 +13,19 @@ const HAS_SEEN_WELCOME_KEY = "lumi_has_seen_welcome";
 
 export default function HomePage() {
   const router = useRouter();
-  const { user, isLoading, logout } = useAuth();
+  const { user, isLoading, isSignedIn, logout } = useAuth();
   const [screen, setScreen] = useState<AppScreen>("splash");
 
   useEffect(() => {
     if (user?.canUseApp) {
+      router.replace("/dashboard/live");
+      return;
+    }
+    // Signed in via Clerk but bootstrap still loading — keep splash
+    if (isSignedIn && isLoading) return;
+    // Signed in but bootstrap failed (user=null) — redirect to dashboard anyway
+    // to avoid showing login form while a Clerk session is active
+    if (isSignedIn && !isLoading && !user) {
       router.replace("/dashboard/live");
       return;
     }
@@ -27,9 +35,9 @@ export default function HomePage() {
       const timer = setTimeout(() => setScreen(targetScreen), 1200);
       return () => clearTimeout(timer);
     }
-  }, [router, user, isLoading]);
+  }, [router, user, isLoading, isSignedIn]);
 
-  if (isLoading || user?.canUseApp) {
+  if (isLoading || user?.canUseApp || (isSignedIn && !user)) {
     return <SplashLoadingScreen />;
   }
 

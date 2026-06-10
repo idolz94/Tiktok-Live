@@ -1,7 +1,6 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 let hasEmittedSessionExpired = false;
-let runtimeAuthToken = "";
 
 function isBrowser() {
   return typeof window !== "undefined";
@@ -27,51 +26,19 @@ export class ApiError extends Error {
   }
 }
 
-const CLIENT_TOKEN_COOKIE = "lumi_client_at";
+type TokenProvider = () => Promise<string | null>;
 
-function setCookie(name: string, value: string, days = 7) {
-  const expires = new Date(Date.now() + days * 864e5).toUTCString();
-  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+let tokenProvider: TokenProvider | null = null;
+
+export function setAuthTokenProvider(provider: TokenProvider | null) {
+  tokenProvider = provider;
 }
 
-function getCookie(name: string): string {
-  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : "";
-}
-
-function deleteCookie(name: string) {
-  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
-}
-
-export function getRuntimeAuthToken() {
-  return runtimeAuthToken;
-}
-
-export function setRuntimeAuthToken(token?: string | null) {
-  runtimeAuthToken = token?.trim() || "";
-  if (isBrowser()) {
-    if (runtimeAuthToken) {
-      setCookie(CLIENT_TOKEN_COOKIE, runtimeAuthToken);
-    } else {
-      deleteCookie(CLIENT_TOKEN_COOKIE);
-    }
+export async function getAuthToken(): Promise<string> {
+  if (tokenProvider) {
+    return (await tokenProvider()) || "";
   }
-}
-
-export function clearRuntimeAuthToken() {
-  runtimeAuthToken = "";
-  if (isBrowser()) {
-    deleteCookie(CLIENT_TOKEN_COOKIE);
-  }
-}
-
-export function restoreTokenFromCookie(): string {
-  if (!isBrowser()) return "";
-  const stored = getCookie(CLIENT_TOKEN_COOKIE);
-  if (stored) {
-    runtimeAuthToken = stored;
-  }
-  return stored;
+  return "";
 }
 
 export type AuthChangeReason = "login" | "register" | "logout";
@@ -188,11 +155,8 @@ async function handleResponse<T>(response: Response, options?: RequestOptions): 
 }
 
 function buildHeaders(options?: RequestOptions, hasBody = false) {
-  const token = getRuntimeAuthToken();
-
   return {
     ...(hasBody ? { "Content-Type": "application/json" } : {}),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options?.headers,
   };
 }

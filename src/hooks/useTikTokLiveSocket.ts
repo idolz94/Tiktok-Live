@@ -12,7 +12,7 @@ import {
   subscribeTikTokLiveApi,
 } from "@/features/tiktok-live/sseApi";
 import { normalizeTikTokUsername, unwrapSseCommentPayload } from "@/utils/comment";
-import { getRuntimeAuthToken } from "@/lib/request";
+import { getAuthToken } from "@/lib/request";
 
 function createClientId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -199,13 +199,13 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     ],
   );
 
-  const connectSse = useCallback(() => {
+  const connectSse = useCallback(async () => {
     if (isAuthFailedRef.current) {
       setStatus("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.");
       return;
     }
 
-    const accessToken = getRuntimeAuthToken();
+    const accessToken = await getAuthToken();
     if (!accessToken) {
       setStatus("Chưa đăng nhập, không thể kết nối SSE.");
       return;

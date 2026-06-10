@@ -1,11 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useAuth as useClerkAuth, useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
-import { getMeBootstrapApi } from "@/api/meApi";
-import { signOutApi } from "@/api/authApi";
-import type { AuthChangeReason } from "@/lib/request";
-import { getRuntimeAuthToken, restoreTokenFromCookie } from "@/lib/request";
+import { getMeBootstrapApi, MeBootstrapResponse } from "@/api/meApi";
 import type { ShopTikTokChannel } from "@/types/database";
 
 export type AuthUser = {
@@ -25,141 +23,98 @@ export type AuthUser = {
 type AuthState = {
   user: AuthUser | null;
   isLoading: boolean;
+  isSignedIn: boolean;
   error: string | null;
   refreshAuth: () => Promise<void>;
   logout: () => Promise<void>;
 };
 
-let bootstrapInFlight: Promise<AuthUser | null> | null = null;
-let bootstrapDone = false;
-let cachedUser: AuthUser | null = null;
-
-function mapBootstrapUser(me: Awaited<ReturnType<typeof getMeBootstrapApi>>): AuthUser | null {
-  if (!me.user) return null;
-
+function mapProfileToAuthUser(clerkUser: any, profile: MeBootstrapResponse): AuthUser {
   return {
-    id: me.user.id,
-    email: me.user.email,
+    id: clerkUser?.id || profile?.user?.id || "",
+    email: clerkUser?.primaryEmailAddress?.emailAddress || profile?.user?.email || null,
     username:
-      me.profile?.full_name ||
-      me.profile?.phone ||
-      me.user.user_metadata?.full_name ||
+      profile?.profile?.full_name ||
+      profile?.profile?.phone ||
+      clerkUser?.fullName ||
+      clerkUser?.firstName ||
       "User",
-    fullName: me.profile?.full_name || me.user.user_metadata?.full_name || "",
-    phone: me.profile?.phone || me.user.user_metadata?.phone || "",
-    shopId: me.shop?.id || null,
-    shopName: me.shop?.name || null,
-    tiktokUsername:
-      me.shop?.default_tiktok_username ||
-      me.user.user_metadata?.default_tiktok_username ||
-      me.user.user_metadata?.tiktok_id ||
+    fullName:
+      profile?.profile?.full_name ||
+      clerkUser?.fullName ||
       "",
-    tiktokChannels: me.tiktokChannels,
-    role: me.shopMember?.role || null,
-    canUseApp: me.canUseApp,
+    phone: profile?.profile?.phone || clerkUser?.primaryPhoneNumber?.phoneNumber || null,
+    shopId: profile?.shop?.id || null,
+    shopName: profile?.shop?.name || null,
+    tiktokUsername:
+      profile?.shop?.default_tiktok_username ||
+      null,
+    tiktokChannels: Array.isArray(profile?.tiktokChannels) ? profile.tiktokChannels : [],
+    role: profile?.shopMember?.role || null,
+    canUseApp: profile?.canUseApp ?? false,
   };
 }
 
-export async function bootstrapAuth() {
-  if (bootstrapInFlight) return bootstrapInFlight;
-
-  restoreTokenFromCookie();
-
-  const token = getRuntimeAuthToken();
-  if (!token) {
-    bootstrapDone = true;
-    cachedUser = null;
-    return null;
-  }
-
-  bootstrapInFlight = (async () => {
-    const me = await getMeBootstrapApi();
-    cachedUser = mapBootstrapUser(me);
-    bootstrapDone = true;
-    return cachedUser;
-  })().finally(() => {
-    bootstrapInFlight = null;
-  });
-
-  return bootstrapInFlight;
-}
-
-function clearAuthCache() {
-  bootstrapDone = false;
-  cachedUser = null;
-}
-
 export function useAuth(): AuthState {
-  const [user, setUser] = useState<AuthUser | null>(cachedUser);
-  const [isLoading, setIsLoading] = useState(!bootstrapDone);
+  const { isSignedIn, isLoaded: authLoaded, signOut } = useClerkAuth();
+  const { user: clerkUser, isLoaded: userLoaded } = useUser();
+
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const runBootstrap = useCallback(async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       setIsLoading(true);
-      const nextUser = await bootstrapAuth();
-      setUser(nextUser);
       setError(null);
-    } catch (authError) {
+
+      const profile = await getMeBootstrapApi();
+
+      const mapped = mapProfileToAuthUser(clerkUser, profile);
+      setAuthUser(mapped);
+    } catch (err) {
       if (process.env.NEXT_PUBLIC_NODE_ENV === "development") {
-        console.error("AUTH BOOTSTRAP ERROR:", authError);
+        console.error("AUTH PROFILE ERROR:", err);
       }
-      clearAuthCache();
-      setUser(null);
-      setError(
-        authError instanceof Error ? authError.message : "Không thể kiểm tra đăng nhập",
-      );
+      setAuthUser(null);
+      setError(err instanceof Error ? err.message : "Không thể tải thông tin tài khoản");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [clerkUser]);
 
   const refreshAuth = useCallback(async () => {
-    clearAuthCache();
-    return runBootstrap();
-  }, [runBootstrap]);
+    if (!isSignedIn) return;
+    await fetchProfile();
+  }, [isSignedIn, fetchProfile]);
 
   const logout = useCallback(async () => {
     try {
       setIsLoading(true);
-      await signOutApi();
-      clearAuthCache();
-      setUser(null);
+      await signOut();
+      setAuthUser(null);
       setError(null);
-    } catch (logoutError) {
-      toast.error(logoutError instanceof Error ? logoutError.message : "Đăng xuất thất bại");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Đăng xuất thất bại");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [signOut]);
 
   useEffect(() => {
-    if (!bootstrapDone) {
-      void runBootstrap();
+    if (!authLoaded || !userLoaded) return;
+
+    if (!isSignedIn) {
+      setAuthUser(null);
+      setIsLoading(false);
+      setError(null);
+      return;
     }
-  }, [runBootstrap]);
 
-  useEffect(() => {
-    const handleAuthChanged = (e: Event) => {
-      const reason = (e as CustomEvent<{ reason: AuthChangeReason }>).detail?.reason;
+    void fetchProfile();
+  }, [authLoaded, userLoaded, isSignedIn, fetchProfile]);
 
-      if (reason === "login" || reason === "register") {
-        clearAuthCache();
-        void runBootstrap();
-        return;
-      }
+  const combinedLoading = !authLoaded || !userLoaded || isLoading;
 
-      if (reason === "logout") {
-        clearAuthCache();
-        setUser(null);
-        setError(null);
-        setIsLoading(false);
-      }
-    };
-
-    window.addEventListener("lumi-auth-change", handleAuthChanged);
-    return () => window.removeEventListener("lumi-auth-change", handleAuthChanged);
-  }, [runBootstrap]);
-
-  return { user, isLoading, error, refreshAuth, logout };
+  return { user: authUser, isLoading: combinedLoading, isSignedIn: isSignedIn ?? false, error, refreshAuth, logout };
 }

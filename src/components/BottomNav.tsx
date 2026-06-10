@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { normalizeTikTokUsername } from "@/utils/comment";
 import { getDashboardTabFromPathname } from "@/screens/dashboard/DashboardContext";
@@ -115,11 +115,14 @@ export default function BottomNav({
     return () => cancelAnimationFrame(frameId);
   }, [pathnameActive]);
 
-  useEffect(() => {
-    Object.values(ROUTES).forEach((route) => {
-      router.prefetch(route);
-    });
-  }, [router]);
+  const prefetchedRoutesRef = useRef<Set<string>>(new Set());
+
+  function prefetchRouteOnce(route: string) {
+    if (prefetchedRoutesRef.current.has(route)) return;
+
+    prefetchedRoutesRef.current.add(route);
+    router.prefetch(route);
+  }
 
   const topRow = liveBar ? (
     <div
@@ -213,9 +216,14 @@ export default function BottomNav({
             <button
               key={item.key}
               className="relative flex flex-1 pb-1 flex-col items-center justify-between gap-1"
+              onPointerEnter={() => prefetchRouteOnce(ROUTES[item.key])}
+              onTouchStart={() => prefetchRouteOnce(ROUTES[item.key])}
               onClick={() => {
+                const route = ROUTES[item.key];
+
+                prefetchRouteOnce(route);
                 setOptimisticActive(item.key);
-                router.push(ROUTES[item.key]);
+                router.push(route);
               }}
               type="button"
             >
