@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { TIKTOK_USERNAME } from "@/constants/config";
 import type { LiveComment } from "@/types";
-import type { UserJoinedEvent } from "@/features/tiktok-live/types";
 import { useTikTokComments } from "@/features/tiktok-live/useTikTokComments";
 import { useTikTokLiveSession } from "@/features/tiktok-live/useTikTokLiveSession";
 import {
@@ -36,7 +35,6 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
   const clientIdRef = useRef(createClientId());
   const isManualCloseRef = useRef(false);
   const isAuthFailedRef = useRef(false);
-  const joinEventTimerRef = useRef<number | null>(null);
   const tiktokUsernameRef = useRef(normalizeTikTokUsername(options.initialUsername || TIKTOK_USERNAME));
 
   const [status, setStatus] = useState("Đang kết nối Backend SSE...");
@@ -44,7 +42,6 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
   const [tiktokUsername, setTiktokUsername] = useState(
     options.initialUsername || TIKTOK_USERNAME,
   );
-  const [joinEvent, setJoinEvent] = useState<UserJoinedEvent | null>(null);
   const [liveError, setLiveError] = useState<string | null>(null);
 
   const {
@@ -148,19 +145,12 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
         return;
       }
 
-      if (type === "LIVE_ERROR") {
-        const message = payload.message || "Không rõ lỗi";
-
-        finalizeCurrentSessionLocally("live_error");
+      if (type === "LIVE_ERROR" || type === "COLLECTOR_STOPPED") {
+        finalizeCurrentSessionLocally(type === "LIVE_ERROR" ? "live_error" : "collector_stopped");
         setIsConnected(false);
         setComments([]);
-        if (joinEventTimerRef.current) {
-          window.clearTimeout(joinEventTimerRef.current);
-          joinEventTimerRef.current = null;
-        }
-        setJoinEvent(null);
-        setLiveError(`TikTok lỗi ${getPayloadUsername(payload)}: ${message}`);
-        setStatus(`TikTok lỗi ${getPayloadUsername(payload)}: ${message}`);
+        setLiveError("Phiên live đã kết thúc");
+        setStatus("Phiên live đã kết thúc");
         return;
       }
 
@@ -180,25 +170,15 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
           payload.comment?.avatarUrl ||
           payload.comment?.avatar;
 
-        if (joinEventTimerRef.current) {
-          window.clearTimeout(joinEventTimerRef.current);
-        }
-
-        setJoinEvent({
-          shopId: payload.shopId,
-          liveUsername: payload.liveUsername,
-          nickname: payload.nickname,
-          joinUsername: payload.joinUsername,
-          joinDisplayName: payload.joinDisplayName,
-          joinAvatarUrl,
-          createdAt: payload.createdAt,
+        addCommentToList({
+          id: `join_${payload.joinUsername || payload.nickname || Date.now()}_${payload.createdAt || Date.now()}`,
+          type: "user_joined",
+          username: payload.joinUsername || payload.nickname || "",
           displayName,
+          avatarUrl: joinAvatarUrl,
+          comment: "",
+          createdAt: payload.createdAt,
         });
-
-        joinEventTimerRef.current = window.setTimeout(() => {
-          setJoinEvent(null);
-          joinEventTimerRef.current = null;
-        }, 3000);
 
         return;
       }
@@ -274,6 +254,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
       "LIVE_CONNECTED",
       "LIVE_DISCONNECTED",
       "LIVE_ERROR",
+      "COLLECTOR_STOPPED",
       "SNAPSHOT",
       "USER_JOINED",
       "COMMENT",
@@ -451,11 +432,6 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
       isManualCloseRef.current = true;
       abortControllerRef.current?.abort();
       abortControllerRef.current = null;
-
-      if (joinEventTimerRef.current) {
-        window.clearTimeout(joinEventTimerRef.current);
-        joinEventTimerRef.current = null;
-      }
     };
   }, []);
 
@@ -479,7 +455,6 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     isConnected,
     comments,
     tiktokUsername,
-    joinEvent,
     liveError,
 
     currentLiveSession,

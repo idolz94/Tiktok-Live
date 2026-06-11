@@ -692,8 +692,8 @@ export default function OrderOverviewScreen({
   }
 
   return (
-    <main className="mx-auto flex h-full max-w-[480px] flex-col bg-white text-black">
-      <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between bg-white px-4 pt-3">
+    <main className="mx-auto flex h-dvh max-w-120 flex-col bg-white text-black">
+      <header className="sticky top-0 z-20 flex shrink-0 items-center justify-between bg-white px-4 pb-4 pt-3">
         <button
           type="button"
           onClick={onBack}
@@ -701,7 +701,7 @@ export default function OrderOverviewScreen({
         >
           <BackIcon />
         </button>
-        <h1 className="min-w-0 flex-1 px-4 text-center text-20 font-semibold leading-7 text-black">
+        <h1 className="min-w-0 flex-1 px-4 text-center text-[24px] font-semibold leading-7 text-black">
           Tổng quan đơn hàng
         </h1>
         <button
@@ -714,9 +714,9 @@ export default function OrderOverviewScreen({
       </header>
 
       {/* ── Scrollable body ──────────────────────────────────────────────── */}
-      <div className="min-h-0 flex-1 overflow-y-auto pb-[208px] [-webkit-overflow-scrolling:touch]">
+      <div className="min-h-0 flex-1 overflow-y-auto pb-40 [-webkit-overflow-scrolling:touch]">
         {/* Info section */}
-        <div className="flex flex-col gap-6 px-4 pb-5 pt-3">
+        <div className="flex flex-col gap-6 px-4 pb-5 pt-2">
           {/* Order meta + status tag */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 text-[12px] leading-[18px] text-[#484848]">
@@ -729,7 +729,7 @@ export default function OrderOverviewScreen({
               </span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="inline-flex h-6 items-center rounded-2xl bg-[#d9ffee] px-[6px] text-[12px] font-medium leading-[18px] text-[#2ca87b]">
+              <span className="inline-flex h-6 items-center rounded-2xl bg-[#d9ffee] px-2 text-[12px] font-medium leading-[18px] text-[#2ca87b]">
                 {statusLabel(order.status)}
               </span>
             </div>
@@ -768,13 +768,13 @@ export default function OrderOverviewScreen({
               <div className="flex items-center gap-2">
                 <span className="shrink-0 text-[#484848]"><PhoneIcon /></span>
                 <p className="text-[12px] leading-[18px] text-[#484848]">
-                  Chưa có số điện thoại
+                  {order.customerPhone || "Chưa có số điện thoại"}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <span className="shrink-0 text-[#484848]"><AddressIcon /></span>
                 <p className="text-[12px] leading-[18px] text-[#484848]">
-                  Chưa có địa chỉ
+                  {order.customerAddress || "Chưa có địa chỉ"}
                 </p>
               </div>
             </div>
@@ -831,28 +831,26 @@ export default function OrderOverviewScreen({
             {displayProducts.map((product, index) => (
               <div
                 key={product.id || index}
-                className="flex items-start justify-between gap-4 border-b border-black/10 py-3"
+                className="flex items-center justify-between gap-4 border-b border-black/10 py-3"
               >
-                <p className="min-w-0 flex-1 text-[14px] font-medium leading-[22px] text-black">
+                <p className="min-w-0 flex-1 text-[14px] leading-[22px] text-[#2b2b2b]">
                   {getProductLabel(product)}
                 </p>
-                <div className="flex shrink-0 items-start gap-2 text-right">
-                  <div>
-                    <p className="text-[14px] font-medium leading-[22px] text-black">
-                      x{product.quantity}
-                    </p>
-                    <p className="text-[14px] font-medium leading-[22px] text-[#ff6b8a]">
-                      {formatMoneyFromK(
-                        Number(product.price || 0) * Number(product.quantity || 0),
-                      )}
-                    </p>
-                  </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="text-[12px] leading-4.5 text-[#787878]">
+                    x{product.quantity}
+                  </span>
+                  <span className="text-[14px] font-medium leading-[22px] text-black">
+                    {formatMoneyFromK(
+                      Number(product.price || 0) * Number(product.quantity || 0),
+                    )}
+                  </span>
                   {product.id && (
                     <button
                       type="button"
                       onClick={() => void handleDeleteProduct(product)}
                       disabled={deletingProductId === product.id}
-                      className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-[#fff0f0] text-[#ff6b8a] disabled:opacity-40"
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-[#fff0f0] text-[#ff6b8a] disabled:opacity-40"
                       aria-label="Xoá sản phẩm"
                     >
                       <TrashIcon />
@@ -874,20 +872,20 @@ export default function OrderOverviewScreen({
             </button>
           )}
 
-          <div className="mt-1 flex flex-col gap-2">
+          <div className="mt-1 flex flex-col gap-1.5">
             <div className="flex items-center justify-between gap-4">
-              <span className="text-[14px] leading-[22px] text-[#484848]">
+              <span className="text-[14px] leading-5.5 text-[#484848]">
                 Tổng sản phẩm
               </span>
-              <span className="text-[14px] font-medium leading-[22px] text-black">
+              <span className="text-[14px] font-semibold leading-5.5 text-black">
                 {totalQuantity}
               </span>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <span className="text-[14px] leading-[22px] text-[#484848]">
+              <span className="text-[14px] leading-5.5 text-[#484848]">
                 Tổng tiền
               </span>
-              <span className="text-[16px] font-semibold leading-6 text-[#ff6b8a]">
+              <span className="text-[14px] font-semibold leading-5.5 text-[#ff6b8a]">
                 {formatMoneyFromK(productTotal)}
               </span>
             </div>
@@ -902,22 +900,22 @@ export default function OrderOverviewScreen({
             Đơn vị vận chuyển
           </h2>
 
-          <div className="mt-4 flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-[14px] leading-[22px] text-[#484848]">Phí vận chuyển</span>
-              <span className="text-[14px] font-medium leading-[22px] text-black">
+          <div className="mt-4 flex flex-col">
+            <div className="flex items-center justify-between gap-4 border-b border-black/10 py-3">
+              <span className="text-[14px] leading-5.5 text-[#2b2b2b]">Phí vận chuyển</span>
+              <span className="text-[14px] font-medium leading-5.5 text-black">
                 {formatMoneyFromK(shippingFee)}
               </span>
             </div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-[14px] leading-[22px] text-[#484848]">Trả trước</span>
-              <span className="text-[14px] font-medium leading-[22px] text-black">
-                {formatMoneyFromK(prepaid)}
+            <div className="flex items-center justify-between gap-4 border-b border-black/10 py-3">
+              <span className="text-[14px] leading-5.5 text-[#2b2b2b]">Trả trước</span>
+              <span className="text-[14px] font-medium leading-5.5 text-black">
+                -{formatMoneyFromK(prepaid)}
               </span>
             </div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-[14px] leading-[22px] text-[#484848]">Còn lại</span>
-              <span className="text-[16px] font-semibold leading-6 text-[#ff6b8a]">
+            <div className="flex items-center justify-between gap-4 py-3">
+              <span className="text-[14px] leading-5.5 text-[#484848]">Còn lại</span>
+              <span className="text-[14px] font-semibold leading-5.5 text-[#ff6b8a]">
                 {formatMoneyFromK(remain)}
               </span>
             </div>
@@ -929,29 +927,33 @@ export default function OrderOverviewScreen({
             className="mt-4 w-full overflow-hidden rounded-xl border border-black/10 bg-white text-left"
           >
             <div className="flex items-center justify-between gap-4 px-4 py-3">
-              <span className="text-[14px] font-medium leading-[22px] text-black">Mã VTP</span>
-              <span className="truncate text-[14px] leading-[22px] text-[#484848]">
+              <span className="text-[12px] leading-4.5 text-[#484848]">Mã VTP</span>
+              <span className="truncate text-[12px] leading-4.5 text-black">
                 {order.orderCode || order.id}
               </span>
             </div>
-            <div className="flex items-center gap-3 bg-[#f2f2f2] px-4 py-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#d71920] text-[11px] font-bold text-white">
+            <div className="flex items-center gap-4 bg-[#f2f2f2] px-4 py-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#d71920] text-[10px] font-bold text-white">
                 VTP
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-[14px] font-medium leading-[22px] text-black">Viettel Post</p>
-                  <span className="shrink-0 rounded-full bg-white px-2 py-1 text-[12px] font-medium leading-[18px] text-[#2ca87b]">
+                  <p className="text-[14px] font-medium leading-5.5 text-black">Viettel Post</p>
+                  <span className="text-[12px] font-medium leading-4.5 text-[#2ca87b]">
                     Đang giao hàng
                   </span>
                 </div>
-                <div className="mt-2 flex items-center justify-between gap-3">
-                  <p className="truncate text-[12px] leading-[18px] text-[#787878]">
-                    {formatOrderDate(order.createdAt)} · {order.orderCode || order.id}
+                <div className="mt-1 flex items-center justify-between gap-3">
+                  <p className="truncate text-[12px] leading-4.5 text-[#484848]">
+                    {formatOrderDate(order.createdAt)}
                   </p>
-                  <span className="shrink-0 rounded-full bg-black px-3 py-1.5 text-[12px] font-medium leading-[18px] text-white">
+                  <button
+                    type="button"
+                    className="flex shrink-0 items-center gap-1 text-[12px] font-medium leading-4.5 text-black"
+                  >
                     Theo dõi
-                  </span>
+                    <ChevronRightIcon />
+                  </button>
                 </div>
               </div>
             </div>
@@ -959,14 +961,14 @@ export default function OrderOverviewScreen({
         </section>
       </div>
 
-      <div className="fixed bottom-0 left-1/2 w-full max-w-[480px] -translate-x-1/2 border-t border-black/10 bg-white px-4 py-3">
-        {/* Row 1: Cọc + Chốt đơn */}
+      {/* ── Bottom actions ─────────────────────────────────────────────── */}
+      <div className="shrink-0 border-t border-black/10 bg-white px-4 pb-[env(safe-area-inset-bottom,8px)] pt-2">
         <div className="flex gap-3">
           <button
             type="button"
             onClick={() => onToggleDeposit(order.id)}
             disabled={isDepositLoading}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-[40px] py-3.5 text-[15px] font-medium disabled:cursor-not-allowed disabled:opacity-70 ${
+            className={`flex flex-1 items-center justify-center gap-2 rounded-[40px] py-3 text-[14px] font-medium disabled:cursor-not-allowed disabled:opacity-70 ${
               order.depositStatus === "paid" || order.depositStatus === "deposited"
                 ? "bg-[#2ca87b] text-white"
                 : "bg-[#f5c842] text-black"
@@ -981,7 +983,7 @@ export default function OrderOverviewScreen({
           </button>
           <button
             type="button"
-            className="mt-0 flex flex-1 items-center justify-center gap-2 rounded-[40px] py-3.5 text-[15px] font-medium text-white"
+            className="flex flex-1 items-center justify-center gap-2 rounded-[40px] py-3 text-[14px] font-medium text-white"
             style={{ backgroundImage: "linear-gradient(90deg, #5b8dee 0%, #7b5cf0 100%)" }}
           >
             <ShareIcon />
@@ -989,12 +991,11 @@ export default function OrderOverviewScreen({
           </button>
         </div>
 
-        {/* Row 2: In đơn hàng (Figma style) + Ship */}
         <div className="mt-2 flex gap-2">
           <button
             type="button"
             onClick={handlePrint}
-            className="flex flex-1 items-center justify-center gap-2 rounded-[40px] bg-[#ffe8e8] py-3.5 text-[15px] font-medium text-[#ff6b8a]"
+            className="flex flex-1 items-center justify-center gap-2 rounded-[40px] bg-[#ffe8e8] py-3 text-[14px] font-medium text-[#ff6b8a]"
           >
             <PrinterIcon size={18} />
             In đơn hàng
@@ -1002,7 +1003,7 @@ export default function OrderOverviewScreen({
           <button
             type="button"
             onClick={() => setShowShippingCreateScreen(true)}
-            className="flex shrink-0 items-center justify-center gap-2 rounded-[40px] bg-[#f5c842] px-5 py-3 text-[15px] font-semibold text-black"
+            className="flex shrink-0 items-center justify-center gap-2 rounded-[40px] bg-[#f5c842] px-5 py-3 text-[14px] font-semibold text-black"
           >
             <ShipIcon />
             Ship

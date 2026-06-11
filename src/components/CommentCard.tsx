@@ -56,6 +56,29 @@ export default function CommentCard({
   isOrderCreated?: boolean;
 }) {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+
+  if (item.type === "user_joined") {
+    const initial = (item.displayName || item.username || "?").trim().charAt(0).toUpperCase();
+    return (
+      <div className="flex w-full items-center gap-4 py-3">
+        <div className="h-px flex-1 bg-[#d9d9d9]" />
+        <div className="flex shrink-0 items-center gap-2">
+          {item.avatarUrl ? (
+            <img src={item.avatarUrl} alt="" className="h-4 w-4 shrink-0 rounded-full object-cover" />
+          ) : (
+            <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#ffe8ee] text-[8px] font-semibold leading-none text-[#ff5f8a]">
+              {initial}
+            </div>
+          )}
+          <p className="max-w-40 truncate text-[12px] leading-4.5 text-[#787878]">
+            {item.displayName || item.username} đã tham gia
+          </p>
+        </div>
+        <div className="h-px flex-1 bg-[#d9d9d9]" />
+      </div>
+    );
+  }
+
   const isPriority = isPriorityComment(item);
   const commentText = item.comment || "";
   const isCreatedOrder = Boolean(isOrderCreatedProp || item.isOrderCreated || item.orderId);

@@ -60,7 +60,6 @@ export default function DashboardLivePage() {
           onShowChannelSwitcherChange={setShowChannelSwitcher}
           onConnectTikTokLive={live.changeTikTokUsername}
           onLiveControlsHiddenChange={setLiveControlsHidden}
-          joinEvent={live.joinEvent}
         />
       </section>
     </>

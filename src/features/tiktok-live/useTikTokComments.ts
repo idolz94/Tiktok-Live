@@ -149,6 +149,13 @@ export function useTikTokComments() {
   const [comments, setComments] = useState<LiveComment[]>([]);
 
   const addCommentToList = useCallback((rawComment: any) => {
+    // user_joined: keep only the latest one, replace any previous user_joined
+    if (rawComment?.type === "user_joined") {
+      const item = rawComment as LiveComment;
+      setComments((prev) => [item, ...prev.filter((c) => c.type !== "user_joined")].slice(0, MAX_COMMENTS));
+      return item;
+    }
+
     const comment = normalizeComment(rawComment);
 
     if (!comment) return null;

@@ -20,6 +20,7 @@ export type CommentIntent =
 
 export type LiveComment = {
   id: string;
+  type?: "comment" | "user_joined";
   username: string;
   displayName?: string;
   customerTikTokUsername?: string;
@@ -128,6 +129,8 @@ export type Order = {
   username: string;
   customerId?: string | null;
   customerName?: string;
+  customerPhone?: string;
+  customerAddress?: string;
   customerTikTokUsername?: string;
   customerTikTokName?: string;
   uniqueId?: string;

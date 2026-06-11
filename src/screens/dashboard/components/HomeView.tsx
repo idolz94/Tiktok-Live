@@ -5,8 +5,6 @@ import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { DrawlerBase } from "@/components/ui/Drawler";
 import liveDotAnimation from "../../../../public/assets/animations/dot.json";
 import type { ShopTikTokChannel } from "@/types/database";
-import type { UserJoinedEvent } from "@/features/tiktok-live/types";
-import UserJoinedBanner from "./UserJoinedBanner";
 import { isPriorityComment, normalizeTikTokUsername } from "@/utils/comment";
 import CommentCard from "../../../components/CommentCard";
 import OrderCard from "../../../components/OrderCard";
@@ -58,7 +56,6 @@ export default function HomeView({
   onShowChannelSwitcherChange,
   onConnectTikTokLive,
   onLiveControlsHiddenChange,
-  joinEvent,
 }: {
   topTab: TopTab;
   liveTab: LiveTab;
@@ -93,8 +90,7 @@ export default function HomeView({
   onShowChannelSwitcherChange: (open: boolean) => void;
   onConnectTikTokLive: (username: string) => Promise<boolean | void>;
   onLiveControlsHiddenChange?: (hidden: boolean) => void;
-  joinEvent?: UserJoinedEvent | null;
-}) {
+})  {
   const [commentTab, setCommentTab] = useState<CommentTab>("all");
   const [selectedUsername, setSelectedUsername] = useState(tiktokUsername || "");
   const [isConnecting, setIsConnecting] = useState(false);
@@ -245,8 +241,6 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
             onScroll={handleCommentListScroll}
             className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-35 [-webkit-overflow-scrolling:touch]"
           >
-            {joinEvent && <UserJoinedBanner event={joinEvent} />}
-
             {(currentComments.length === 0) ? (
               <div className="flex flex-col items-center justify-center py-16">
                 <p className="text-center text-[15px] leading-5.5 text-[#787878]">
