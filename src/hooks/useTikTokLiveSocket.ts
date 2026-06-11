@@ -355,7 +355,6 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
       setTiktokUsername(nextUsername);
       setLiveError(null);
       setComments([]);
-      connectSse();
       setStatus(`Đang yêu cầu Backend start Python collector: ${nextUsername}...`);
 
       const usernameWithoutAt = nextUsername.replace(/^@/, "");
@@ -371,14 +370,17 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
           setTiktokUsername(result.username);
         }
 
-        setStatus(result.message || `Đã gửi lệnh start collector cho ${nextUsername}, đang chờ comment...`);
+        connectSse();
+        setStatus(result.message || `Đã start collector cho ${nextUsername}, đang chờ comment...`);
         return result.success;
       } catch (error) {
         if (process.env.NEXT_PUBLIC_NODE_ENV === "development") {
           console.error("START LIVE STREAM ERROR:", error);
         }
 
-        setStatus(error instanceof Error ? error.message : "Không gọi được API start collector ở Backend");
+        const message = error instanceof Error ? error.message : "Không gọi được API start collector ở Backend";
+        setLiveError(message);
+        setStatus(message);
         return false;
       }
     },
