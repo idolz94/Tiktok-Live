@@ -14,6 +14,28 @@ import {
 import { normalizeTikTokUsername, unwrapSseCommentPayload } from "@/utils/comment";
 import { getAuthToken } from "@/lib/request";
 
+const LIVE_RESUME_KEY = "lumi_live_resume_username";
+
+function saveResumeUsername(username: string) {
+  try {
+    localStorage.setItem(LIVE_RESUME_KEY, username);
+  } catch {}
+}
+
+function clearResumeUsername() {
+  try {
+    localStorage.removeItem(LIVE_RESUME_KEY);
+  } catch {}
+}
+
+function loadResumeUsername(): string {
+  try {
+    return localStorage.getItem(LIVE_RESUME_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
 function createClientId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -36,6 +58,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
   const isManualCloseRef = useRef(false);
   const isAuthFailedRef = useRef(false);
   const tiktokUsernameRef = useRef(normalizeTikTokUsername(options.initialUsername || TIKTOK_USERNAME));
+  const isConnectedRef = useRef(false);
 
   const [status, setStatus] = useState("Đang kết nối Backend SSE...");
   const [isConnected, setIsConnected] = useState(false);
@@ -121,6 +144,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
 
       if (type === "UNSUBSCRIBED") {
         finalizeCurrentSessionLocally("unsubscribed");
+        clearResumeUsername();
         setComments([]);
         setStatus(`Đã rời LIVE: ${getPayloadUsername(payload)}`);
         return;
@@ -147,6 +171,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
 
       if (type === "LIVE_ERROR" || type === "COLLECTOR_STOPPED") {
         finalizeCurrentSessionLocally(type === "LIVE_ERROR" ? "live_error" : "collector_stopped");
+        clearResumeUsername();
         setIsConnected(false);
         setComments([]);
         setLiveError("Phiên live đã kết thúc");
@@ -323,7 +348,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
       const oldUsername = tiktokUsernameRef.current;
       const oldUsernameWithoutAt = oldUsername.replace(/^@/, "");
 
-      if (oldUsername && oldUsername !== nextUsername) {
+      if (isConnectedRef.current && oldUsername && oldUsername !== nextUsername) {
         finalizeCurrentSessionLocally("change_username");
         try {
           await stopTikTokLiveApi({ clientId: clientIdRef.current, username: oldUsernameWithoutAt });
@@ -351,6 +376,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
           setTiktokUsername(result.username);
         }
 
+        saveResumeUsername(tiktokUsernameRef.current);
         connectSse();
         setStatus(result.message || `Đã start collector cho ${nextUsername}, đang chờ comment...`);
         return result.success;
@@ -383,6 +409,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     }
 
     finalizeCurrentSessionLocally("manual_stop");
+    clearResumeUsername();
 
     return true;
   }, [finalizeCurrentSessionLocally]);
@@ -406,6 +433,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
 
   const disconnect = useCallback(async () => {
     finalizeCurrentSessionLocally("manual_disconnect");
+    clearResumeUsername();
 
     isManualCloseRef.current = true;
 
@@ -426,6 +454,10 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     setIsConnected(false);
     setStatus("Đã ngắt kết nối");
   }, [finalizeCurrentSessionLocally]);
+
+  useEffect(() => {
+    isConnectedRef.current = isConnected;
+  }, [isConnected]);
 
   useEffect(() => {
     return () => {
@@ -449,6 +481,22 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
       window.clearTimeout(timer);
     };
   }, [options.initialUsername]);
+
+  // Auto-resume: if user was live before refresh, reconnect automatically
+  useEffect(() => {
+    const resumeUsername = loadResumeUsername();
+    if (!resumeUsername) return;
+
+    const timer = window.setTimeout(() => {
+      subscribeTikTokUsername(resumeUsername);
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+    // Only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     status,

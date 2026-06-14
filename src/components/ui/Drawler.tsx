@@ -109,7 +109,7 @@ export function DrawlerBase({
 
           <div
             className={[
-              "min-h-0 flex-1 overflow-y-auto px-5 py-4",
+              "min-h-0 flex-1 overflow-y-auto pb-3 px-3",
               footer ? "pb-4" : "pb-[calc(env(safe-area-inset-bottom)+24px)]",
               bodyClassName,
             ].join(" ")}

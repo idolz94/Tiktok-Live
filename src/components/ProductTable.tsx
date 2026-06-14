@@ -45,7 +45,7 @@ export default function ProductTable({
           </div>
         </div>
 
-        {products.map((product, index) => {
+        {products?.map((product, index) => {
           const productTotal = getProductTotal(product);
 
           return (
@@ -71,7 +71,7 @@ export default function ProductTable({
       </div>
 
       <p className="mt-3 text-right text-base text-[#273044]">
-        {products.length} sản phẩm, tổng cộng <strong>{formatMoneyFromK(total)}</strong>
+        {products?.length} sản phẩm, tổng cộng <strong>{formatMoneyFromK(total)}</strong>
       </p>
     </div>
   );

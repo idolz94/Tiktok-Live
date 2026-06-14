@@ -37,15 +37,30 @@ type TokenProvider = () => Promise<string | null>;
 
 let tokenProvider: TokenProvider | null = null;
 
+let cachedToken: string | null = null;
+let cachedTokenAt = 0;
+const TOKEN_CACHE_TTL = 30_000;
+
 export function setAuthTokenProvider(provider: TokenProvider | null) {
   tokenProvider = provider;
+  cachedToken = null;
+  cachedTokenAt = 0;
 }
 
 export async function getAuthToken(): Promise<string> {
-  if (tokenProvider) {
-    return (await tokenProvider()) || "";
+  if (!tokenProvider) return "";
+
+  const now = Date.now();
+  if (cachedToken && now - cachedTokenAt < TOKEN_CACHE_TTL) {
+    return cachedToken;
   }
-  return "";
+
+  const token = (await tokenProvider()) || "";
+  if (token) {
+    cachedToken = token;
+    cachedTokenAt = now;
+  }
+  return token;
 }
 
 export type AuthChangeReason = "login" | "register" | "logout";

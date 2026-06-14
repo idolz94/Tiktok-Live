@@ -1,11 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DrawlerBase } from "../components/ui/Drawler";
 import { Order, OrderProduct } from "../types";
 import { formatMoneyFromK, getOrderTotal } from "../utils/order";
 import { addOrderItemApi, deleteOrderItemApi } from "@/api/ordersApi";
+import { MoneyInput } from "@/components/MoneyInput";
+import {
+  type ShopAddress,
+  type CustomerAddress,
+  listShopAddressesApi,
+  createShopAddressApi,
+  updateShopAddressApi,
+  deleteShopAddressApi,
+  listCustomerAddressesApi,
+  createCustomerAddressApi,
+  updateCustomerAddressApi,
+  deleteCustomerAddressApi,
+} from "@/lib/addresses";
+import {
+  type VnProvince,
+  type VnDistrict,
+  type VnWard,
+  fetchVnProvinces,
+  fetchVnDistricts,
+  fetchVnWards,
+  removeDiacritics as removeDiacriticsOrder,
+} from "@/lib/vn-geo";
+import { GeoPickerDrawer } from "@/components/ui/GeoPickerDrawer";
+import { getOrderTikTokUsername, openTikTokProfile } from "@/utils/tiktok";
 
 // ─── Print helper (unchanged) ──────────────────────────────────────────────
 
@@ -210,11 +234,6 @@ function formatOrderDate(value: string) {
   });
 }
 
-function getProductLabel(product: OrderProduct) {
-  return [product.code, product.name, product.variantName, product.color, product.size]
-    .filter(Boolean).join(" ") || "Sản phẩm";
-}
-
 function statusLabel(status: Order["status"]) {
   const map: Record<string, string> = {
     confirmed: "Đã chốt", shipping: "Đang giao hàng",
@@ -223,17 +242,17 @@ function statusLabel(status: Order["status"]) {
   return map[status] ?? "Đơn nháp";
 }
 
-function ShippingOption({ label, active }: { label: string; active?: boolean }) {
+function RadioOptionRow({ label, active, onClick }: { label: string; active?: boolean; onClick?: () => void }) {
   return (
     <button
       type="button"
-      className={`flex h-12 items-center justify-center rounded-[40px] border px-4 text-[14px] leading-[22px] font-medium ${
-        active
-          ? "border-[#f5c842] bg-[#fff8dc] text-black"
-          : "border-black/10 bg-white text-[#484848]"
+      onClick={onClick}
+      className={`flex w-full items-center gap-3 rounded-[8px] border px-4 py-3 text-left ${
+        active ? "border-[#ff6b8a]" : "border-[#dadada]"
       }`}
     >
-      {label}
+      <RadioIcon checked={!!active} />
+      <span className="text-[14px] leading-[22px] text-[#0c0c0c]">{label}</span>
     </button>
   );
 }
@@ -263,14 +282,384 @@ function ToggleSwitch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   );
 }
 
+function EditIcon() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+function PencilLineIcon() {
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 20h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+function RadioIcon({ checked }: { checked: boolean }) {
+  return checked
+    ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#ff6b8a" strokeWidth="2" /><circle cx="12" cy="12" r="5" fill="#ff6b8a" /></svg>
+    : <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#dadada" strokeWidth="2" /></svg>;
+}
+
+type AddressItem = ShopAddress | CustomerAddress;
+
+type AddressFormState = {
+  name: string;
+  phone: string;
+  address: string;
+  province: string;
+  district: string;
+  ward: string;
+  label: string;
+  isDefault: boolean;
+};
+
+
+function AddressFormDrawer({
+  open,
+  onOpenChange,
+  title,
+  initial,
+  saving,
+  onSave,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  title: string;
+  initial?: Partial<AddressFormState> & { id?: string };
+  saving: boolean;
+  onSave: (data: AddressFormState) => void;
+}) {
+  const [name, setName] = useState(initial?.name ?? "");
+  const [phone, setPhone] = useState(initial?.phone ?? "");
+  const [address, setAddress] = useState(initial?.address ?? "");
+  const [label, setLabel] = useState(initial?.label ?? "");
+  const [isDefault, setIsDefault] = useState(initial?.isDefault ?? false);
+
+  const [draftProvince, setDraftProvince] = useState(initial?.province ?? "");
+  const [draftDistrict, setDraftDistrict] = useState(initial?.district ?? "");
+  const [draftWard, setDraftWard] = useState(initial?.ward ?? "");
+  const [selectedProvince, setSelectedProvince] = useState<VnProvince | null>(null);
+  const [selectedDistrict, setSelectedDistrict] = useState<VnDistrict | null>(null);
+  const [provinces, setProvinces] = useState<VnProvince[]>([]);
+  const [districts, setDistricts] = useState<VnDistrict[]>([]);
+  const [wards, setWards] = useState<VnWard[]>([]);
+  const [provinceOpen, setProvinceOpen] = useState(false);
+  const [districtOpen, setDistrictOpen] = useState(false);
+  const [wardOpen, setWardOpen] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<keyof AddressFormState, string>>>({});
+
+  useEffect(() => {
+    if (!open) return;
+
+    setName(initial?.name ?? "");
+    setPhone(initial?.phone ?? "");
+    setAddress(initial?.address ?? "");
+    setLabel(initial?.label ?? "");
+    setIsDefault(initial?.isDefault ?? false);
+    setErrors({});
+
+    const p = initial?.province ?? "";
+    const d = initial?.district ?? "";
+    const w = initial?.ward ?? "";
+    setDraftProvince(p);
+    setDraftDistrict(d);
+    setDraftWard(w);
+    setSelectedProvince(null);
+    setSelectedDistrict(null);
+    setDistricts([]);
+    setWards([]);
+
+    const initGeo = async () => {
+      let provList = provinces;
+      if (provList.length === 0) {
+        provList = await fetchVnProvinces();
+        setProvinces(provList);
+      }
+      if (!p) return;
+      const matchedProvince = provList.find((pv) => pv.name === p);
+      if (!matchedProvince) {
+        setSelectedProvince({ code: -1, name: p });
+        return;
+      }
+      setSelectedProvince(matchedProvince);
+      const distList = await fetchVnDistricts(matchedProvince.code);
+      setDistricts(distList);
+      if (!d) return;
+      const matchedDistrict = distList.find((dv) => dv.name === d);
+      if (!matchedDistrict) {
+        setSelectedDistrict({ code: -1, name: d });
+        return;
+      }
+      setSelectedDistrict(matchedDistrict);
+      const wardList = await fetchVnWards(matchedDistrict.code);
+      setWards(wardList);
+    };
+
+    initGeo().catch(() => {});
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const validate = (): boolean => {
+    const next: Partial<Record<keyof AddressFormState, string>> = {};
+    if (!name.trim()) {
+      next.name = "Họ và tên không được để trống";
+    } else if (/[^a-zA-ZÀ-ỹ\s]/.test(name.trim())) {
+      next.name = "Họ và tên không được chứa ký tự đặc biệt";
+    }
+    const digits = phone.trim().replace(/\D/g, "");
+    if (!phone.trim()) {
+      next.phone = "Số điện thoại không được để trống";
+    } else if (digits.length < 10 || digits.length > 12) {
+      next.phone = "Số điện thoại phải từ 10 đến 12 chữ số";
+    }
+    if (!draftProvince) next.province = "Vui lòng chọn tỉnh/thành phố";
+    if (!draftDistrict) next.district = "Vui lòng chọn huyện/quận";
+    if (!draftWard) next.ward = "Vui lòng chọn phường/xã";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  const canSave = !saving;
+
+  return (
+    <>
+      <DrawlerBase
+        open={open}
+        onOpenChange={onOpenChange}
+        title={title}
+        height="lg"
+        footer={
+          <div className="px-4 pb-2 pt-1">
+            <GradientButton
+              label={saving ? "Đang lưu..." : "Lưu lại"}
+              disabled={!canSave}
+              onClick={() => {
+                if (!validate()) return;
+                onSave({ name: name.trim(), phone: phone.trim(), address: address.trim(), province: draftProvince, district: draftDistrict, ward: draftWard, label: label.trim(), isDefault });
+              }}
+            />
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-5 px-4 pb-4">
+          <div className="flex flex-col gap-2">
+            <label className="text-[14px] text-[#484848]">Họ và tên</label>
+            <div className={`flex h-12 items-center rounded-xl border px-4 ${errors.name ? "border-red-400" : "border-black/10"}`}>
+              <input type="text" value={name} onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: undefined })); }} onFocus={(e) => e.currentTarget.scrollIntoView({ behavior: "smooth", block: "center" })} placeholder="Nhập họ và tên" className="min-w-0 flex-1 bg-transparent text-[14px] text-black outline-none placeholder:text-[#787878]" />
+            </div>
+            {errors.name && <p className="text-[12px] text-red-500">{errors.name}</p>}
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-[14px] text-[#484848]">Số điện thoại</label>
+            <div className={`flex h-12 items-center rounded-xl border px-4 ${errors.phone ? "border-red-400" : "border-black/10"}`}>
+              <input type="tel" inputMode="tel" value={phone} onChange={(e) => { setPhone(e.target.value); setErrors((p) => ({ ...p, phone: undefined })); }} onFocus={(e) => e.currentTarget.scrollIntoView({ behavior: "smooth", block: "center" })} placeholder="Nhập số điện thoại" className="min-w-0 flex-1 bg-transparent text-[14px] text-black outline-none placeholder:text-[#787878]" />
+            </div>
+            {errors.phone && <p className="text-[12px] text-red-500">{errors.phone}</p>}
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-[14px] text-[#484848]">Tỉnh/Thành phố</label>
+            <button
+              type="button"
+              onClick={(e) => { e.currentTarget.scrollIntoView({ behavior: "smooth", block: "center" }); setProvinceOpen(true); }}
+              className={`flex h-12 w-full items-center justify-between rounded-xl border px-4 text-left ${errors.province ? "border-red-400" : "border-black/10"}`}
+            >
+              <span className={`text-[14px] ${draftProvince ? "text-black" : "text-[#787878]"}`}>{draftProvince || "Chọn tỉnh/thành phố"}</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+            {errors.province && <p className="text-[12px] text-red-500">{errors.province}</p>}
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className={`text-[14px] ${selectedProvince ? "text-[#484848]" : "text-[#9ca3af]"}`}>Huyện/Quận</label>
+            <button
+              type="button"
+              disabled={!selectedProvince}
+              onClick={(e) => { e.currentTarget.scrollIntoView({ behavior: "smooth", block: "center" }); setDistrictOpen(true); }}
+              className={`flex h-12 w-full items-center justify-between rounded-xl border px-4 text-left disabled:opacity-50 ${errors.district ? "border-red-400" : "border-black/10"}`}
+            >
+              <span className={`text-[14px] ${draftDistrict ? "text-black" : "text-[#787878]"}`}>{draftDistrict || "Chọn huyện/quận"}</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+            {errors.district && <p className="text-[12px] text-red-500">{errors.district}</p>}
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className={`text-[14px] ${selectedDistrict ? "text-[#484848]" : "text-[#9ca3af]"}`}>Phường/Xã</label>
+            <button
+              type="button"
+              disabled={!selectedDistrict}
+              onClick={(e) => { e.currentTarget.scrollIntoView({ behavior: "smooth", block: "center" }); setWardOpen(true); }}
+              className={`flex h-12 w-full items-center justify-between rounded-xl border px-4 text-left disabled:opacity-50 ${errors.ward ? "border-red-400" : "border-black/10"}`}
+            >
+              <span className={`text-[14px] ${draftWard ? "text-black" : "text-[#787878]"}`}>{draftWard || "Chọn phường/xã"}</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+            {errors.ward && <p className="text-[12px] text-red-500">{errors.ward}</p>}
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-[14px] text-[#484848]">Địa chỉ chi tiết</label>
+            <div className="flex items-start rounded-xl border border-black/10 px-4 py-3">
+              <textarea value={address} onChange={(e) => setAddress(e.target.value)} onFocus={(e) => e.currentTarget.scrollIntoView({ behavior: "smooth", block: "center" })} placeholder="Nhập địa chỉ chi tiết (số nhà, đường...)" rows={2} className="min-w-0 flex-1 resize-none bg-transparent text-[14px] text-black outline-none placeholder:text-[#787878]" />
+            </div>
+          </div>
+          <button type="button" onClick={() => setIsDefault((v) => !v)} className="flex items-center gap-3">
+            <RadioIcon checked={isDefault} />
+            <span className="text-[14px] text-black">Đặt làm địa chỉ mặc định</span>
+          </button>
+        </div>
+      </DrawlerBase>
+
+
+      {/* Province picker */}
+      <GeoPickerDrawer
+        open={provinceOpen}
+        onOpenChange={(o) => {
+          if (!o) setProvinceOpen(false);
+        }}
+        title="Chọn Tỉnh/Thành phố"
+        placeholder="Tìm tỉnh/thành phố..."
+        items={provinces}
+        selectedName={draftProvince}
+        onSelect={(p) => {
+          setDraftProvince(p.name);
+          setSelectedProvince(p);
+          setDraftDistrict("");
+          setDraftWard("");
+          setSelectedDistrict(null);
+          setDistricts([]);
+          setWards([]);
+          setProvinceOpen(false);
+          setErrors((prev) => ({ ...prev, province: undefined, district: undefined, ward: undefined }));
+          fetchVnDistricts(p.code).then(setDistricts).catch(() => {});
+        }}
+      />
+
+      {/* District picker */}
+      <GeoPickerDrawer
+        open={districtOpen}
+        onOpenChange={(o) => {
+          if (!o) setDistrictOpen(false);
+        }}
+        title="Chọn Huyện/Quận"
+        placeholder="Tìm huyện/quận..."
+        items={districts}
+        selectedName={draftDistrict}
+        onSelect={(d) => {
+          setDraftDistrict(d.name);
+          setSelectedDistrict(d);
+          setDraftWard("");
+          setWards([]);
+          setDistrictOpen(false);
+          setErrors((prev) => ({ ...prev, district: undefined, ward: undefined }));
+          fetchVnWards(d.code).then(setWards).catch(() => {});
+        }}
+      />
+
+      {/* Ward picker */}
+      <GeoPickerDrawer
+        open={wardOpen}
+        onOpenChange={(o) => {
+          if (!o) setWardOpen(false);
+        }}
+        title="Chọn Phường/Xã"
+        placeholder="Tìm phường/xã..."
+        items={wards}
+        selectedName={draftWard}
+        onSelect={(w) => {
+          setDraftWard(w.name);
+          setWardOpen(false);
+          setErrors((prev) => ({ ...prev, ward: undefined }));
+        }}
+      />
+
+    </>
+  );
+}
+
+function AddressPickerDrawer<T extends AddressItem>({
+  open,
+  onOpenChange,
+  title,
+  addresses,
+  loading,
+  selected,
+  onSelect,
+  onAdd,
+  onEdit,
+  onDelete,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  title: string;
+  addresses: T[];
+  loading: boolean;
+  selected: T | null;
+  onSelect: (a: T) => void;
+  onAdd: () => void;
+  onEdit: (a: T) => void;
+  onDelete: (a: T) => void;
+}) {
+  return (
+    <DrawlerBase
+      open={open}
+      onOpenChange={onOpenChange}
+      title={title}
+      height="auto"
+      footer={
+        <div className="px-4 pb-2 pt-1">
+          <GradientButton label="Thêm địa chỉ mới" onClick={onAdd} />
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-0 px-4 pb-4">
+        {loading && (
+          <div className="flex items-center justify-center py-8 text-[14px] text-[#787878]">
+            Đang tải...
+          </div>
+        )}
+        {!loading && addresses.length === 0 && (
+          <div className="flex items-center justify-center py-8 text-[14px] text-[#787878]">
+            Chưa có địa chỉ nào
+          </div>
+        )}
+        {!loading && addresses.map((a, i) => (
+          <div key={a?.id} className={`flex items-start gap-3 py-4 ${i < addresses.length - 1 ? "border-b border-black/6" : ""}`}>
+            <button type="button" onClick={() => onSelect(a)} className="mt-0.5 shrink-0">
+              <RadioIcon checked={selected?.id === a?.id} />
+            </button>
+            <div className="min-w-0 flex-1" onClick={() => onSelect(a)}>
+              <div className="flex items-center gap-2">
+                <p className="text-[15px] font-semibold text-black">{a?.name || "—"}</p>
+                {a?.isDefault && (
+                  <span className="rounded bg-[#fff0f3] px-1.5 py-0.5 text-[11px] font-medium text-[#ff6b8a]">Mặc định</span>
+                )}
+                {a?.label && (
+                  <span className="rounded bg-[#f2f2f2] px-1.5 py-0.5 text-[11px] text-[#787878]">{a?.label}</span>
+                )}
+              </div>
+              {a?.phone && <p className="mt-0.5 text-[13px] text-[#484848]">{a?.phone}</p>}
+              {(a?.address || a?.ward || a?.district || a?.province) && (
+                <p className="mt-0.5 text-[12px] leading-5 text-[#787878]">
+                  {[a?.address, a?.ward, a?.district, a?.province].filter(Boolean).join(", ")}
+                </p>
+              )}
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button type="button" onClick={() => onEdit(a)} className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f2f2f2] text-[#484848]">
+                <EditIcon />
+              </button>
+              <button type="button" onClick={() => onDelete(a)} className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fff0f3] text-[#ff6b8a]">
+                <TrashIcon />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </DrawlerBase>
+  );
+}
+
 function ShippingCreateScreen({
   order,
   onBack,
   productTotal,
+  userName,
 }: {
   order: Order;
   onBack: () => void;
   productTotal: number;
+  userName?: string;
 }) {
   const totalQuantity = (order.products || []).reduce(
     (sum, product) => sum + Number(product.quantity || 0),
@@ -284,8 +673,144 @@ function ShippingCreateScreen({
   const [dimHeight, setDimHeight] = useState("10");
   const [dimWeight, setDimWeight] = useState("200");
 
+  // ── Sender (shop address)
+  const [senderPickerOpen, setSenderPickerOpen] = useState(false);
+  const [senderFormOpen, setSenderFormOpen] = useState(false);
+  const [senderFormInitial, setSenderFormInitial] = useState<Partial<AddressFormState> & { id?: string }>({});
+  const [shopAddresses, setShopAddresses] = useState<ShopAddress[]>([]);
+  const [shopAddressesLoading, setShopAddressesLoading] = useState(false);
+  const [selectedSender, setSelectedSender] = useState<ShopAddress | null>(null);
+  const [senderSaving, setSenderSaving] = useState(false);
+
+  // ── Recipient (customer address)
+  const [recipientPickerOpen, setRecipientPickerOpen] = useState(false);
+  const [recipientFormOpen, setRecipientFormOpen] = useState(false);
+  const [recipientFormInitial, setRecipientFormInitial] = useState<Partial<AddressFormState> & { id?: string }>({});
+  const [customerAddresses, setCustomerAddresses] = useState<CustomerAddress[]>([]);
+  const [customerAddressesLoading, setCustomerAddressesLoading] = useState(false);
+  const [selectedRecipient, setSelectedRecipient] = useState<CustomerAddress | null>(null);
+  const [recipientSaving, setRecipientSaving] = useState(false);
+
+  const [paymentOption, setPaymentOption] = useState<"sender" | "receiver">("sender");
+  const [shippingService, setShippingService] = useState<string>("fast");
+  const [viewCondition, setViewCondition] = useState<string>("none");
+  const [pickupOption, setPickupOption] = useState<"store" | "dropoff">("store");
+
+  async function loadShopAddresses() {
+    setShopAddressesLoading(true);
+    try {
+      const list = await listShopAddressesApi();
+      setShopAddresses(list);
+      if (!selectedSender) {
+        const def = list.find((a) => a?.isDefault) ?? list[0] ?? null;
+        setSelectedSender(def);
+      }
+    } catch {
+      toast.error("Không tải được địa chỉ người gửi");
+    } finally {
+      setShopAddressesLoading(false);
+    }
+  }
+
+  async function loadCustomerAddresses() {
+    if (!order.customerId) return;
+    setCustomerAddressesLoading(true);
+    try {
+      const list = await listCustomerAddressesApi(order?.customerId);
+      setCustomerAddresses(list);
+      if (!selectedRecipient) {
+        const def = list.find((a) => a?.isDefault) ?? list[0] ?? null;
+        setSelectedRecipient(def);
+      }
+    } catch {
+      toast.error("Không tải được địa chỉ người nhận");
+    } finally {
+      setCustomerAddressesLoading(false);
+    }
+  }
+
+  function openSenderPicker() {
+    setSenderPickerOpen(true);
+    loadShopAddresses();
+  }
+
+  function openRecipientPicker() {
+    setRecipientPickerOpen(true);
+    loadCustomerAddresses();
+  }
+
+  async function handleSenderFormSave(data: AddressFormState) {
+    setSenderSaving(true);
+    try {
+      if (senderFormInitial.id) {
+        const updated = await updateShopAddressApi(senderFormInitial.id, data);
+        setShopAddresses((prev) => prev.map((a) => (a?.id === updated?.id ? updated : a)));
+        if (selectedSender?.id === updated.id) setSelectedSender(updated);
+      } else {
+        const created = await createShopAddressApi(data);
+        setShopAddresses((prev) => [...prev, created]);
+        setSelectedSender(created);
+      }
+      setSenderFormOpen(false);
+    } catch {
+      toast.error("Lưu địa chỉ thất bại");
+    } finally {
+      setSenderSaving(false);
+    }
+  }
+
+  async function handleDeleteShopAddress(a: ShopAddress) {
+    try {
+      await deleteShopAddressApi(a?.id);
+      setShopAddresses((prev) => prev.filter((x) => x.id !== a?.id));
+      if (selectedSender?.id === a?.id) setSelectedSender(null);
+    } catch {
+      toast.error("Xoá địa chỉ thất bại");
+    }
+  }
+
+  async function handleRecipientFormSave(data: AddressFormState) {
+    if (!order.customerId) {
+      toast.error("Đơn hàng chưa có khách hàng. Không thể lưu địa chỉ người nhận.");
+      return;
+    }
+    setRecipientSaving(true);
+    try {
+      if (recipientFormInitial.id) {
+        const updated = await updateCustomerAddressApi(order.customerId, recipientFormInitial.id, data);
+        setCustomerAddresses((prev) => prev.map((a) => (a?.id === updated?.id ? updated : a)));
+        if (selectedRecipient?.id === updated.id) setSelectedRecipient(updated);
+      } else {
+        const created = await createCustomerAddressApi(order.customerId, data);
+        setCustomerAddresses((prev) => [...prev, created]);
+        setSelectedRecipient(created);
+      }
+      setRecipientFormOpen(false);
+    } catch {
+      toast.error("Lưu địa chỉ thất bại");
+    } finally {
+      setRecipientSaving(false);
+    }
+  }
+
+  async function handleDeleteCustomerAddress(a: CustomerAddress) {
+    if (!order.customerId) return;
+    try {
+      await deleteCustomerAddressApi(order.customerId, a?.id);
+      setCustomerAddresses((prev) => prev.filter((x) => x.id !== a?.id));
+      if (selectedRecipient?.id === a?.id) setSelectedRecipient(null);
+    } catch {
+      toast.error("Xoá địa chỉ thất bại");
+    }
+  }
+
+  useEffect(() => {
+    void loadShopAddresses();
+    if (order.customerId) void loadCustomerAddresses();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
-    <main className="mx-auto flex h-full max-w-[480px] flex-col bg-white text-black">
+    <main className="mx-auto flex h-full w-full flex-col bg-white text-black">
       <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between bg-white px-4 pt-3">
         <button
           type="button"
@@ -310,67 +835,140 @@ function ShippingCreateScreen({
         <Divider />
 
         <section className="px-4 py-4">
-          <h2 className="text-[16px] leading-6 font-semibold text-black">
+          <h2 className="text-[16px] leading-6 text-black">
             Thông tin người gửi
           </h2>
-          <div className="mt-3 rounded-2xl border border-black/8 bg-white p-4 shadow-[0_6px_20px_rgba(0,0,0,0.04)]">
-            <div className="flex items-start gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] text-[18px] font-semibold text-[#ff6b8a]">
-                A
+          {shopAddressesLoading ? (
+            <div className="mt-3 rounded-[16px] bg-[#f2f2f2] p-[16px] animate-pulse">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 shrink-0 rounded-full bg-black/10" />
+                <div className="h-4 flex-1 rounded-md bg-black/10" />
+                <div className="h-4 w-16 rounded-md bg-black/10" />
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[15px] font-semibold text-black">
-                    Nguyễn Văn An
-                  </p>
-                  <button
-                    type="button"
-                    className="shrink-0 text-[13px] font-medium text-[#ff6b8a]"
-                  >
-                    Thay đổi
-                  </button>
-                </div>
-                <p className="mt-1 text-[13px] leading-5 text-[#484848]">
-                  0356 324 488
-                </p>
-                <p className="mt-1 text-[13px] leading-5 text-[#787878]">
-                  76 Lê Lai, phường Bến Thành, Hồ Chí Minh
-                </p>
+              <div className="mt-3 flex flex-col gap-2">
+                <div className="h-3 w-32 rounded-md bg-black/10" />
+                <div className="h-3 w-48 rounded-md bg-black/10" />
               </div>
             </div>
-          </div>
+          ) : selectedSender ? (
+            <div className="mt-3 rounded-[16px] border-[0.5px] border-black/10 bg-[#f2f2f2] p-[16px] flex flex-col gap-[16px]">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] text-[16px] font-semibold text-[#ff6b8a]">
+                  {selectedSender.name?.[0]?.toUpperCase() ?? "S"}
+                </div>
+                <p className="min-w-0 flex-1 text-[16px] font-medium text-black">{selectedSender.name}</p>
+                <button type="button" onClick={openSenderPicker} className="flex shrink-0 items-center gap-1">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="black" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="black" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <span className="text-[14px] font-medium text-black">Thay đổi</span>
+                </button>
+              </div>
+              <div className="flex flex-col gap-[8px]">
+                {selectedSender.phone && (
+                  <div className="flex items-center gap-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.72 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.63 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.63a16 16 0 0 0 6 6l.94-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" stroke="#484848" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    <p className="text-[12px] leading-[18px] text-[#484848]">{selectedSender.phone}</p>
+                  </div>
+                )}
+                {(selectedSender.address || selectedSender.ward || selectedSender.district || selectedSender.province) && (
+                  <div className="flex items-start gap-2">
+                    <svg className="mt-[1px] shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" stroke="#484848" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="10" r="3" stroke="#484848" strokeWidth="1.8"/></svg>
+                    <p className="text-[12px] leading-[18px] text-[#484848]">
+                      {[selectedSender.address, selectedSender.ward, selectedSender.district, selectedSender.province].filter(Boolean).join(", ")}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <button type="button" onClick={() => { setSenderFormInitial({ name: userName ?? "" }); setSenderFormOpen(true); }} className="mt-3 flex h-14 w-full items-center justify-center rounded-xl border border-dashed border-[#ff6b8a] text-[14px] font-medium text-[#ff6b8a]">
+              Thêm mới
+            </button>
+          )}
         </section>
 
         <Divider />
 
         <section className="px-4 py-4">
-          <h2 className="text-[16px] leading-6 font-semibold text-black">
+          <h2 className="text-[16px] leading-6 text-black">
             Thông tin người nhận
           </h2>
-          <button
-            type="button"
-            className="mt-3 flex h-14 w-full items-center justify-center rounded-xl border border-dashed border-[#ff6b8a] text-[14px] font-medium text-[#ff6b8a]"
-          >
-            Thêm mới
-          </button>
+          {customerAddressesLoading ? (
+            <div className="mt-3 rounded-[16px] bg-[#f2f2f2] p-[16px] animate-pulse">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 shrink-0 rounded-full bg-black/10" />
+                <div className="h-4 flex-1 rounded-md bg-black/10" />
+                <div className="h-4 w-16 rounded-md bg-black/10" />
+              </div>
+              <div className="mt-3 flex flex-col gap-2">
+                <div className="h-3 w-32 rounded-md bg-black/10" />
+                <div className="h-3 w-48 rounded-md bg-black/10" />
+              </div>
+            </div>
+          ) : selectedRecipient ? (
+            <div className="mt-3 rounded-[16px] border-[0.5px] border-black/10 bg-[#f2f2f2] p-[16px] flex flex-col gap-[16px]">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#e8f0ff] text-[16px] font-semibold text-[#468adf]">
+                  {selectedRecipient.name?.[0]?.toUpperCase() ?? "?"}
+                </div>
+                <p className="min-w-0 flex-1 text-[16px] font-medium text-black">{selectedRecipient.name}</p>
+                <button type="button" onClick={openRecipientPicker} className="flex shrink-0 items-center gap-1">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="black" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="black" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <span className="text-[14px] font-medium text-black">Thay đổi</span>
+                </button>
+              </div>
+              <div className="flex flex-col gap-[8px]">
+                {selectedRecipient.phone && (
+                  <div className="flex items-center gap-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.72 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.63 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.63a16 16 0 0 0 6 6l.94-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" stroke="#484848" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    <p className="text-[12px] leading-[18px] text-[#484848]">{selectedRecipient.phone}</p>
+                  </div>
+                )}
+                {(selectedRecipient.address || selectedRecipient.ward || selectedRecipient.district || selectedRecipient.province) && (
+                  <div className="flex items-start gap-2">
+                    <svg className="mt-[1px] shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" stroke="#484848" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="10" r="3" stroke="#484848" strokeWidth="1.8"/></svg>
+                    <p className="text-[12px] leading-[18px] text-[#484848]">
+                      {[selectedRecipient.address, selectedRecipient.ward, selectedRecipient.district, selectedRecipient.province].filter(Boolean).join(", ")}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <button type="button" onClick={() => { if (!order.customerId) { toast.error("Đơn hàng chưa có khách hàng. Không thể thêm địa chỉ người nhận."); return; } setRecipientFormInitial({}); setRecipientFormOpen(true); }} className="mt-3 flex h-14 w-full items-center justify-center rounded-xl border border-dashed border-[#ff6b8a] text-[14px] font-medium text-[#ff6b8a]">
+              Thêm mới
+            </button>
+          )}
         </section>
 
         <Divider />
 
         <section className="px-4 py-4">
-          <h2 className="text-[16px] leading-6 font-semibold text-black">
-            Thông tin đơn hàng
-          </h2>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            {[
-              ["Dài", `${dimLength} cm`],
-              ["Rộng", `${dimWidth} cm`],
-              ["Cao", `${dimHeight} cm`],
-              ["Khối lượng", `${dimWeight} gram`],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-xl bg-[#f2f2f2] p-3">
-                <p className="text-[12px] leading-[18px] text-[#787878]">{label}</p>
-                <p className="mt-1 text-[15px] font-semibold text-black">{value}</p>
+          <div className="flex items-center justify-between">
+            <h2 className="text-[16px] leading-6 text-black">
+              Thông tin đơn hàng
+            </h2>
+            <button
+              type="button"
+              onClick={() => setDimensionsOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <PencilLineIcon />
+              <span className="text-[14px] font-medium leading-[22px] text-black">Thay đổi</span>
+            </button>
+          </div>
+          <div className="mt-3 rounded-[16px] border-[0.5px] border-black/10 bg-[#f2f2f2] p-[16px] flex flex-col gap-[8px]">
+            {([
+              ["M", `${dimLength} cm`, <svg key="d" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 7H2M22 17H2M12 7v10" stroke="#484848" strokeWidth="1.8" strokeLinecap="round"/></svg>],
+              ["R", `${dimWidth} cm`, <svg key="w" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7 2v20M17 2v20M7 12h10" stroke="#484848" strokeWidth="1.8" strokeLinecap="round"/></svg>],
+              ["C", `${dimHeight} cm`, <svg key="h" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20" stroke="#484848" strokeWidth="1.8" strokeLinecap="round"/></svg>],
+              ["KL", `${dimWeight} gram`, <svg key="kg" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2a4 4 0 0 1 4 4H8a4 4 0 0 1 4-4z" stroke="#484848" strokeWidth="1.8"/><path d="M3 8h18l-2 13H5L3 8z" stroke="#484848" strokeWidth="1.8" strokeLinejoin="round"/></svg>],
+            ] as [string, string, React.ReactNode][]).map(([label, value, icon]) => (
+              <div key={label} className="flex items-center gap-[8px]">
+                {icon}
+                <span className="flex-1 text-[14px] leading-[22px] text-[#484848]">
+                  {label === "M" ? "Dài" : label === "R" ? "Rộng" : label === "C" ? "Cao" : "Khối lượng"}
+                </span>
+                <span className="text-[14px] font-medium leading-[22px] text-black">{value}</span>
               </div>
             ))}
           </div>
@@ -396,7 +994,7 @@ function ShippingCreateScreen({
         <Divider />
 
         <section className="px-4 py-4">
-          <h2 className="text-[16px] leading-6 font-semibold text-black">
+          <h2 className="text-[16px] leading-6 text-black">
             Thông tin thanh toán
           </h2>
           <div className="mt-3 flex flex-col gap-4">
@@ -420,44 +1018,56 @@ function ShippingCreateScreen({
         <Divider />
 
         <section className="px-4 py-4">
-          <h2 className="text-[16px] leading-6 font-semibold text-black">
-            Hình thức thanh toán
-          </h2>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <ShippingOption label="Bên gửi trả phí" active />
-            <ShippingOption label="Bên nhận trả phí" />
-          </div>
-        </section>
-
-        <Divider />
-
-        <section className="px-4 py-4">
-          <h2 className="text-[16px] leading-6 font-semibold text-black">
-            Dịch vụ vận chuyển
+          <h2 className="text-[16px] leading-6 text-black">
+            Tùy chọn thanh toán
           </h2>
           <div className="mt-3 flex flex-col gap-3">
-            <ShippingOption label="Viettel Post chuyển nhanh" active />
-            <ShippingOption label="Viettel Post chuyển tiết kiệm" />
+            <RadioOptionRow label="Bên gửi trả phí" active={paymentOption === "sender"} onClick={() => setPaymentOption("sender")} />
+            <RadioOptionRow label="Bên nhận trả phí" active={paymentOption === "receiver"} onClick={() => setPaymentOption("receiver")} />
           </div>
         </section>
 
         <Divider />
 
         <section className="px-4 py-4">
-          <h2 className="text-[16px] leading-6 font-semibold text-black">
-            Điều kiện xem hàng
+          <h2 className="text-[16px] leading-6 text-black">
+            Gói dịch vụ
           </h2>
           <div className="mt-3 flex flex-col gap-3">
-            <ShippingOption label="Không cho xem hàng" active />
-            <ShippingOption label="Cho xem hàng không thử" />
-            <ShippingOption label="Cho thử hàng" />
+            <RadioOptionRow label="Viettel Post chuyển nhanh" active={shippingService === "fast"} onClick={() => setShippingService("fast")} />
+            <RadioOptionRow label="Viettel Post chuyển tiết kiệm" active={shippingService === "economy"} onClick={() => setShippingService("economy")} />
           </div>
         </section>
 
         <Divider />
 
         <section className="px-4 py-4">
-          <h2 className="text-[16px] leading-6 font-semibold text-black">
+          <h2 className="text-[16px] leading-6 text-black">
+            Lưu ý cho xem hàng
+          </h2>
+          <div className="mt-3 flex flex-col gap-3">
+            <RadioOptionRow label="Không cho xem hàng" active={viewCondition === "none"} onClick={() => setViewCondition("none")} />
+            <RadioOptionRow label="Cho xem hàng không thử" active={viewCondition === "view"} onClick={() => setViewCondition("view")} />
+            <RadioOptionRow label="Cho thử hàng" active={viewCondition === "try"} onClick={() => setViewCondition("try")} />
+          </div>
+        </section>
+
+        <Divider />
+
+        <section className="px-4 py-4">
+          <h2 className="text-[16px] leading-6 text-black">
+            Shipper lấy hàng
+          </h2>
+          <div className="mt-3 flex flex-col gap-3">
+            <RadioOptionRow label="Tại cửa hàng" active={pickupOption === "store"} onClick={() => setPickupOption("store")} />
+            <RadioOptionRow label="Gửi tại điểm dịch vụ" active={pickupOption === "dropoff"} onClick={() => setPickupOption("dropoff")} />
+          </div>
+        </section>
+
+        <Divider />
+
+        <section className="px-4 py-4">
+          <h2 className="text-[16px] leading-6 text-black">
             Ghi chú
           </h2>
           <textarea
@@ -533,6 +1143,50 @@ function ShippingCreateScreen({
           <GradientButton label="Lưu lại" disabled />
         </div>
       </DrawlerBase>
+
+      <AddressPickerDrawer<ShopAddress>
+        open={senderPickerOpen}
+        onOpenChange={setSenderPickerOpen}
+        title="Địa chỉ người gửi"
+        addresses={shopAddresses}
+        loading={shopAddressesLoading}
+        selected={selectedSender}
+        onSelect={(a) => { setSelectedSender(a); setSenderPickerOpen(false); }}
+        onAdd={() => { setSenderFormInitial({ name: userName ?? "" }); setSenderFormOpen(true); }}
+        onEdit={(a) => { setSenderFormInitial({ id: a?.id, name: a?.name ?? "", phone: a?.phone ?? "", address: a.address ?? "", province: a.province ?? "", district: a.district ?? "", ward: a.ward ?? "", label: a.label ?? "", isDefault: a.isDefault }); setSenderFormOpen(true); }}
+        onDelete={handleDeleteShopAddress}
+      />
+
+      <AddressFormDrawer
+        open={senderFormOpen}
+        onOpenChange={setSenderFormOpen}
+        title={senderFormInitial.id ? "Sửa địa chỉ người gửi" : "Thêm địa chỉ người gửi"}
+        initial={senderFormInitial}
+        saving={senderSaving}
+        onSave={handleSenderFormSave}
+      />
+
+      <AddressPickerDrawer<CustomerAddress>
+        open={recipientPickerOpen}
+        onOpenChange={setRecipientPickerOpen}
+        title="Địa chỉ người nhận"
+        addresses={customerAddresses}
+        loading={customerAddressesLoading}
+        selected={selectedRecipient}
+        onSelect={(a) => { setSelectedRecipient(a); setRecipientPickerOpen(false); }}
+        onAdd={() => { if (!order.customerId) { toast.error("Đơn hàng chưa có khách hàng. Không thể thêm địa chỉ người nhận."); return; } setRecipientFormInitial({ name: order.customerTikTokName ?? order.customerTikTokUsername ?? "" }); setRecipientFormOpen(true); }}
+        onEdit={(a) => { setRecipientFormInitial({ id: a?.id, name: a?.name ?? "", phone: a?.phone ?? "", address: a?.address ?? "", province: a?.province ?? "", district: a?.district ?? "", ward: a?.ward ?? "", label: a?.label ?? "", isDefault: a?.isDefault }); setRecipientFormOpen(true); }}
+        onDelete={handleDeleteCustomerAddress}
+      />
+
+      <AddressFormDrawer
+        open={recipientFormOpen}
+        onOpenChange={setRecipientFormOpen}
+        title={recipientFormInitial.id ? "Sửa địa chỉ người nhận" : "Thêm địa chỉ người nhận"}
+        initial={recipientFormInitial}
+        saving={recipientSaving}
+        onSave={handleRecipientFormSave}
+      />
     </main>
   );
 }
@@ -546,6 +1200,7 @@ export default function OrderOverviewScreen({
   onAddProduct,
   onDeleteProduct,
   isDepositLoading = false,
+  userName,
 }: {
   order: Order;
   onBack: () => void;
@@ -553,9 +1208,9 @@ export default function OrderOverviewScreen({
   onAddProduct?: (orderId: string, product: OrderProduct) => void;
   onDeleteProduct?: (orderId: string, itemId: string) => void;
   isDepositLoading?: boolean;
+  userName?: string;
 }) {
   // ── Drawer open states
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [addProductOpen, setAddProductOpen] = useState(false);
   const [carrierOpen, setCarrierOpen] = useState(false);
   const [linkCarrierOpen, setLinkCarrierOpen] = useState(false);
@@ -586,6 +1241,17 @@ export default function OrderOverviewScreen({
   const [showAllProducts, setShowAllProducts] = useState(false);
   const [showShippingCreateScreen, setShowShippingCreateScreen] = useState(false);
 
+  // ── Default customer address from API
+  const [defaultCustomerAddress, setDefaultCustomerAddress] = useState<CustomerAddress | null>(null);
+
+  useEffect(() => {
+    if (!order.customerId) return;
+    listCustomerAddressesApi(order.customerId).then((list) => {
+      const def = list.find((a) => a?.isDefault) ?? list[0] ?? null;
+      setDefaultCustomerAddress(def);
+    }).catch(() => { /* silent — fall back to order snapshot */ });
+  }, [order.customerId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Calculated values
   const products = order.products || [];
   const productTotal = getOrderTotal(products);
@@ -614,7 +1280,7 @@ export default function OrderOverviewScreen({
       setIsAddingProduct(true);
       const item = await addOrderItemApi(order.id, {
         productCode,
-        productName: `Mã ${productCode}`,
+        productName: productCode,
         price,
         quantity: newQty,
       });
@@ -624,7 +1290,7 @@ export default function OrderOverviewScreen({
       onAddProduct?.(order.id, {
         id: itemId,
         code: String(item.productCode || item.product_code || productCode),
-        name: String(item.productName || item.product_name || `Mã ${productCode}`),
+        name: String(item.productName || item.product_name || productCode),
         price: Number(item.price || price),
         quantity: Number(item.quantity || newQty),
       });
@@ -661,6 +1327,7 @@ export default function OrderOverviewScreen({
     }
   }
 
+
   // ── Print
   function handlePrint() {
     const html = buildOrderHtml(order);
@@ -687,6 +1354,7 @@ export default function OrderOverviewScreen({
         order={order}
         onBack={() => setShowShippingCreateScreen(false)}
         productTotal={productTotal}
+        userName={userName}
       />
     );
   }
@@ -704,13 +1372,7 @@ export default function OrderOverviewScreen({
         <h1 className="min-w-0 flex-1 px-4 text-center text-[24px] font-semibold leading-7 text-black">
           Tổng quan đơn hàng
         </h1>
-        <button
-          type="button"
-          onClick={() => setSettingsOpen(true)}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]"
-        >
-          <SettingsIcon />
-        </button>
+        <div className="h-11 w-11" />
       </header>
 
       {/* ── Scrollable body ──────────────────────────────────────────────── */}
@@ -747,7 +1409,7 @@ export default function OrderOverviewScreen({
                 />
               ) : (
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] text-[15px] font-semibold text-[#ff6b8a]">
-                  {(order.customerName || order.username || "?")[0].toUpperCase()}
+                  {(order.customerName || order.username || "?")?.[0]?.toUpperCase()}
                 </div>
               )}
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -768,13 +1430,17 @@ export default function OrderOverviewScreen({
               <div className="flex items-center gap-2">
                 <span className="shrink-0 text-[#484848]"><PhoneIcon /></span>
                 <p className="text-[12px] leading-[18px] text-[#484848]">
-                  {order.customerPhone || "Chưa có số điện thoại"}
+                  {defaultCustomerAddress?.phone || order.customerPhone || "Chưa có số điện thoại"}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <span className="shrink-0 text-[#484848]"><AddressIcon /></span>
                 <p className="text-[12px] leading-[18px] text-[#484848]">
-                  {order.customerAddress || "Chưa có địa chỉ"}
+                  {defaultCustomerAddress
+                    ? [defaultCustomerAddress.address, defaultCustomerAddress.ward, defaultCustomerAddress.district, defaultCustomerAddress.province].filter(Boolean).join(", ") || order.customerAddress || "Chưa có địa chỉ"
+                    : order.customerAddressData
+                      ? [order.customerAddressData?.address, order.customerAddressData?.ward, order.customerAddressData?.district, order.customerAddressData?.province].filter(Boolean).join(", ") || order.customerAddress || "Chưa có địa chỉ"
+                      : order.customerAddress || "Chưa có địa chỉ"}
                 </p>
               </div>
             </div>
@@ -783,7 +1449,9 @@ export default function OrderOverviewScreen({
             <div className="flex gap-3">
               <button
                 type="button"
-                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-[#f2f2f2] text-[12px] font-medium text-black"
+                onClick={() => openTikTokProfile(getOrderTikTokUsername(order))}
+                disabled={!getOrderTikTokUsername(order)}
+                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-[#f2f2f2] text-[12px] font-medium text-black disabled:opacity-40"
               >
                 <TikTokIcon />
                 Tiktok
@@ -834,28 +1502,28 @@ export default function OrderOverviewScreen({
                 className="flex items-center justify-between gap-4 border-b border-black/10 py-3"
               >
                 <p className="min-w-0 flex-1 text-[14px] leading-[22px] text-[#2b2b2b]">
-                  {getProductLabel(product)}
+                  {
+                  product.code}
                 </p>
                 <div className="flex shrink-0 items-center gap-2">
-                  <span className="text-[12px] leading-4.5 text-[#787878]">
-                    x{product.quantity}
-                  </span>
+
                   <span className="text-[14px] font-medium leading-[22px] text-black">
                     {formatMoneyFromK(
                       Number(product.price || 0) * Number(product.quantity || 0),
                     )}
                   </span>
-                  {product.id && (
-                    <button
+                                    <span className="text-[12px] leading-4.5 text-[#787878]">
+                    x{product.quantity}
+                  </span>
+                  <button
                       type="button"
                       onClick={() => void handleDeleteProduct(product)}
-                      disabled={deletingProductId === product.id}
+                      disabled={!!deletingProductId && deletingProductId === product.id}
                       className="flex h-7 w-7 items-center justify-center rounded-full bg-[#fff0f0] text-[#ff6b8a] disabled:opacity-40"
                       aria-label="Xoá sản phẩm"
                     >
                       <TrashIcon />
                     </button>
-                  )}
                 </div>
               </div>
             ))}
@@ -900,20 +1568,25 @@ export default function OrderOverviewScreen({
             Đơn vị vận chuyển
           </h2>
 
-          <div className="mt-4 flex flex-col">
-            <div className="flex items-center justify-between gap-4 border-b border-black/10 py-3">
-              <span className="text-[14px] leading-5.5 text-[#2b2b2b]">Phí vận chuyển</span>
-              <span className="text-[14px] font-medium leading-5.5 text-black">
-                {formatMoneyFromK(shippingFee)}
-              </span>
+          <div className="mt-4 flex flex-col gap-3">
+            {/* Phí vận chuyển inline input */}
+            <div className="flex items-center justify-between gap-4">
+              <span className="shrink-0 text-[14px] leading-5.5 text-[#2b2b2b]">Phí vận chuyển</span>
+              <div className="flex h-10 w-36 items-center gap-1 rounded-xl border border-black/10 px-3">
+                <MoneyInput valueK={localShippingFee} onChange={setLocalShippingFee} />
+                <VndBadge />
+              </div>
             </div>
-            <div className="flex items-center justify-between gap-4 border-b border-black/10 py-3">
-              <span className="text-[14px] leading-5.5 text-[#2b2b2b]">Trả trước</span>
-              <span className="text-[14px] font-medium leading-5.5 text-black">
-                -{formatMoneyFromK(prepaid)}
-              </span>
+            {/* Trả trước inline input */}
+            <div className="flex items-center justify-between gap-4">
+              <span className="shrink-0 text-[14px] leading-5.5 text-[#2b2b2b]">Trả trước</span>
+              <div className="flex h-10 w-36 items-center gap-1 rounded-xl border border-black/10 px-3">
+                <MoneyInput valueK={localPrepaid} onChange={setLocalPrepaid} />
+                <VndBadge />
+              </div>
             </div>
-            <div className="flex items-center justify-between gap-4 py-3">
+            {/* Còn lại */}
+            <div className="flex items-center justify-between gap-4 border-t border-black/10 pt-3">
               <span className="text-[14px] leading-5.5 text-[#484848]">Còn lại</span>
               <span className="text-[14px] font-semibold leading-5.5 text-[#ff6b8a]">
                 {formatMoneyFromK(remain)}
@@ -959,112 +1632,75 @@ export default function OrderOverviewScreen({
             </div>
           </button>
         </section>
-      </div>
 
-      {/* ── Bottom actions ─────────────────────────────────────────────── */}
-      <div className="shrink-0 border-t border-black/10 bg-white px-4 pb-[env(safe-area-inset-bottom,8px)] pt-2">
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => onToggleDeposit(order.id)}
-            disabled={isDepositLoading}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-[40px] py-3 text-[14px] font-medium disabled:cursor-not-allowed disabled:opacity-70 ${
-              order.depositStatus === "paid" || order.depositStatus === "deposited"
-                ? "bg-[#2ca87b] text-white"
-                : "bg-[#f5c842] text-black"
-            }`}
-          >
-            {isDepositLoading ? <DepositSpinner /> : <ConfirmIcon />}
-            {isDepositLoading
-              ? "Đang cập nhật..."
-              : order.depositStatus === "paid" || order.depositStatus === "deposited"
-                ? "Đã cọc"
-                : "Chưa cọc"}
-          </button>
-          <button
-            type="button"
-            className="flex flex-1 items-center justify-center gap-2 rounded-[40px] py-3 text-[14px] font-medium text-white"
-            style={{ backgroundImage: "linear-gradient(90deg, #5b8dee 0%, #7b5cf0 100%)" }}
-          >
-            <ShareIcon />
-            Chia sẻ hoá đơn
-          </button>
-        </div>
+        <Divider />
 
-        <div className="mt-2 flex gap-2">
+        {/* Action buttons in scrollable body */}
+        <section className="px-4 pb-6 pt-4">
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => onToggleDeposit(order.id)}
+              disabled={isDepositLoading}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-[40px] py-3 text-[14px] font-medium disabled:cursor-not-allowed disabled:opacity-70 ${
+                order.depositStatus === "paid" || order.depositStatus === "deposited"
+                  ? "bg-[#2ca87b] text-white"
+                  : "bg-[#f5c842] text-black"
+              }`}
+            >
+              {isDepositLoading ? <DepositSpinner /> : <ConfirmIcon />}
+              {isDepositLoading
+                ? "Đang cập nhật..."
+                : order.depositStatus === "paid" || order.depositStatus === "deposited"
+                  ? "Đã cọc"
+                  : "Chưa cọc"}
+            </button>
+            <button
+              type="button"
+              className="flex flex-1 items-center justify-center gap-2 rounded-[40px] py-3 text-[14px] font-medium text-white"
+              style={{ backgroundImage: "linear-gradient(90deg, #5b8dee 0%, #7b5cf0 100%)" }}
+            >
+              <ShareIcon />
+              Chia sẻ hoá đơn
+            </button>
+          </div>
           <button
             type="button"
             onClick={handlePrint}
-            className="flex flex-1 items-center justify-center gap-2 rounded-[40px] bg-[#ffe8e8] py-3 text-[14px] font-medium text-[#ff6b8a]"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-[40px] bg-[#ffe8e8] py-3 text-[14px] font-medium text-[#ff6b8a]"
           >
             <PrinterIcon size={18} />
             In đơn hàng
           </button>
+        </section>
+      </div>
+
+      {/* ── Footer: provider selector + Ship ──────────────────────────── */}
+      <div className="shrink-0 border-t border-black/10 bg-white px-4 pb-[env(safe-area-inset-bottom,8px)] pt-3">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setCarrierOpen(true)}
+            className="flex flex-1 items-center gap-2 overflow-hidden rounded-[40px] border border-black/10 bg-[#f2f2f2] px-4 py-3"
+          >
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#d71920] text-[9px] font-bold text-white">
+              VTP
+            </div>
+            <span className="min-w-0 flex-1 truncate text-left text-[14px] font-medium text-black">
+              Viettel Post
+            </span>
+            <ChevronRightIcon />
+          </button>
           <button
             type="button"
             onClick={() => setShowShippingCreateScreen(true)}
-            className="flex shrink-0 items-center justify-center gap-2 rounded-[40px] bg-[#f5c842] px-5 py-3 text-[14px] font-semibold text-black"
+            className="flex shrink-0 items-center justify-center gap-2 rounded-[40px] bg-[#f5c842] px-6 py-3 text-[14px] font-semibold text-black"
           >
             <ShipIcon />
             Ship
           </button>
         </div>
       </div>
-
-      {/* ═══ DRAWER 1: Cài đặt đơn hàng ════════════════════════════════════ */}
-      <DrawlerBase
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        title="Cài đặt đơn hàng"
-        height="auto"
-        footer={
-          <div className="px-4 pb-2 pt-1">
-            <GradientButton
-              label="Lưu"
-              onClick={() => setSettingsOpen(false)}
-            />
-          </div>
-        }
-      >
-        <div className="flex flex-col gap-5 px-4 pb-4">
-          {/* Phí vận chuyển */}
-          <div className="flex flex-col gap-2">
-            <label className="text-[14px] leading-[22px] text-[#484848]">
-              Phí vận chuyển
-            </label>
-            <div className="flex h-12 items-center gap-2 rounded-xl border border-black/10 px-4">
-              <input
-                type="number"
-                inputMode="numeric"
-                value={localShippingFee === 0 ? "" : localShippingFee}
-                onChange={(e) =>
-                  setLocalShippingFee(Number(e.target.value) || 0)
-                }
-                placeholder="0"
-                className="min-w-0 flex-1 bg-transparent text-[14px] text-black outline-none placeholder:text-[#787878]"
-              />
-              <VndBadge />
-            </div>
-          </div>
-          {/* Trả trước */}
-          <div className="flex flex-col gap-2">
-            <label className="text-[14px] leading-[22px] text-[#484848]">
-              Trả trước
-            </label>
-            <div className="flex h-12 items-center gap-2 rounded-xl border border-black/10 px-4">
-              <input
-                type="number"
-                inputMode="numeric"
-                value={localPrepaid === 0 ? "" : localPrepaid}
-                onChange={(e) => setLocalPrepaid(Number(e.target.value) || 0)}
-                placeholder="0"
-                className="min-w-0 flex-1 bg-transparent text-[14px] text-black outline-none placeholder:text-[#787878]"
-              />
-              <VndBadge />
-            </div>
-          </div>
-        </div>
-      </DrawlerBase>
 
       {/* ═══ DRAWER 2: Thêm mới sản phẩm ════════════════════════════════════ */}
       <DrawlerBase
@@ -1100,13 +1736,9 @@ export default function OrderOverviewScreen({
           <div className="flex flex-col gap-2">
             <label className="text-[14px] text-[#484848]">Giá</label>
             <div className="flex h-12 items-center gap-2 rounded-xl border border-black/10 px-4">
-              <input
-                type="number"
-                inputMode="numeric"
-                value={newPrice}
-                onChange={(e) => setNewPrice(e.target.value)}
-                placeholder="0"
-                className="min-w-0 flex-1 bg-transparent text-[14px] text-black outline-none placeholder:text-[#787878]"
+              <MoneyInput
+                valueK={Number(newPrice) || 0}
+                onChange={(k) => setNewPrice(String(k))}
               />
               <VndBadge />
             </div>

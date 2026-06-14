@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CustomerWithTikTok } from "../../types";
-import { updateCustomerApi } from "@/api/customersApi";
+import { getCustomerOrdersApi, updateCustomerApi } from "@/api/customersApi";
+import type { OrderWithTikTok } from "@/types";
+import { formatMoneyFromK, getOrderTotal } from "@/utils/order";
 
 function ChevronLeftIcon() {
   return (
@@ -55,15 +57,186 @@ function PlusIcon() {
   );
 }
 
-function HashIcon() {
+function FilterIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-      <path d="M4 9h16M4 15h16M10 3l-2 18M16 3l-2 18" stroke="#484848" strokeWidth="1.6" strokeLinecap="round" />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="M3 6h18M7 12h10M11 18h2" stroke="#2b2b2b" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CheckBadgeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="M9 12l2 2 4-4M12 3C7.03 3 3 7.03 3 12s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9z" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function MoneyIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="9" stroke="white" strokeWidth="1.6" />
+      <path d="M12 7v1m0 8v1M9.5 10a2.5 2 0 0 1 5 0c0 1-1 1.5-2.5 2s-2.5 1-2.5 2a2.5 2 0 0 0 5 0" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function XCircleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="9" stroke="white" strokeWidth="1.6" />
+      <path d="M9 9l6 6M15 9l-6 6" stroke="white" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ShoppingBagIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" stroke="#484848" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ClipboardIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="#2b2b2b" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
 type CustomerTab = "info" | "orders";
+
+function getDepositStatusLabel(order: OrderWithTikTok): { label: string; bg: string; color: string } {
+  if (order.depositStatus === "paid" || order.depositStatus === "deposited") {
+    return { label: "Đã cọc", bg: "#e9f2ff", color: "#468adf" };
+  }
+  return { label: "Chưa cọc", bg: "#ffe8e8", color: "#ff4242" };
+}
+
+function getOrderStatusLabel(order: OrderWithTikTok): { label: string; bg: string; color: string } {
+  if (order.status === "confirmed" || order.status === "packed" || order.status === "shipping" || order.status === "completed") {
+    return { label: "Đã chốt", bg: "#d9ffee", color: "#2ca87b" };
+  }
+  return { label: "Đơn nháp", bg: "#f2f2f2", color: "#2b2b2b" };
+}
+
+function formatDateVN(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+function formatTimeVN(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+}
+
+function groupOrdersByDate(orders: OrderWithTikTok[]): { date: string; orders: OrderWithTikTok[] }[] {
+  const map = new Map<string, OrderWithTikTok[]>();
+  for (const order of orders) {
+    const key = formatDateVN(order.createdAt);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(order);
+  }
+  return Array.from(map.entries()).map(([date, orders]) => ({ date, orders }));
+}
+
+function OrderCard({ order }: { order: OrderWithTikTok }) {
+  const subtotal = order.subtotalAmount && order.subtotalAmount > 0
+    ? order.subtotalAmount
+    : getOrderTotal(order.products);
+
+  const depositTag = getDepositStatusLabel(order);
+  const statusTag = getOrderStatusLabel(order);
+  const time = formatTimeVN(order.createdAt);
+
+  return (
+    <div className="flex flex-col gap-1 px-4">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-4">
+            <div className="min-w-0 flex-1 flex flex-col gap-1">
+              <p className="text-[14px] font-medium leading-[22px] text-black">
+                {order.orderCode ? `#${order.orderCode}` : "Đơn hàng"}
+              </p>
+              <p className="text-[12px] leading-[18px] text-[#787878]">{time}</p>
+            </div>
+          </div>
+          <div className="flex gap-1 flex-wrap">
+            <span
+              className="flex h-6 items-center rounded-2xl px-2 text-[12px] font-medium"
+              style={{ backgroundColor: depositTag.bg, color: depositTag.color }}
+            >
+              {depositTag.label}
+            </span>
+            <span
+              className="flex h-6 items-center rounded-2xl px-2 text-[12px] font-medium"
+              style={{ backgroundColor: statusTag.bg, color: statusTag.color }}
+            >
+              {statusTag.label}
+            </span>
+          </div>
+        </div>
+
+        <div className="h-px bg-black/8" />
+      </div>
+
+      <div className="flex flex-col">
+        {order?.products?.map((product, idx) => (
+          <div key={product.id ?? idx} className="flex flex-col gap-3 pt-3">
+            <div className="flex items-start gap-4">
+              <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                <p className="text-[14px] leading-[22px] text-[#2b2b2b]">{product.name || product.code || "Sản phẩm"}</p>
+                <p className="text-[12px] leading-[18px] text-[#787878]">{time}</p>
+              </div>
+              <div className="w-[92px] flex flex-col items-end gap-0.5 shrink-0">
+                <p className="text-[14px] font-medium leading-[22px] text-black text-right whitespace-nowrap">
+                  {formatMoneyFromK(product.price)}
+                </p>
+                <p className="text-[12px] leading-[18px] text-[#787878] text-right">x{product.quantity}</p>
+              </div>
+            </div>
+            <div className="h-px bg-black/8" />
+          </div>
+        ))}
+
+        <div className="flex items-start gap-4 pt-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[14px] leading-[22px] text-[#2b2b2b]">Tạm tính</p>
+          </div>
+          <div className="w-[92px] shrink-0 flex items-end justify-end">
+            <p className="text-[14px] font-medium leading-[22px] text-[#ff6b8a] text-right whitespace-nowrap">
+              {formatMoneyFromK(subtotal)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-2.5 pt-4">
+        <button
+          type="button"
+          className="flex flex-1 h-10 items-center justify-center rounded-[40px] bg-[#ffe8e8] text-[14px] font-medium text-[#ff6b8a]"
+        >
+          Gộp đơn
+        </button>
+        <button
+          type="button"
+          className="flex flex-1 h-10 items-center justify-center gap-2 rounded-[40px] border border-[#dadada] text-[14px] font-medium text-black"
+        >
+          <ClipboardIcon />
+          Tổng đơn hàng
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function CustomerDetailView({
   customer,
@@ -79,8 +252,42 @@ export default function CustomerDetailView({
   const [shippingAddress, setShippingAddress] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const [customerOrders, setCustomerOrders] = useState<OrderWithTikTok[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+
   const letter = (customer.username || "?").charAt(0).toUpperCase();
-  const tiktokHandle = customer.customerTikTokUsername || "";
+
+  useEffect(() => {
+    if (activeTab !== "orders" || !customer.customerId) return;
+
+    let cancelled = false;
+    setOrdersLoading(true);
+    getCustomerOrdersApi(customer.customerId)
+      .then((orders) => {
+        if (!cancelled) setCustomerOrders(orders);
+      })
+      .catch(() => {
+        if (!cancelled) setCustomerOrders([]);
+      })
+      .finally(() => {
+        if (!cancelled) setOrdersLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, customer.customerId]);
+
+  const confirmedCount = customerOrders.filter(
+    (o) => o.status === "confirmed" || o.status === "packed" || o.status === "shipping" || o.status === "completed",
+  ).length;
+  const paidCount = customerOrders.filter(
+    (o) => o.depositStatus === "paid" || o.depositStatus === "deposited",
+  ).length;
+  const unpaidCount = customerOrders.filter((o) => o.depositStatus === "unpaid").length;
+  const draftCount = customerOrders.filter((o) => o.status === "draft").length;
+  const totalProductCount = customerOrders.reduce((sum, o) => sum + o.products.length, 0);
+  const grouped = groupOrdersByDate(customerOrders);
 
   const handleSave = async () => {
     if (!customer.customerId) {
@@ -109,7 +316,15 @@ export default function CustomerDetailView({
       <div className="min-h-0 flex-1 overflow-y-auto pb-32 [-webkit-overflow-scrolling:touch]">
         <div className="px-4 pb-5 pt-2">
           <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onBack}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                aria-label="Quay lại"
+              >
+                <ChevronLeftIcon />
+              </button>
               {customer.avatar ? (
                 <img
                   src={customer.avatar}
@@ -246,10 +461,95 @@ export default function CustomerDetailView({
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-16">
-            <p className="text-[15px] text-[#8c8c8c]">
-              {customer.totalOrders === 0 ? "Chưa có đơn hàng." : `${customer.totalOrders} đơn hàng`}
-            </p>
+          <div className="flex flex-col">
+            {/* Status summary cards */}
+            <div className="flex flex-col gap-5 px-4 pb-4 pt-3">
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <div className="flex flex-1 items-start gap-3 rounded-xl border border-black/10 bg-[#edfaf4] p-4">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#2ca87b]">
+                      <CheckBadgeIcon />
+                    </div>
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <p className="text-[18px] font-semibold leading-6 text-black">{confirmedCount}</p>
+                      <p className="text-[12px] leading-[18px] text-[#484848]">Đã chốt</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-1 items-start gap-3 rounded-xl border border-black/10 bg-[#e9f2ff] p-4">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#468adf]">
+                      <MoneyIcon />
+                    </div>
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <p className="text-[18px] font-semibold leading-6 text-black">{paidCount}</p>
+                      <p className="text-[12px] leading-[18px] text-[#484848]">Đã cọc</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex flex-1 items-start gap-3 rounded-xl border border-black/10 bg-[#ffe8e8] p-4">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#ff4242]">
+                      <XCircleIcon />
+                    </div>
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <p className="text-[18px] font-semibold leading-6 text-black">{unpaidCount}</p>
+                      <p className="text-[12px] leading-[18px] text-[#484848]">Chưa cọc</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-1 items-start gap-3 rounded-xl border border-black/10 bg-[#f2f2f2] p-4">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white">
+                      <ShoppingBagIcon />
+                    </div>
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <p className="text-[18px] font-semibold leading-6 text-black">{draftCount}</p>
+                      <p className="text-[12px] leading-[18px] text-[#484848]">Đơn nháp</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Product count + filter */}
+            <div className="flex items-center justify-between px-4 py-2">
+              <p className="text-[20px] font-semibold leading-6 text-black">{totalProductCount} sản phẩm</p>
+              <div className="flex items-center gap-2">
+                <FilterIcon />
+                <span className="text-[14px] font-medium text-black">Filter</span>
+              </div>
+            </div>
+
+            {/* Orders list */}
+            {ordersLoading ? (
+              <div className="flex flex-col gap-4 px-4 pt-2">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="h-24 animate-pulse rounded-xl bg-[#f2f2f2]" />
+                ))}
+              </div>
+            ) : !customer.customerId ? (
+              <div className="flex items-center justify-center py-16">
+                <p className="text-[15px] text-[#8c8c8c]">Khách hàng chưa được lưu.</p>
+              </div>
+            ) : customerOrders.length === 0 ? (
+              <div className="flex items-center justify-center py-16">
+                <p className="text-[15px] text-[#8c8c8c]">Chưa có đơn hàng.</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4 pb-4">
+                {grouped.map(({ date, orders: dateOrders }, groupIdx) => (
+                  <div key={date} className="flex flex-col gap-2">
+                    {groupIdx > 0 && <div className="h-2 bg-[#f2f2f2]" />}
+                    <div className="flex items-center gap-2 px-4 py-2">
+                      <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#2b2b2b]" />
+                      <p className="text-[14px] leading-[22px] text-[#2b2b2b]">{date}</p>
+                    </div>
+                    <div className="flex flex-col gap-8">
+                      {dateOrders.map((order) => (
+                        <OrderCard key={order.id} order={order} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

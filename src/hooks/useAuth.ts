@@ -18,6 +18,8 @@ export type AuthUser = {
   tiktokChannels?: ShopTikTokChannel[];
   role?: string | null;
   canUseApp?: boolean;
+  hasOrders?: boolean;
+  hasHistory?: boolean;
 };
 
 type AuthState = {
@@ -52,6 +54,8 @@ function mapProfileToAuthUser(clerkUser: any, profile: MeBootstrapResponse): Aut
     tiktokChannels: Array.isArray(profile?.tiktokChannels) ? profile.tiktokChannels : [],
     role: profile?.shopMember?.role || null,
     canUseApp: profile?.canUseApp ?? false,
+    hasOrders: profile?.hasOrders ?? false,
+    hasHistory: profile?.hasHistory ?? false,
   };
 }
 

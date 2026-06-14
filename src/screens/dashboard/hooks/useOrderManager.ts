@@ -24,6 +24,7 @@ type UseOrderManagerParams = {
   comments: LiveComment[];
   liveSessionId?: string | null;
   onAfterCreateOrder?: () => void;
+  hasOrders?: boolean;
 };
 
 function getCommentText(comment: LiveComment) {
@@ -50,6 +51,7 @@ export function useOrderManager({
   comments,
   liveSessionId,
   onAfterCreateOrder,
+  hasOrders = true,
 }: UseOrderManagerParams) {
   const [orders, setOrders] = useState<OrderWithTikTok[]>([]);
   const [orderLoading, setOrderLoading] = useState(false);
@@ -76,6 +78,8 @@ export function useOrderManager({
   }, []);
 
   useEffect(() => {
+    if (!hasOrders) return;
+
     const timer = window.setTimeout(() => {
       void reloadOrders();
     }, 0);
@@ -83,7 +87,7 @@ export function useOrderManager({
     return () => {
       window.clearTimeout(timer);
     };
-  }, [reloadOrders]);
+  }, [hasOrders, reloadOrders]);
 
   const buyingCount = useMemo(
     () =>
@@ -341,8 +345,8 @@ export function useOrderManager({
 
   const deleteOrder = useCallback(async (id: string) => {
     await deleteOrderApi(id);
-    setOrders((prev) => prev.filter((order) => order.id !== id));
-  }, []);
+    await reloadOrders();
+  }, [reloadOrders]);
 
   const totalRevenue = useMemo(
     () => orders.reduce((sum, item) => sum + getOrderRevenue(item), 0),

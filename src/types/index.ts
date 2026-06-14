@@ -123,6 +123,18 @@ export type ShippingStatus =
   | "failed"
   | "returned";
 
+export type OrderAddressData = {
+  id: string;
+  name?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  province?: string | null;
+  district?: string | null;
+  ward?: string | null;
+  label?: string | null;
+  isDefault?: boolean | null;
+};
+
 export type Order = {
   id: string;
   orderCode: string;
@@ -131,6 +143,8 @@ export type Order = {
   customerName?: string;
   customerPhone?: string;
   customerAddress?: string;
+  customerAddressId?: string | null;
+  customerAddressData?: OrderAddressData | null;
   customerTikTokUsername?: string;
   customerTikTokName?: string;
   uniqueId?: string;

@@ -64,6 +64,7 @@ export function getOrderTikTokUsername(order: any) {
     order?.customerTikTokName ||
       order?.customer_tiktok_name ||
       order?.customerTikTokUsername ||
+      order?.customerTiktokUsername ||
       order?.customer_tiktok_username ||
       order?.tiktokUsername ||
       order?.tiktok_username ||

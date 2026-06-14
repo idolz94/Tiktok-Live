@@ -7,7 +7,7 @@ import { useDashboardContext } from "@/screens/dashboard/DashboardContext";
 export default function DashboardOrderOverviewPage() {
   const params = useParams<{ orderId: string }>();
   const router = useRouter();
-  const { orderManager } = useDashboardContext();
+  const { orderManager, user } = useDashboardContext();
   const order = orderManager.orders.find((item) => item.id === params.orderId);
 
   if (!order) {
@@ -35,6 +35,7 @@ export default function DashboardOrderOverviewPage() {
       onAddProduct={orderManager.addProductToOrder}
       onDeleteProduct={orderManager.removeProductFromOrder}
       isDepositLoading={orderManager.depositLoadingIds.has(order.id)}
+      userName={user?.username ?? undefined}
     />
   );
 }

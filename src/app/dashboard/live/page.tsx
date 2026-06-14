@@ -20,6 +20,7 @@ export default function DashboardLivePage() {
     handleCreateOrder,
     isCommentOrderCreated,
     setLiveControlsHidden,
+    refreshAuth,
   } = useDashboardContext();
 
   return (
@@ -53,6 +54,7 @@ export default function DashboardLivePage() {
           onConfirmOrder={orderManager.confirmOrder}
           onOpenOrderOverview={(orderId) => router.push(`/dashboard/orders/${orderId}`)}
           depositLoadingIds={orderManager.depositLoadingIds}
+          orderLoading={orderManager.orderLoading}
           tiktokUsername={live.tiktokUsername || registeredTikTokUsername}
           tiktokChannels={user?.tiktokChannels || []}
           isConnected={live.isConnected}
@@ -60,6 +62,7 @@ export default function DashboardLivePage() {
           onShowChannelSwitcherChange={setShowChannelSwitcher}
           onConnectTikTokLive={live.changeTikTokUsername}
           onLiveControlsHiddenChange={setLiveControlsHidden}
+          onChannelAdded={refreshAuth}
         />
       </section>
     </>

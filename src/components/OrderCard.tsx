@@ -30,6 +30,10 @@ function MoreIcon() {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 12h.01M12 12h.01M19 12h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></svg>;
 }
 
+function TikTokIcon() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.76a4.85 4.85 0 0 1-1.01-.07Z"/></svg>;
+}
+
 function CheckIcon() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.2 4.2L19 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
@@ -38,10 +42,8 @@ function LoadingSpinner() {
   return <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />;
 }
 
-function formatProductMeta(product: OrderProduct, fallbackCreatedAt: string) {
-  const parts = [product.code, product.color, product.size, product.variantName].filter(Boolean);
-  const time = new Date(fallbackCreatedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-  return parts.length ? `${parts.join(" · ")} · ${time}` : time;
+function formatProductMeta(_product: OrderProduct, fallbackCreatedAt: string) {
+  return new Date(fallbackCreatedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
 function statusLabel(status: Order["status"]) {
@@ -104,6 +106,7 @@ export default function OrderCard({
 
           <div className="flex shrink-0 items-center gap-2">
             <IconButton label="In đơn"><PrintIcon /></IconButton>
+            <IconButton label="TikTok" disabled={!tiktokUsername} onClick={() => openTikTokProfile(tiktokUsername)}><TikTokIcon /></IconButton>
             <IconButton label="Xóa đơn" onClick={() => onDelete(item.id)}><TrashIcon /></IconButton>
             <IconButton label="Mở tổng quan" onClick={() => onOpenOverview?.(item.id)}><MoreIcon /></IconButton>
           </div>
@@ -112,7 +115,6 @@ export default function OrderCard({
         <div className="mt-2 flex flex-wrap gap-1 pl-14">
           <span className="inline-flex h-6 items-center rounded-2xl bg-[#ffefe4] px-2 text-[12px] font-medium text-[#b85b22]">VIP</span>
           <span className={`inline-flex h-6 items-center rounded-2xl px-2 text-[12px] font-medium ${statusClassName(item.status)}`}>{statusLabel(item.status)}</span>
-          {isPaid ? <span className="inline-flex h-6 items-center rounded-2xl bg-[#edfaf4] px-2 text-[12px] font-medium text-[#2ca87b]">Đã cọc</span> : null}
         </div>
 
         <div className="mt-3">
@@ -126,8 +128,7 @@ export default function OrderCard({
                     <p className="mt-1 truncate text-[12px] leading-[18px] text-[#787878]">{formatProductMeta(product, item.createdAt)}</p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="text-[14px] leading-5 font-medium text-black">{formatMoneyFromK(productTotal)}</p>
-                    <p className="mt-1 text-[12px] leading-[18px] text-[#787878]">x{product.quantity || 1}</p>
+                    <p className="text-[14px] leading-5 font-medium text-black">{formatMoneyFromK(productTotal)} x{product.quantity || 1}</p>
                   </div>
                 </div>
               );

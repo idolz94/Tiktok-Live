@@ -3,6 +3,7 @@
 import { DrawlerBase } from "../../../components/ui/Drawler";
 import { GradientButton, VndBadge } from "./shared";
 import { MinusIcon, PlusIcon } from "./icons";
+import { MoneyInput } from "@/components/MoneyInput";
 
 type Props = {
   open: boolean;
@@ -53,13 +54,9 @@ export function AddProductDrawer({
         <div className="flex flex-col gap-2">
           <label className="text-[14px] text-[#484848]">Giá</label>
           <div className="flex h-12 items-center gap-2 rounded-xl border border-black/10 px-4">
-            <input
-              type="number"
-              inputMode="numeric"
-              value={newPrice}
-              onChange={(e) => onChangePrice(e.target.value)}
-              placeholder="0"
-              className="min-w-0 flex-1 bg-transparent text-[14px] text-black outline-none placeholder:text-[#787878]"
+            <MoneyInput
+              valueK={Number(newPrice) || 0}
+              onChange={(k) => onChangePrice(String(k))}
             />
             <VndBadge />
           </div>

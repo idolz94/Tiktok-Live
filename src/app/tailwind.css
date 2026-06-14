@@ -63,3 +63,39 @@
     animation: none;
   }
 }
+
+@keyframes border-spin {
+  to {
+    --border-angle: 360deg;
+  }
+}
+
+@property --border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.comment-card-priority-border {
+  border-radius: 16px;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--border-angle),
+    transparent 0deg,
+    transparent 200deg,
+    #a8f0d4 240deg,
+    #2CA87B 270deg,
+    #ffffff 288deg,
+    #2CA87B 306deg,
+    #a8f0d4 330deg,
+    transparent 360deg
+  );
+  animation: border-spin 1.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comment-card-priority-border {
+    animation: none;
+    background: #2CA87B;
+  }
+}

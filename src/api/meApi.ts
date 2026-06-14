@@ -20,6 +20,8 @@ export type MeBootstrapResponse = {
   tiktokChannels: ShopTikTokChannel[];
   canUseApp: boolean;
   reason?: string | null;
+  hasOrders: boolean;
+  hasHistory: boolean;
 };
 
 const EMPTY_ME: MeBootstrapResponse = {
@@ -31,6 +33,8 @@ const EMPTY_ME: MeBootstrapResponse = {
   tiktokChannels: [],
   canUseApp: false,
   reason: "NO_USER",
+  hasOrders: false,
+  hasHistory: false,
 };
 
 export function isLicenseUsable(license: ShopLicense | null) {
@@ -143,6 +147,8 @@ function normalizeMeBootstrap(raw: any): MeBootstrapResponse {
     canUseApp:
       typeof source.canUseApp === "boolean" ? source.canUseApp : isLicenseUsable(license),
     reason: source.reason || null,
+    hasOrders: source.hasOrders === true,
+    hasHistory: source.hasHistory === true,
   };
 }
 

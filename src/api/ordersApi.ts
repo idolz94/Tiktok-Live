@@ -143,7 +143,17 @@ export async function addOrderItemApi(
   payload: AddOrderItemPayload,
 ): Promise<AddOrderItemResult> {
   const data = await postRequest<any>(`/orders/${orderId}/items`, payload);
-  return (data?.item ?? data?.orderItem ?? data?.order_item ?? data) as AddOrderItemResult;
+  // mutateCreated returns { status, message, data: { item } } — unwrapped as-is since key is "status" not "ok"/"success"
+  const item =
+    data?.item ??
+    data?.data?.item ??
+    data?.orderItem ??
+    data?.data?.orderItem ??
+    data?.order_item ??
+    data?.data?.order_item ??
+    data?.data ??
+    data;
+  return item as AddOrderItemResult;
 }
 
 export async function deleteOrderItemApi(orderId: string, itemId: string) {

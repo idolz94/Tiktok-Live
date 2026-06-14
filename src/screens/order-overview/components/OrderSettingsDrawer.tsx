@@ -2,6 +2,7 @@
 
 import { DrawlerBase } from "../../../components/ui/Drawler";
 import { GradientButton, VndBadge } from "./shared";
+import { MoneyInput } from "@/components/MoneyInput";
 
 type Props = {
   open: boolean;
@@ -36,28 +37,14 @@ export function OrderSettingsDrawer({
         <div className="flex flex-col gap-2">
           <label className="text-[14px] leading-5.5 text-[#484848]">Phí vận chuyển</label>
           <div className="flex h-12 items-center gap-2 rounded-xl border border-black/10 px-4">
-            <input
-              type="number"
-              inputMode="numeric"
-              value={localShippingFee === 0 ? "" : localShippingFee}
-              onChange={(e) => onChangeShippingFee(Number(e.target.value) || 0)}
-              placeholder="0"
-              className="min-w-0 flex-1 bg-transparent text-[14px] text-black outline-none placeholder:text-[#787878]"
-            />
+            <MoneyInput valueK={localShippingFee} onChange={onChangeShippingFee} />
             <VndBadge />
           </div>
         </div>
         <div className="flex flex-col gap-2">
           <label className="text-[14px] leading-5.5 text-[#484848]">Trả trước</label>
           <div className="flex h-12 items-center gap-2 rounded-xl border border-black/10 px-4">
-            <input
-              type="number"
-              inputMode="numeric"
-              value={localPrepaid === 0 ? "" : localPrepaid}
-              onChange={(e) => onChangePrepaid(Number(e.target.value) || 0)}
-              placeholder="0"
-              className="min-w-0 flex-1 bg-transparent text-[14px] text-black outline-none placeholder:text-[#787878]"
-            />
+            <MoneyInput valueK={localPrepaid} onChange={onChangePrepaid} />
             <VndBadge />
           </div>
         </div>

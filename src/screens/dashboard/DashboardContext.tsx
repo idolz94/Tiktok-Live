@@ -23,7 +23,7 @@ type DashboardContextValue = {
   registeredTikTokUsername: string;
   live: ReturnType<typeof useTikTokLiveSocket>;
   orderManager: ReturnType<typeof useOrderManager>;
-  handleCreateOrder: (comment: LiveComment) => Promise<boolean>;
+  handleCreateOrder: (comment: LiveComment) => Promise<{ success: boolean; orderId: string }>;
   isCommentOrderCreated: (comment: LiveComment) => boolean;
   disconnectLive: () => Promise<void>;
 };
@@ -47,6 +47,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const orderManager = useOrderManager({
     comments: live.comments,
     liveSessionId: live.currentLiveSessionId,
+    hasOrders: user?.hasOrders ?? false,
   });
 
   useEffect(() => {
@@ -75,19 +76,19 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
       if (createdCommentKeysRef.current.has(commentKey)) {
         toast.warning("Comment này đã tạo đơn rồi.");
-        return false;
+        return { success: false, orderId: "" };
       }
 
       try {
         createdCommentKeysRef.current.add(commentKey);
-        setCreatedCommentKeys((prev) => new Set(prev).add(commentKey));
         const result = await orderManager.createOrderFromComment(comment);
+        setCreatedCommentKeys((prev) => new Set(prev).add(commentKey));
 
         if (result?.message) {
           toast.success(result.message);
         }
 
-        return true;
+        return { success: true, orderId: result?.orderId ?? "" };
       } catch (error) {
         createdCommentKeysRef.current.delete(commentKey);
         setCreatedCommentKeys((prev) => {
@@ -99,7 +100,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         if (process.env.NEXT_PUBLIC_NODE_ENV === "development") console.error("CREATE ORDER ERROR:", error);
         toast.error(error instanceof Error ? error.message : "Tạo đơn thất bại");
 
-        return false;
+        return { success: false, orderId: "" };
       }
     },
     [orderManager],
