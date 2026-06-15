@@ -62,7 +62,7 @@ export default function HomePage() {
 
   if (!user.canUseApp) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4 text-slate-700">
+      <main className="flex min-h-dvh items-center justify-center bg-slate-100 px-4 text-slate-700">
         <div className="w-full max-w-sm rounded-3xl bg-white px-6 py-8 text-center shadow-sm">
           <p className="text-[32px]">⚠️</p>
           <p className="mt-3 text-base font-bold text-[#273044]">

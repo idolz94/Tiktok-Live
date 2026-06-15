@@ -157,8 +157,8 @@ export default function LiveSessionDetailScreen({
   };
 
   return (
-    <main className="min-h-screen bg-white">
-      <div className="mx-auto flex min-h-screen max-w-155 flex-col bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
+    <main className="min-h-dvh bg-white">
+      <div className="mx-auto flex min-h-dvh max-w-155 flex-col bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
         <div className="flex items-center justify-between px-4 py-3">
           <button type="button" onClick={onBack} className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]">
             <ChevronLeftIcon />

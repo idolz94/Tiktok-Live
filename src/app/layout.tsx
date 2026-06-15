@@ -29,7 +29,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   return (
     <ClerkProvider>
       <html lang="vi">
-        <body className="min-h-screen bg-[#f4f7f8] text-[#273044] antialiased overflow-hidden">
+        <body className="min-h-dvh bg-[#f4f7f8] text-[#273044] antialiased overflow-hidden">
           <ClerkTokenSync />
           {children}
           <SessionExpiredDrawer />

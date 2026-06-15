@@ -335,12 +335,6 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
                     >
                       <img src="/images/auth/icon-instagram.svg" alt="Instagram" className="size-5" />
                     </button>
-                    <button
-                      type="button"
-                      className="flex size-12 items-center justify-center rounded-[12px] border border-[#dadada] bg-white"
-                    >
-                      <img src="/images/auth/icon-tiktok.svg" alt="TikTok" className="size-5" />
-                    </button>
                   </div>
 
                   <p className="text-center text-[14px] leading-[22px] text-[#484848] font-['Inter_Display',sans-serif]">
@@ -423,26 +417,25 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
                       {" "}của chúng tôi.
                     </p>
                   </button>
+
+                  {!isLogin && (
+                      <button
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={isSubmitting || !agreedToTerms}
+                        className="flex h-14 w-full items-center justify-center rounded-[40px] text-[16px] font-medium text-black disabled:opacity-40 font-['Inter_Display',sans-serif]"
+                        style={{
+                          background: "linear-gradient(138.46deg, #FF6B8A 13.52%, #FFA66D 52.12%, #FFC86A 117.76%)",
+                        }}
+                      >
+                        {isSubmitting ? "Đang xử lý..." : "Đăng kí"}
+                      </button>
+                  )}
                 </>
               )}
             </div>
           </div>
 
-          {!isLogin && (
-            <div className="shrink-0 px-4 pb-[calc(8px+env(safe-area-inset-bottom))]">
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={isSubmitting || !agreedToTerms}
-                className="flex h-14 w-full items-center justify-center rounded-[40px] text-[16px] font-medium text-black disabled:opacity-40 font-['Inter_Display',sans-serif]"
-                style={{
-                  background: "linear-gradient(138.46deg, #FF6B8A 13.52%, #FFA66D 52.12%, #FFC86A 117.76%)",
-                }}
-              >
-                {isSubmitting ? "Đang xử lý..." : "Đăng kí"}
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </main>
