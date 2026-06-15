@@ -8,39 +8,38 @@ function formatVnd(raw: string): string {
   return Number(digits).toLocaleString("vi-VN");
 }
 
-function parseToK(formatted: string): number {
+function parseVnd(formatted: string): number {
   const digits = formatted.replace(/\D/g, "");
   if (!digits) return 0;
-  const vnd = parseInt(digits, 10);
-  return Math.round(vnd / 1000);
+  return parseInt(digits, 10);
 }
 
 export function MoneyInput({
-  valueK,
+  value,
   onChange,
   placeholder = "0",
   className,
 }: {
-  valueK: number;
-  onChange: (k: number) => void;
+  value: number;
+  onChange: (vnd: number) => void;
   placeholder?: string;
   className?: string;
 }) {
   const [display, setDisplay] = useState(() =>
-    valueK > 0 ? (valueK * 1000).toLocaleString("vi-VN") : "",
+    value > 0 ? value.toLocaleString("vi-VN") : "",
   );
 
   useEffect(() => {
-    const currentK = parseToK(display);
-    if (currentK !== valueK) {
-      setDisplay(valueK > 0 ? (valueK * 1000).toLocaleString("vi-VN") : "");
+    const current = parseVnd(display);
+    if (current !== value) {
+      setDisplay(value > 0 ? value.toLocaleString("vi-VN") : "");
     }
-  }, [valueK]);
+  }, [value]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatVnd(e.target.value);
     setDisplay(formatted);
-    onChange(parseToK(formatted));
+    onChange(parseVnd(formatted));
   };
 
   return (

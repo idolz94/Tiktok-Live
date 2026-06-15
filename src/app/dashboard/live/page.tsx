@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import HomeView from "@/screens/dashboard/components/HomeView";
-import DashboardHeader from "@/screens/dashboard/components/DashboardHeader";
-import { useDashboardContext } from "@/screens/dashboard/DashboardContext";
+import HomeView from "@/features/dashboard/components/HomeView";
+import DashboardHeader from "@/features/dashboard/components/DashboardHeader";
+import { useDashboardContext } from "@/features/dashboard";
 
 export default function DashboardLivePage() {
   const router = useRouter();
@@ -44,7 +44,6 @@ export default function DashboardLivePage() {
           onChangeOrderFilter={orderManager.setOrderFilter}
           onChangeOrderSearchText={orderManager.setOrderSearchText}
           onClearComments={live.clearComments}
-          onClearOrders={orderManager.clearOrders}
           onCreateOrderFromComment={handleCreateOrder}
           isCommentOrderCreated={isCommentOrderCreated}
           onUpdateOrder={orderManager.updateOrder}

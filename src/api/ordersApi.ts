@@ -12,7 +12,7 @@ type CreateOrderFromCommentPayload = {
   note?: string;
 };
 
-const DEFAULT_PRICE = 20;
+const DEFAULT_PRICE = 20000;
 const DEFAULT_QUANTITY = 1;
 
 function pickArrayResponse(data: any, keys: string[]) {
@@ -51,8 +51,9 @@ function normalizeOrderResponse(data: any) {
   return normalizeApiOrderForUi(rawOrder);
 }
 
-export async function getOrdersApi(): Promise<OrderWithTikTok[]> {
-  const data = await getRequest<any>("/orders");
+export async function getOrdersApi(shippingStatus?: string): Promise<OrderWithTikTok[]> {
+  const path = shippingStatus ? `/orders?shippingStatus=${encodeURIComponent(shippingStatus)}` : "/orders";
+  const data = await getRequest<any>(path);
   const rows = pickArrayResponse(data, ["orders", "items", "data"]);
 
   return rows.map((order: any) => normalizeApiOrderForUi(order));
@@ -122,6 +123,19 @@ export async function deleteOrderApi(orderId: string) {
   return deleteRequest<{ ok: boolean }>(`/orders/${orderId}`);
 }
 
+export async function patchOrderApi(
+  orderId: string,
+  patch: {
+    customerAddressId?: string | null;
+    note?: string;
+    color?: string | null;
+    codAmount?: number;
+  },
+) {
+  const data = await patchRequest<any>(`/orders/${orderId}`, patch);
+  return normalizeOrderResponse(data);
+}
+
 export type AddOrderItemPayload = {
   productCode: string;
   productName: string;
@@ -158,4 +172,110 @@ export async function addOrderItemApi(
 
 export async function deleteOrderItemApi(orderId: string, itemId: string) {
   return deleteRequest<{ ok: boolean }>(`/orders/${orderId}/items/${itemId}`);
+}
+
+export type UpdateOrderItemPayload = {
+  productCode?: string;
+  productName?: string;
+  price?: number;
+  quantity?: number;
+};
+
+export async function updateOrderItemApi(
+  orderId: string,
+  itemId: string,
+  payload: UpdateOrderItemPayload,
+): Promise<AddOrderItemResult> {
+  const data = await patchRequest<any>(`/orders/${orderId}/items/${itemId}`, payload);
+  const item =
+    data?.item ??
+    data?.data?.item ??
+    data?.orderItem ??
+    data?.data?.orderItem ??
+    data?.order_item ??
+    data?.data?.order_item ??
+    data?.data ??
+    data;
+  return item as AddOrderItemResult;
+}
+
+export type SubmitShippingPayload = {
+  pickName: string;
+  pickAddress: string;
+  pickProvince: string;
+  pickDistrict: string;
+  pickWard?: string;
+  pickTel: string;
+  receiverName: string;
+  receiverAddress: string;
+  receiverProvince: string;
+  receiverDistrict: string;
+  receiverWard: string;
+  receiverHamlet?: string;
+  receiverTel: string;
+  note?: string;
+  isFreeShip?: 0 | 1;
+  transport?: "road" | "fly";
+  pickOption?: "cod" | "post";
+};
+
+export type ShippingFeeResult = {
+  name: string;
+  fee: number;
+  insuranceFee: number;
+  delivery: boolean;
+  extFees: Array<{ title: string; amount: number; type: string }>;
+};
+
+export async function getShippingFeeApi(
+  orderId: string,
+  params: {
+    pickProvince: string;
+    pickDistrict: string;
+    pickWard?: string;
+    pickAddress?: string;
+    receiverProvince: string;
+    receiverDistrict: string;
+    receiverWard?: string;
+    receiverAddress?: string;
+    weight?: number;
+    transport?: "road" | "fly";
+  },
+): Promise<ShippingFeeResult> {
+  const data = await postRequest<any>(`/orders/${orderId}/shipping/fee`, params);
+  return (data?.fee ?? data) as ShippingFeeResult;
+}
+
+export async function submitOrderToGhtkApi(
+  orderId: string,
+  payload: SubmitShippingPayload,
+): Promise<{ orderId: string; label?: string; trackingId?: number; fee?: number }> {
+  return postRequest(`/orders/${orderId}/shipping/submit`, payload);
+}
+
+export type GhtkTrackingResult = {
+  labelId: string;
+  partnerId: string;
+  status: string;
+  statusText: string;
+  created: string;
+  modified: string;
+  message: string;
+  pickDate: string;
+  deliverDate: string;
+  customerFullname: string;
+  customerTel: string;
+  address: string;
+  storageDay: number;
+  shipMoney: number;
+  insurance: number;
+  value: number;
+  weight: number;
+  pickMoney: number;
+  isFreeship: number;
+};
+
+export async function getShippingTrackingApi(orderId: string): Promise<GhtkTrackingResult> {
+  const data = await getRequest<any>(`/orders/${orderId}/shipping/tracking`);
+  return (data?.tracking ?? data) as GhtkTrackingResult;
 }

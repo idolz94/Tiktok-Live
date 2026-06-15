@@ -1,8 +1,8 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import OrderOverviewScreen from "@/screens/OrderOverviewScreen";
-import { useDashboardContext } from "@/screens/dashboard/DashboardContext";
+import OrderOverviewScreen from "@/features/orders/components/OrderOverviewScreen";
+import { useDashboardContext } from "@/features/dashboard";
 
 export default function DashboardOrderOverviewPage() {
   const params = useParams<{ orderId: string }>();
@@ -34,6 +34,11 @@ export default function DashboardOrderOverviewPage() {
       onToggleDeposit={orderManager.toggleDepositStatus}
       onAddProduct={orderManager.addProductToOrder}
       onDeleteProduct={orderManager.removeProductFromOrder}
+      onUpdateProduct={orderManager.updateProductInOrder}
+      onShippingSubmitted={() => {
+        void orderManager.reloadOrders();
+        router.back();
+      }}
       isDepositLoading={orderManager.depositLoadingIds.has(order.id)}
       userName={user?.username ?? undefined}
     />

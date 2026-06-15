@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import PlaceholderView from "@/screens/dashboard/components/PlaceholderView";
-import DashboardHeader from "@/screens/dashboard/components/DashboardHeader";
-import { useDashboardContext } from "@/screens/dashboard/DashboardContext";
+import PlaceholderView from "@/features/dashboard/components/PlaceholderView";
+import DashboardHeader from "@/features/dashboard/components/DashboardHeader";
+import { useDashboardContext } from "@/features/dashboard";
 import type { LiveHistoryItem } from "@/features/tiktok-live/types";
 
 export default function DashboardHistoryPage() {

@@ -5,7 +5,7 @@ import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import type { DotLottie } from "@lottiefiles/dotlottie-react";
 import { usePathname, useRouter } from "next/navigation";
 import { normalizeTikTokUsername } from "@/utils/comment";
-import { getDashboardTabFromPathname } from "@/screens/dashboard/DashboardContext";
+import { getDashboardTabFromPathname } from "@/features/dashboard";
 import { BottomTab } from "../types";
 
 type LiveFooterBar = {

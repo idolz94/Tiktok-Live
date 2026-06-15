@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import CustomersView from "@/screens/dashboard/components/CustomersView";
-import DashboardHeader from "@/screens/dashboard/components/DashboardHeader";
-import { useDashboardContext } from "@/screens/dashboard/DashboardContext";
+import CustomersView from "@/features/dashboard/components/CustomersView";
+import DashboardHeader from "@/features/dashboard/components/DashboardHeader";
+import { useDashboardContext } from "@/features/dashboard";
 
 export default function DashboardCustomersPage() {
   const router = useRouter();

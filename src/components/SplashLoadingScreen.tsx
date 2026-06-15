@@ -59,10 +59,9 @@ export default function SplashLoadingScreen() {
   return (
     <main className="relative h-dvh overflow-hidden bg-white text-black">
       <div className="mx-auto relative h-full max-w-155 bg-white">
-        <StatusBar />
 
-        <div className="absolute left-1/2 top-[calc(50%-35px)] flex w-24 -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-6">
-          <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-3xl bg-[linear-gradient(136deg,#ff6b8a_4%,#ffa66d_63%,#ffc86a_131%)] shadow-[0_14px_32px_rgba(255,107,138,0.22)]">
+        <div className="absolute left-1/2 top-[calc(50%)] flex w-24 -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-6">
+          <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl bg-[linear-gradient(136deg,#ff6b8a_4%,#ffa66d_63%,#ffc86a_131%)] shadow-[0_14px_32px_rgba(255,107,138,0.22)]">
             <CameraIcon />
           </div>
           <p className="w-full text-center text-[18px] font-medium leading-6 text-black">
@@ -70,7 +69,6 @@ export default function SplashLoadingScreen() {
           </p>
         </div>
 
-        <div className="absolute bottom-2 left-1/2 h-[5px] w-[134px] -translate-x-1/2 rounded-full bg-black" />
       </div>
     </main>
   );

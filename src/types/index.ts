@@ -117,6 +117,7 @@ export type DepositStatus = "unpaid" | "paid" | "deposited" | "refunded";
 export type PaymentStatus = "unpaid" | "partial" | "paid" | "refunded";
 export type ShippingStatus =
   | "not_shipped"
+  | "submitted"
   | "waiting_pickup"
   | "shipping"
   | "delivered"

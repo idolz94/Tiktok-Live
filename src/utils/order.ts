@@ -2,7 +2,7 @@ import type { Order, OrderProduct, OrderWithTikTok } from "../types";
 import { createId } from "./id";
 import { cleanTikTokUsername, getOrderTikTokUsername } from "./tiktok";
 
-export const DEFAULT_PRODUCT_PRICE = 20; // 20 = 20.000đ
+export const DEFAULT_PRODUCT_PRICE = 20000;
 export const DEFAULT_PRODUCT_QUANTITY = 1;
 
 export function parseOrderFromComment(comment: string) {
@@ -69,10 +69,12 @@ export function createProductFromComment(comment: string): OrderProduct {
   });
 }
 
-export function formatMoneyFromK(value: number) {
-  const safeValue = Number(value || 0);
-  return `${safeValue.toLocaleString("vi-VN")} VNĐ`;
+export function formatMoney(value: number) {
+  return `${Number(value || 0).toLocaleString("vi-VN")} VNĐ`;
 }
+
+/** @deprecated use formatMoney */
+export const formatMoneyFromK = formatMoney;
 
 export function getProductTotal(product: Pick<OrderProduct, "price" | "quantity">) {
   return Number(product.price || 0) * Number(product.quantity || 0);
@@ -115,8 +117,8 @@ export function normalizeApiOrderForUi(order: any): OrderWithTikTok {
     order?.comment || order?.commentText || order?.comment_text || firstProduct.rawCommentText || "",
   );
   const createdAt = String(order?.createdAt || order?.created_at || new Date().toISOString());
-  const subtotalAmount = Number(order?.subtotalAmount || order?.subtotal_amount || getOrderTotal(products));
-  const totalAmount = Number(order?.totalAmount || order?.total_amount || subtotalAmount);
+  const subtotalAmount = Number(order?.subtotalAmount ?? order?.subtotal_amount ?? getOrderTotal(products));
+  const totalAmount = subtotalAmount;
 
   return {
     id: String(order?.id || createId()),
@@ -155,7 +157,7 @@ export function normalizeApiOrderForUi(order: any): OrderWithTikTok {
     shippingFee: Number(order?.shippingFee || order?.shipping_fee || 0),
     discountAmount: Number(order?.discountAmount || order?.discount_amount || 0),
     totalAmount,
-    codAmount: Number(order?.codAmount || order?.cod_amount || totalAmount),
+    codAmount: Number(order?.codAmount ?? order?.cod_amount ?? 0),
     note: String(order?.note || ""),
     createdAt,
     updatedAt: String(order?.updatedAt || order?.updated_at || ""),
@@ -175,8 +177,8 @@ export function printOrder(order: Order) {
       return `<tr>
         <td>${index + 1}</td>
         <td>${item.code || item.name || ""}</td>
-        <td>${item.price}.000đ × ${item.quantity}</td>
-        <td>${formatMoneyFromK(total)}</td>
+        <td>${Number(item.price || 0).toLocaleString("vi-VN")}đ × ${item.quantity}</td>
+        <td>${formatMoney(total)}</td>
       </tr>`;
     })
     .join("");

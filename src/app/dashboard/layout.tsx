@@ -3,12 +3,12 @@
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
-import IphoneRouteTransition from "@/screens/dashboard/components/IphoneRouteTransition";
+import IphoneRouteTransition from "@/features/dashboard/components/IphoneRouteTransition";
 import {
   DashboardProvider,
   getDashboardTabFromPathname,
   useDashboardContext,
-} from "@/screens/dashboard/DashboardContext";
+} from "@/features/dashboard";
 
 function isDetailPath(pathname: string) {
   return (

@@ -1,8 +1,8 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import CustomerDetailView from "@/screens/dashboard/components/CustomerDetailView";
-import { useDashboardContext } from "@/screens/dashboard/DashboardContext";
+import CustomerDetailView from "@/features/dashboard/components/CustomerDetailView";
+import { useDashboardContext } from "@/features/dashboard";
 
 export default function DashboardCustomerDetailPage() {
   const params = useParams<{ customerKey: string }>();

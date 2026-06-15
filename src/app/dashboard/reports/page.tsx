@@ -1,8 +1,8 @@
 "use client";
 
-import ReportsView from "@/screens/dashboard/components/ReportsView";
-import DashboardHeader from "@/screens/dashboard/components/DashboardHeader";
-import { useDashboardContext } from "@/screens/dashboard/DashboardContext";
+import ReportsView from "@/features/dashboard/components/ReportsView";
+import DashboardHeader from "@/features/dashboard/components/DashboardHeader";
+import { useDashboardContext } from "@/features/dashboard";
 
 export default function DashboardReportsPage() {
   const { live, orderManager } = useDashboardContext();

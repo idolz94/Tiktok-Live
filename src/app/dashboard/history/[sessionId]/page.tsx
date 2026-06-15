@@ -1,8 +1,8 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import LiveSessionDetailScreen from "@/screens/dashboard/components/LiveSessionDetailScreen";
-import { useDashboardContext } from "@/screens/dashboard/DashboardContext";
+import LiveSessionDetailScreen from "@/features/dashboard/components/LiveSessionDetailScreen";
+import { useDashboardContext } from "@/features/dashboard";
 
 export default function DashboardLiveSessionDetailPage() {
   const params = useParams<{ sessionId: string }>();

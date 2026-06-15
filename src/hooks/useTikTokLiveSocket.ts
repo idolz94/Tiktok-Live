@@ -46,6 +46,7 @@ function createClientId() {
 
 type UseTikTokLiveSocketOptions = {
   initialUsername?: string | null;
+  onOrderShippingUpdated?: (payload: Record<string, unknown>) => void;
 };
 
 function getPayloadUsername(payload: Record<string, any>) {
@@ -59,6 +60,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
   const isAuthFailedRef = useRef(false);
   const tiktokUsernameRef = useRef(normalizeTikTokUsername(options.initialUsername || TIKTOK_USERNAME));
   const isConnectedRef = useRef(false);
+  const onOrderShippingUpdatedRef = useRef(options.onOrderShippingUpdated);
 
   const [status, setStatus] = useState("Đang kết nối Backend SSE...");
   const [isConnected, setIsConnected] = useState(false);
@@ -233,6 +235,10 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
           addCommentToCurrentSession(comment);
         }
       }
+
+      if (type === "ORDER_SHIPPING_UPDATED") {
+        onOrderShippingUpdatedRef.current?.(payload);
+      }
     },
     [
       addCommentToCurrentSession,
@@ -285,6 +291,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
       "COMMENT",
       "COMMENT_SAVED",
       "COMMENT_UPDATED",
+      "ORDER_SHIPPING_UPDATED",
     ];
 
     fetchEventSource(url, {
@@ -458,6 +465,10 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
   useEffect(() => {
     isConnectedRef.current = isConnected;
   }, [isConnected]);
+
+  useEffect(() => {
+    onOrderShippingUpdatedRef.current = options.onOrderShippingUpdated;
+  }, [options.onOrderShippingUpdated]);
 
   useEffect(() => {
     return () => {

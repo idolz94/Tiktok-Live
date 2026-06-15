@@ -1,7 +1,7 @@
 "use client";
 
-import SettingsView from "@/screens/dashboard/components/SettingsView";
-import { useDashboardContext } from "@/screens/dashboard/DashboardContext";
+import SettingsView from "@/features/dashboard/components/SettingsView";
+import { useDashboardContext } from "@/features/dashboard";
 
 export default function DashboardSettingsPage() {
   const { user, logout, registeredTikTokUsername, live } = useDashboardContext();

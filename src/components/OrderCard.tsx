@@ -1,9 +1,12 @@
 "use client";
 
+import { useState, useCallback, useRef } from "react";
 import { Order, OrderProduct } from "../types";
 import { formatMoneyFromK, getOrderTotal } from "../utils/order";
 import Avatar from "./Avatar";
 import { getOrderTikTokUsername, openTikTokProfile } from "@/utils/tiktok";
+import { MoneyInput } from "./MoneyInput";
+import { patchOrderApi } from "@/api/ordersApi";
 
 function createDisplayCode(orderCode: string) {
   const numbers = orderCode.replace(/\D/g, "");
@@ -82,10 +85,24 @@ export default function OrderCard({
   isDepositLoading?: boolean;
 }) {
   const products = item.products?.length ? item.products : [];
-  const total = item.totalAmount || item.subtotalAmount || getOrderTotal(products);
+  const total =  item.subtotalAmount || getOrderTotal(products);
   const isPaid = item.depositStatus === "paid" || item.depositStatus === "deposited";
   const tiktokUsername = getOrderTikTokUsername(item);
   const displayName = item.customerName || item.username || "Khách live";
+
+  const [codAmount, setCodAmount] = useState<number>(item.codAmount ?? 0);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleCodChange = useCallback(
+    (val: number) => {
+      setCodAmount(val);
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => {
+        void patchOrderApi(item.id, { codAmount: val }).catch(() => {});
+      }, 600);
+    },
+    [item.id],
+  );
 
   void onUpdate;
   void onAddProduct;
@@ -107,7 +124,7 @@ export default function OrderCard({
           <div className="flex shrink-0 items-center gap-2">
             <IconButton label="In đơn"><PrintIcon /></IconButton>
             <IconButton label="TikTok" disabled={!tiktokUsername} onClick={() => openTikTokProfile(tiktokUsername)}><TikTokIcon /></IconButton>
-            <IconButton label="Xóa đơn" onClick={() => onDelete(item.id)}><TrashIcon /></IconButton>
+            <IconButton label="Xóa đơn" onClick={() => { if (window.confirm("Xóa đơn hàng này?")) onDelete(item.id); }}><TrashIcon /></IconButton>
             <IconButton label="Mở tổng quan" onClick={() => onOpenOverview?.(item.id)}><MoreIcon /></IconButton>
           </div>
         </div>
@@ -124,7 +141,7 @@ export default function OrderCard({
               return (
                 <div key={product.id} className="flex gap-3 border-b border-[#f2f2f2] py-3 last:border-b-0">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14px] leading-5 text-[#2b2b2b]">{product.name || item.productName || item.comment}</p>
+                    <p className="break-words text-[14px] leading-5 text-[#2b2b2b]">{product.name || item.productName || item.comment}</p>
                     <p className="mt-1 truncate text-[12px] leading-[18px] text-[#787878]">{formatProductMeta(product, item.createdAt)}</p>
                   </div>
                   <div className="shrink-0 text-right">
@@ -136,7 +153,7 @@ export default function OrderCard({
           ) : (
             <div className="flex gap-3 border-b border-[#f2f2f2] py-3">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[14px] leading-5 text-[#2b2b2b]">{item.productName || item.comment || "Sản phẩm"}</p>
+                <p className="break-words text-[14px] leading-5 text-[#2b2b2b]">{item.productName || item.comment || "Sản phẩm"}</p>
                 <p className="mt-1 truncate text-[12px] leading-[18px] text-[#787878]">{new Date(item.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}</p>
               </div>
               <div className="shrink-0 text-right">
@@ -150,6 +167,19 @@ export default function OrderCard({
         <div className="flex items-center justify-between pt-3">
           <span className="text-[14px] leading-5 text-[#2b2b2b]">Tạm tính</span>
           <strong className="text-[14px] leading-5 font-medium text-[#ff6b8a]">{formatMoneyFromK(total)}</strong>
+        </div>
+
+        <div className="flex items-center justify-between pt-2">
+          <span className="text-[14px] leading-5 text-[#2b2b2b]">Tiền thu hộ (COD)</span>
+          <div className="flex items-center gap-1">
+            <MoneyInput
+              value={codAmount}
+              onChange={handleCodChange}
+              placeholder="0"
+              className="w-28 text-right text-[14px] font-medium text-black outline-none bg-transparent"
+            />
+            <span className="shrink-0 text-[12px] text-[#787878]">₫</span>
+          </div>
         </div>
 
         <div className="flex gap-4 pt-4">

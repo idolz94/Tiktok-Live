@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import AuthScreen from "../screens/AuthScreen";
-import WelcomeScreen from "@/screens/WelcomeScreen";
+import AuthScreen from "@/features/auth/components/AuthScreen";
+import WelcomeScreen from "@/features/auth/components/WelcomeScreen";
 import SplashLoadingScreen from "@/components/SplashLoadingScreen";
 import { useAuth } from "../hooks/useAuth";
 
