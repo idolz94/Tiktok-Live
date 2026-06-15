@@ -35,7 +35,7 @@ export default function CommentCard({
               {initial}
             </div>
           )}
-          <p className="max-w-40 truncate text-[12px] leading-[18px] text-[#787878]">
+          <p className="truncate text-[12px] leading-[18px] text-[#787878]">
             {item.displayName || item.username} đã tham gia
           </p>
         </div>

@@ -11,7 +11,7 @@ function BoneRect({ className }: { className: string }) {
 export default function DashboardSkeleton() {
   return (
     <main className="h-dvh overflow-hidden bg-white">
-      <div className="mx-auto flex h-full max-w-155 flex-col bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
+      <div className="mx-auto flex h-full flex-col bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
         {/* Session header skeleton ~76px */}
         <header className="flex shrink-0 items-center justify-between px-4 pb-3 pt-[47px]">
           <Bone className="h-10 w-10 rounded-full" />

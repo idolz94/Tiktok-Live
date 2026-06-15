@@ -175,7 +175,7 @@ export default function BottomNav({
 
   return (
     <footer
-      className={`fixed bottom-0 left-1/2 z-30 w-full max-w-155 -translate-x-1/2 rounded-t-[28px] border border-black/10 bg-white shadow-[0_-8px_30px_rgba(0,0,0,0.08)] transition-[transform,opacity] duration-300 ease-out ${
+      className={`fixed bottom-0 left-1/2 z-30 w-full -translate-x-1/2 rounded-t-[28px] border border-black/10 bg-white shadow-[0_-8px_30px_rgba(0,0,0,0.08)] transition-[transform,opacity] duration-300 ease-out ${
         footerHidden ? "translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"
       }`}
     >

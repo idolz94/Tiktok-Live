@@ -8,7 +8,7 @@ export default function LiveStatusPill({
   status: string;
 }) {
   return (
-    <div className="mx-auto mt-2.5 flex w-fit max-w-[92%] items-center rounded-full border border-white/90 bg-white/85 px-3 py-[7px]">
+    <div className="mx-auto mt-2.5 flex w-fit items-center rounded-full border border-white/90 bg-white/85 px-3 py-[7px]">
       <span
         className={`mr-2 h-2 w-2 rounded-full ${isConnected ? "bg-green-600" : "bg-orange-500"}`}
       />

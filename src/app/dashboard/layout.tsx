@@ -36,7 +36,7 @@ function DashboardShell({ children }: { children: ReactNode }) {
   if (isDetailPath(pathname)) {
     return (
       <main className="h-dvh overflow-hidden bg-white">
-        <div className="mx-auto h-full max-w-155 bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
+        <div className="mx-auto h-full bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
           <IphoneRouteTransition>{children}</IphoneRouteTransition>
         </div>
       </main>
@@ -45,7 +45,7 @@ function DashboardShell({ children }: { children: ReactNode }) {
 
   return (
     <main className="h-dvh overflow-hidden bg-white">
-      <div className="mx-auto flex h-full max-w-155 flex-col bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
+      <div className="mx-auto flex h-full flex-col bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
         <IphoneRouteTransition>{children}</IphoneRouteTransition>
         <BottomNav
           username={user?.fullName || user?.phone || user?.username || "User"}

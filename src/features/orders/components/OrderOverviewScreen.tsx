@@ -203,7 +203,7 @@ export default function OrderOverviewScreen({
   }
 
   return (
-    <main className="mx-auto flex h-dvh max-w-120 flex-col bg-white text-black">
+    <main className="mx-auto flex h-dvh w-full flex-col bg-white text-black">
       <header className="sticky top-0 z-20 flex shrink-0 items-center justify-between bg-white px-4 pb-4 pt-3">
         <button
           type="button"
@@ -218,7 +218,7 @@ export default function OrderOverviewScreen({
         <div className="h-11 w-11" />
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto pb-40 [-webkit-overflow-scrolling:touch]">
+      <div className="min-h-0 flex-1 overflow-y-auto [-webkit-overflow-scrolling:touch]">
         <div className="flex flex-col gap-6 px-4 pb-5 pt-2">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 text-[12px] leading-[18px] text-[#484848]">

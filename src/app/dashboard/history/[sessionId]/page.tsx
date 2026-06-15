@@ -13,7 +13,7 @@ export default function DashboardLiveSessionDetailPage() {
   if (!session) {
     return (
       <main className="min-h-dvh bg-white">
-        <div className="mx-auto flex min-h-dvh max-w-155 flex-col items-center justify-center bg-white px-6 text-center">
+        <div className="mx-auto flex min-h-dvh flex-col items-center justify-center bg-white px-6 text-center">
           <p className="text-[16px] font-semibold text-[#2b2b2b]">Không tìm thấy phiên LIVE</p>
           <button
             type="button"

@@ -517,7 +517,7 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
         </section>
       </div>
 
-      <div className="fixed bottom-0 left-1/2 w-full max-w-[480px] -translate-x-1/2 border-t border-black/8 bg-white px-4 pb-8 pt-3">
+      <div className="fixed bottom-0 left-1/2 w-full -translate-x-1/2 border-t border-black/8 bg-white px-4 pb-8 pt-3">
         <div className="mb-3 flex items-center justify-between">
           <span className="text-[14px] leading-[22px] text-[#484848]">Phí dự kiến</span>
           <span className="text-[18px] font-semibold text-black">
