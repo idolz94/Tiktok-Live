@@ -55,6 +55,7 @@ export default function HomeView({
   tiktokUsername,
   tiktokChannels,
   isConnected,
+  isConnecting,
   showChannelSwitcher,
   onShowChannelSwitcherChange,
   onConnectTikTokLive,
@@ -90,6 +91,7 @@ export default function HomeView({
   tiktokUsername: string;
   tiktokChannels: ShopTikTokChannel[];
   isConnected: boolean;
+  isConnecting: boolean;
   showChannelSwitcher: boolean;
   onShowChannelSwitcherChange: (open: boolean) => void;
   onConnectTikTokLive: (username: string) => Promise<boolean | void>;
@@ -98,7 +100,6 @@ export default function HomeView({
 })  {
   const [commentTab, setCommentTab] = useState<CommentTab>("all");
   const [selectedUsername, setSelectedUsername] = useState(tiktokUsername || "");
-  const [isConnecting, setIsConnecting] = useState(false);
   const [showAddChannel, setShowAddChannel] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -154,12 +155,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
 
     if (!nextUsername || isConnecting) return;
 
-    try {
-      setIsConnecting(true);
-      await onConnectTikTokLive(nextUsername);
-    } finally {
-      setIsConnecting(false);
-    }
+    await onConnectTikTokLive(nextUsername);
   };
 
   if (topTab === "facebook") {
@@ -408,14 +404,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
                       type="button"
                       onClick={() => {
                         setSelectedUsername(option.username);
-                        void (async () => {
-                          setIsConnecting(true);
-                          try {
-                            await onConnectTikTokLive(option.username);
-                          } finally {
-                            setIsConnecting(false);
-                          }
-                        })();
+                        void onConnectTikTokLive(option.username);
                       }}
                       disabled={isConnecting}
                       className="flex h-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] px-4 text-[14px] font-medium leading-[22px] text-[#ff6b8a] disabled:opacity-60"

@@ -1,6 +1,6 @@
 "use client";
 
-import { postRequest } from "@/lib/request";
+import { getRequest, postRequest } from "@/lib/request";
 import type { LiveComment } from "@/types";
 import { getCommentTikTokUsername, normalizeAtUsername } from "@/utils/tiktok";
 
@@ -45,4 +45,21 @@ export async function saveLiveCommentApi({ liveSessionId, comment }: SaveLiveCom
     isOrderCreated: Boolean(comment.isOrderCreated),
     orderId: comment.orderId || null,
   });
+}
+
+export type RunningSessionResponse = {
+  session: {
+    id: string;
+    shopId: string;
+    tiktokUsername: string;
+    externalSessionId: string;
+    status: string;
+    startedAt: string | null;
+    commentCount: number;
+  } | null;
+  comments: any[];
+};
+
+export async function getRunningSessionApi(): Promise<RunningSessionResponse> {
+  return getRequest<RunningSessionResponse>("/live-stream/running-session");
 }

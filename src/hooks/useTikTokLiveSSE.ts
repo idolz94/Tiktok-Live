@@ -8,6 +8,7 @@ import {
   subscribeTikTokLiveApi,
 } from "@/features/tiktok-live/sseApi";
 import { normalizeComment, unwrapSseCommentPayload } from "@/utils/comment";
+import { getRunningSessionApi } from "@/api/liveCommentsApi";
 
 function getOrCreateClientId() {
   if (typeof window === "undefined") return "";
@@ -117,6 +118,27 @@ export function useTikTokLiveSSE() {
         message: "Backend SSE đã kết nối",
         createdAt: payload.connectedAt || payload.serverTime,
       });
+
+      // Hydrate comments from the running session so browser refresh doesn't lose history
+      getRunningSessionApi()
+        .then((result) => {
+          if (!result.session) return;
+
+          const restored = result.comments
+            .map((raw: any) => normalizeComment(unwrapSseCommentPayload(raw)))
+            .filter(Boolean) as LiveComment[];
+
+          if (restored.length > 0) {
+            setComments(restored);
+          }
+
+          if (result.session.tiktokUsername) {
+            setSubscribedUsername(result.session.tiktokUsername);
+          }
+        })
+        .catch(() => {
+          // Silently ignore — SSE will deliver new comments normally
+        });
     });
 
     eventSource.addEventListener("PING", () => {
@@ -164,6 +186,7 @@ export function useTikTokLiveSSE() {
     eventSource.addEventListener("LIVE_ERROR", (event) => {
       const payload = JSON.parse(String((event as MessageEvent).data || "{}"));
 
+      setComments([]);
       setStatus({
         status: "live_error",
         message: payload.message || "TikTok LIVE lỗi",
@@ -174,6 +197,7 @@ export function useTikTokLiveSSE() {
     eventSource.addEventListener("LIVE_DISCONNECTED", (event) => {
       const payload = JSON.parse(String((event as MessageEvent).data || "{}"));
 
+      setComments([]);
       setStatus({
         status: "live_disconnected",
         message: `LIVE ${getPayloadUsername(payload)} đã ngắt`,
@@ -257,6 +281,18 @@ export function useTikTokLiveSSE() {
       setStatus({
         status: "unsubscribed",
         message: `Đã dừng ${getPayloadUsername(payload)}`,
+        createdAt: payload.createdAt,
+      });
+    });
+
+    eventSource.addEventListener("COLLECTOR_STOPPED", (event) => {
+      const payload = JSON.parse(String((event as MessageEvent).data || "{}"));
+
+      setComments([]);
+      setSubscribedUsername("");
+      setStatus({
+        status: "unsubscribed",
+        message: `Collector đã dừng ${getPayloadUsername(payload)}`,
         createdAt: payload.createdAt,
       });
     });

@@ -60,6 +60,12 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   }, [orderManager.reloadShipmentOrders]);
 
   useEffect(() => {
+    if (orderManager.liveTab === "live") {
+      setLiveControlsHidden(false);
+    }
+  }, [orderManager.liveTab]);
+
+  useEffect(() => {
     if (!live.liveError) return;
 
     toast.error(live.liveError);

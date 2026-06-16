@@ -57,6 +57,7 @@ export default function DashboardLivePage() {
           tiktokUsername={live.tiktokUsername || registeredTikTokUsername}
           tiktokChannels={user?.tiktokChannels || []}
           isConnected={live.isConnected}
+          isConnecting={live.isConnecting}
           showChannelSwitcher={showChannelSwitcher}
           onShowChannelSwitcherChange={setShowChannelSwitcher}
           onConnectTikTokLive={live.changeTikTokUsername}

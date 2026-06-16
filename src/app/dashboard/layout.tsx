@@ -49,13 +49,13 @@ function DashboardShell({ children }: { children: ReactNode }) {
         <IphoneRouteTransition>{children}</IphoneRouteTransition>
         <BottomNav
           username={user?.fullName || user?.phone || user?.username || "User"}
-          footerHidden={liveControlsHidden && live.isConnected && activeTab === "home"}
+          footerHidden={liveControlsHidden && live.isConnected && activeTab === "home" && orderManager.liveTab === "live"}
           liveBar={
             live.isConnected && activeTab === "home" && topTab === "tiktok" && orderManager.liveTab === "live"
               ? {
                   username: live.tiktokUsername || registeredTikTokUsername,
                   commentsCount: live.comments.length,
-                  ordersCount: orderManager.orders.length,
+                  viewersCount: live.viewersCount,
                   isDisconnecting,
                   onSwitchChannel: () => setShowChannelSwitcher(true),
                   onDisconnect: disconnectLive,
