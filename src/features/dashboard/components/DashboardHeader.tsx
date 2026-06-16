@@ -77,7 +77,7 @@ export default function DashboardHeader({
 
   if (kind === "home") {
     return (
-      <header className="bg-linear-to-b from-[#FF6B8A]/30 via-[#FFA66D]/20 to-white/0 px-3 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3">
+      <header className="bg-linear-to-b from-[#FF6B8A]/40 via-[#FFA66D]/30 to-[#FFE8D6]/10 px-3 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-4">
         <div className="flex items-center justify-center gap-12">
           <button
             className={`border-b-2 px-1 pb-2 text-[20px] font-medium ${activeTab === "tiktok" ? "border-[#ff5f8a] text-[#ff5f8a]" : "border-transparent text-[#7e7474]"}`}

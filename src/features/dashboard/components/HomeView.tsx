@@ -153,7 +153,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
   const connectSelectedChannel = async () => {
     const nextUsername = normalizeTikTokUsername(selectedUsername);
 
-    if (!nextUsername || isConnecting) return;
+    if (!nextUsername) return;
 
     await onConnectTikTokLive(nextUsername);
   };
@@ -174,7 +174,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
   // When live and connected: full-screen layout matching Figma 3:1899
   if (isConnected && liveTab === "live") {
     return (
-      <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#f2f2f2]">
+      <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
         {/* Tab switcher */}
         <div className="px-4 pt-4">
           <div className="flex gap-2 rounded-full bg-white p-1 shadow-[0_10px_24px_rgba(255,95,138,0.08)]">
@@ -201,7 +201,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col bg-[#F2F2F2]">
           <div className="shrink-0 flex gap-2 px-4 my-3">
             <button
               type="button"
@@ -279,13 +279,13 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
                 await connectSelectedChannel();
                 onShowChannelSwitcherChange(false);
               }}
-              disabled={isConnecting || !selectedUsername}
+              disabled={!selectedUsername || (isConnecting && normalizeTikTokUsername(selectedUsername) === normalizeTikTokUsername(tiktokUsername))}
               className="flex w-full items-center justify-center rounded-[40px] py-3.5 text-[16px] font-medium text-black disabled:opacity-60"
               style={{
                 backgroundImage: "linear-gradient(138deg, #ff6b8a 13%, #ffa66d 52%, #ffc86a 118%)",
               }}
             >
-              {isConnecting ? "Đang kết nối..." : "Kết nối lại"}
+              {isConnecting && normalizeTikTokUsername(selectedUsername) === normalizeTikTokUsername(tiktokUsername) ? "Đang kết nối..." : "Kết nối lại"}
             </button>
           }
         >
@@ -333,13 +333,13 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
 
   return (
     <>
-      <div className="bg-linear-to-b from-white/0 to-transparent px-4 pb-3">
+      <div className="bg-linear-to-b from-[#FFE8D6]/20 to-transparent p-4">
         <div className="flex gap-2 rounded-full bg-white p-1 shadow-[0_10px_24px_rgba(255,95,138,0.08)]">
         <button
           className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-full text-sm font-black ${
             liveTab === "live"
               ? "bg-[#ff5f8a] text-white shadow-sm"
-              : "bg-slate-100 text-slate-500"
+              : "border-2 border-white bg-transparent text-slate-500"
           }`}
           onClick={() => onChangeLiveTab("live")}
           type="button"
@@ -359,7 +359,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
           className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-full text-sm font-black ${
             liveTab === "orders"
               ? "bg-[#ff5f8a] text-white shadow-sm"
-              : "bg-slate-100 text-slate-500"
+              : "border-2 border-white bg-transparent text-slate-500"
           }`}
           onClick={() => onChangeLiveTab("orders")}
           type="button"
@@ -406,10 +406,10 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
                         setSelectedUsername(option.username);
                         void onConnectTikTokLive(option.username);
                       }}
-                      disabled={isConnecting}
+                      disabled={isConnecting && normalizeTikTokUsername(selectedUsername ?? "") === normalizeTikTokUsername(option.username)}
                       className="flex h-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] px-4 text-[14px] font-medium leading-[22px] text-[#ff6b8a] disabled:opacity-60"
                     >
-                      {isConnecting && selectedUsername === option.username ? "Đang kết nối..." : "Kết nối"}
+                      {isConnecting && normalizeTikTokUsername(selectedUsername ?? "") === normalizeTikTokUsername(option.username) ? "Đang kết nối..." : "Kết nối"}
                     </button>
                   </div>
                 </div>

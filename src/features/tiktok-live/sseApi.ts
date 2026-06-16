@@ -55,9 +55,10 @@ export async function subscribeTikTokLiveApi({
   };
 }
 
-export async function stopTikTokLiveApi(input: string | { clientId?: string; username?: string }) {
+export async function stopTikTokLiveApi(input: string | { clientId?: string; username?: string; silent?: boolean }) {
   const clientId = typeof input === "string" ? undefined : input.clientId;
   const username = typeof input === "string" ? "" : String(input.username || "").trim();
+  const silent = typeof input === "string" ? undefined : input.silent;
 
   if (!username) {
     return {
@@ -70,6 +71,7 @@ export async function stopTikTokLiveApi(input: string | { clientId?: string; use
   return postRequest<any>("/live-stream/stop", {
     username,
     ...(clientId ? { clientId } : {}),
+    ...(silent ? { silent: true } : {}),
   });
 }
 
