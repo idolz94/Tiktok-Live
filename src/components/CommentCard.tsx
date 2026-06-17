@@ -47,7 +47,12 @@ export default function CommentCard({
   const isPriority = isPriorityComment(item);
   const commentText = item.comment || "";
   const isCreatedOrder = Boolean(isOrderCreatedProp || item.isOrderCreated || item.orderId || localOrderId);
-  const isOwner = item?.raw?.liveUsername === item?.raw?.tiktok_username;
+  const isOwner = item.intent === "user" || (() => {
+    const raw = item?.raw as Record<string, any> | undefined;
+    const live = String(raw?.liveUsername || "").toLowerCase().replace(/^@/, "");
+    const commenter = String(raw?.tiktok_username || raw?.tiktokUsername || "").toLowerCase().replace(/^@/, "");
+    return live !== "" && commenter !== "" && live === commenter;
+  })();
 
   const handleCreateOrder = async () => {
     if (isCreatingOrder || isCreatedOrder) return;
@@ -66,7 +71,11 @@ export default function CommentCard({
     <article
       className={[
         "flex gap-[8px] rounded-[16px] p-[12px]",
-        showAnimatedBorder ? "bg-white" : "mb-3 border border-black/[0.08] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.13)]",
+        showAnimatedBorder
+          ? "bg-white"
+          : isOwner
+            ? "mb-3 border border-black/4 bg-[#f8f8f8]"
+            : "mb-3 border border-black/8 bg-white shadow-[0_4px_16px_rgba(0,0,0,0.13)]",
       ].join(" ")}
     >
       <Avatar

@@ -39,7 +39,7 @@ let tokenProvider: TokenProvider | null = null;
 
 let cachedToken: string | null = null;
 let cachedTokenAt = 0;
-const TOKEN_CACHE_TTL = 30_000;
+const TOKEN_CACHE_TTL = 30 * 60 * 1000;
 
 export function setAuthTokenProvider(provider: TokenProvider | null) {
   tokenProvider = provider;

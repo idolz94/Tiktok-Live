@@ -16,6 +16,7 @@ export type CommentIntent =
   | "normal"
   | "spam"
   | "unknown"
+  | "user"
   | string;
 
 export type LiveComment = {

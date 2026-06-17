@@ -64,32 +64,31 @@ function CheckboxIcon({ checked }: { checked: boolean }) {
 
 function InputField({
   label,
-  placeholder,
   value,
   onChange,
   type = "text",
   rightSlot,
 }: {
   label: string;
-  placeholder: string;
+  placeholder?: string;
   value: string;
   onChange: (v: string) => void;
   type?: string;
   rightSlot?: React.ReactNode;
 }) {
   return (
-    <div className="flex w-full flex-col gap-2">
-      <label className="text-[14px] leading-[22px] text-[#484848] font-['Inter_Display',sans-serif]">{label}</label>
-      <div className="flex h-12 items-center gap-4 rounded-[8px] border border-black/10 bg-white px-4">
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="flex-1 min-w-0 text-[14px] leading-[22px] text-black placeholder:text-[#787878] bg-transparent outline-none font-['Inter_Display',sans-serif]"
-        />
-        {rightSlot}
-      </div>
+    <div className="form-item font-['Inter_Display',sans-serif]">
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder=" "
+        className="font-['Inter_Display',sans-serif]"
+      />
+      {rightSlot}
+      <label className="font-['Inter_Display',sans-serif]">
+        {label}
+      </label>
     </div>
   );
 }
@@ -272,27 +271,25 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
                       onChange={setUsername}
                     />
 
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[14px] leading-[22px] text-[#484848] font-['Inter_Display',sans-serif]">Mật khẩu</label>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex justify-end">
                         <ForgotPasswordDrawer />
                       </div>
-                      <div className="flex h-12 items-center gap-4 rounded-[8px] border border-black/10 bg-white px-4">
-                        <input
-                          type={isPasswordVisible ? "text" : "password"}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="Nhập mật khẩu"
-                          className="flex-1 min-w-0 text-[14px] leading-[22px] text-black placeholder:text-[#787878] bg-transparent outline-none font-['Inter_Display',sans-serif]"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setIsPasswordVisible((v) => !v)}
-                          className="shrink-0"
-                        >
-                          {isPasswordVisible ? <EyeOnIcon /> : <EyeOffIcon />}
-                        </button>
-                      </div>
+                      <InputField
+                        label="Mật khẩu"
+                        value={password}
+                        onChange={setPassword}
+                        type={isPasswordVisible ? "text" : "password"}
+                        rightSlot={
+                          <button
+                            type="button"
+                            onClick={() => setIsPasswordVisible((v) => !v)}
+                            className="shrink-0"
+                          >
+                            {isPasswordVisible ? <EyeOnIcon /> : <EyeOffIcon />}
+                          </button>
+                        }
+                      />
                     </div>
                   </div>
 
@@ -396,8 +393,8 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
                       }
                     />
                     <InputField
-                      label="Tiktok ID (tùy chọn)"
-                      placeholder="@username"
+                      label="Tiktok ID (@wii15_08)"
+                      placeholder="username"
                       value={tiktokId}
                       onChange={setTiktokId}
                     />
