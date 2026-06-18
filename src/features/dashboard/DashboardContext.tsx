@@ -44,6 +44,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   const live = useTikTokLiveSocket({
     initialUsername: registeredTikTokUsername,
+    hasHistory: user?.hasHistory,
     onOrderShippingUpdated: useCallback(() => {
       reloadShipmentOrdersRef.current();
     }, []),

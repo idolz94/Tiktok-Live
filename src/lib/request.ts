@@ -55,12 +55,20 @@ export async function getAuthToken(): Promise<string> {
     return cachedToken;
   }
 
-  const token = (await tokenProvider()) || "";
-  if (token) {
-    cachedToken = token;
-    cachedTokenAt = now;
+  // Retry up to 5 times if Clerk returns empty token (race after setActive + redirect)
+  for (let attempt = 0; attempt < 5; attempt++) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, 400 * attempt));
+    }
+    const token = (await tokenProvider()) || "";
+    if (token) {
+      cachedToken = token;
+      cachedTokenAt = Date.now();
+      return token;
+    }
   }
-  return token;
+
+  return "";
 }
 
 export type AuthChangeReason = "login" | "register" | "logout";
@@ -68,6 +76,8 @@ export type AuthChangeReason = "login" | "register" | "logout";
 export function emitAuthChanged(reason: AuthChangeReason) {
   if (!isBrowser()) return;
   hasEmittedSessionExpired = false;
+  cachedToken = null;
+  cachedTokenAt = 0;
   window.dispatchEvent(new CustomEvent("lumi-auth-change", { detail: { reason } }));
 }
 

@@ -46,6 +46,7 @@ function createClientId() {
 
 type UseTikTokLiveSocketOptions = {
   initialUsername?: string | null;
+  hasHistory?: boolean;
   onOrderShippingUpdated?: (payload: Record<string, unknown>) => void;
 };
 
@@ -93,7 +94,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     endSessionFromPayload,
     updateSessionStatusFromPayload,
     addCommentToCurrentSession,
-  } = useTikTokLiveSession();
+  } = useTikTokLiveSession({ hasHistory: options.hasHistory });
 
   const handleServerEvent = useCallback(
     (type: string, payload: Record<string, any>) => {

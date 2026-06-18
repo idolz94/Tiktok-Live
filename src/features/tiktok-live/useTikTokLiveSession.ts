@@ -35,7 +35,7 @@ function mergeSession(oldSession: LiveHistoryItem | null, nextSession: LiveHisto
   } as LiveHistoryItem;
 }
 
-export function useTikTokLiveSession() {
+export function useTikTokLiveSession(options: { hasHistory?: boolean } = {}) {
   const currentLiveSessionRef = useRef<LiveHistoryItem | null>(null);
   const currentDbLiveSessionIdRef = useRef<string | null>(null);
   const sessionCommentsRef = useRef<LiveComment[]>([]);
@@ -59,6 +59,7 @@ export function useTikTokLiveSession() {
   const isRunning = Boolean(currentLiveSession?.startedAt && !currentLiveSession?.endedAt);
 
   const reloadLiveHistory = useCallback(async () => {
+    if (options.hasHistory === false) return [];
     try {
       const history = await getLiveHistoryApi();
       setLiveHistory(history);
@@ -70,12 +71,25 @@ export function useTikTokLiveSession() {
   }, []);
 
   useEffect(() => {
+    // Delay initial load to give Clerk time to hydrate the session token
+    // after login/register redirect. The lumi-auth-change event resets the
+    // token cache; we wait an extra tick after that before fetching.
     const timer = window.setTimeout(() => {
       void reloadLiveHistory();
-    }, 0);
+    }, 800);
+
+    const onAuthChange = () => {
+      window.clearTimeout(timer);
+      window.setTimeout(() => {
+        void reloadLiveHistory();
+      }, 100);
+    };
+
+    window.addEventListener("lumi-auth-change", onAuthChange);
 
     return () => {
       window.clearTimeout(timer);
+      window.removeEventListener("lumi-auth-change", onAuthChange);
     };
   }, [reloadLiveHistory]);
 

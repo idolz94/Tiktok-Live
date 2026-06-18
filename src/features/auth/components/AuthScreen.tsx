@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useSignIn, useSignUp } from "@clerk/nextjs/legacy";
 import { createTikTokChannelApi } from "@/api/meApi";
+import { emitAuthChanged } from "@/lib/request";
 import { ForgotPasswordDrawer } from "@/features/auth/ForgotPassword";
 
 function mapClerkError(err: { code?: string; message?: string; longMessage?: string }): string {
@@ -196,6 +197,7 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
 
         if (result.status === "complete") {
           await setSignInActive({ session: result.createdSessionId });
+          emitAuthChanged("login");
           router.replace("/dashboard/live");
         } else {
           toast.info("Vui lòng hoàn tất xác minh.");
@@ -214,6 +216,7 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
 
         if (result.status === "complete") {
           await setSignUpActive({ session: result.createdSessionId });
+          emitAuthChanged("register");
 
           if (tiktokId.trim()) {
             await createTikTokChannelApi({
@@ -272,9 +275,7 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
                     />
 
                     <div className="flex flex-col gap-1.5">
-                      <div className="flex justify-end">
-                        <ForgotPasswordDrawer />
-                      </div>
+
                       <InputField
                         label="Mật khẩu"
                         value={password}
@@ -291,6 +292,9 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
                         }
                       />
                     </div>
+                                          <div className="flex justify-end">
+                        <ForgotPasswordDrawer />
+                      </div>
                   </div>
 
                   <button

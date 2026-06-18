@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth as useClerkAuth, useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { getMeBootstrapApi, MeBootstrapResponse } from "@/api/meApi";
+import { getAuthToken } from "@/lib/request";
 import type { ShopTikTokChannel } from "@/types/database";
 
 export type AuthUser = {
@@ -130,7 +131,13 @@ export function useAuth(): AuthState {
     const clerkUserId = clerkUser?.id || null;
     const hasBootstrappedCurrentUser = bootstrappedUserIdRef.current === clerkUserId;
 
-    void fetchProfile({ background: hasBootstrappedCurrentUser });
+    // Wait for a valid token before calling bootstrap.
+    // Clerk marks isSignedIn=true before getToken() can return a JWT
+    // (race condition after setActive + page redirect).
+    getAuthToken().then((token) => {
+      if (!token) return;
+      void fetchProfile({ background: hasBootstrappedCurrentUser });
+    });
   }, [authLoaded, userLoaded, isSignedIn, clerkUser?.id, fetchProfile]);
 
   const combinedLoading = !authLoaded || !userLoaded || isLoading;
