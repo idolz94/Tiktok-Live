@@ -158,11 +158,9 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
         setCustomerAddresses((prev) => [...prev, created]);
         setSelectedRecipient(created);
         setRecipientPickerOpen(false);
-        try {
-          await patchOrderApi(order.id, { customerAddressId: created.id });
-        } catch {
-          // non-blocking
-        }
+        setRecipientFormOpen(false);
+        patchOrderApi(order.id, { customerAddressId: created.id }).catch(() => {});
+        return;
       }
       setRecipientFormOpen(false);
     } catch {
@@ -578,6 +576,7 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
         initial={senderFormInitial}
         saving={senderSaving}
         onSave={handleSenderFormSave}
+        isFirstAddress={shopAddresses.length === 0}
       />
 
       <AddressPickerDrawer<CustomerAddress>
@@ -604,6 +603,7 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
         initial={recipientFormInitial}
         saving={recipientSaving}
         onSave={handleRecipientFormSave}
+        isFirstAddress={customerAddresses.length === 0}
       />
     </main>
   );

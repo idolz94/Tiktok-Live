@@ -10,6 +10,14 @@ import "./tailwind.css";
 export const metadata: Metadata = {
   title: "TikTok Live Web App",
   description: "Next.js web app nhận comment TikTok Live từ Python WebSocket",
+  icons: {
+    icon: [
+      { url: "/favicon/favicon.ico" },
+      { url: "/favicon/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+      { url: "/favicon/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/favicon/apple-touch-icon.png",
+  },
   other: {
     "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-status-bar-style": "black-translucent",

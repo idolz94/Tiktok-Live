@@ -5,6 +5,7 @@ import { DrawlerBase } from "@/components/ui/Drawler";
 import { Order, OrderProduct } from "@/types";
 import { formatMoneyFromK, getOrderTotal } from "@/utils/order";
 import { addOrderItemApi, deleteOrderItemApi, updateOrderItemApi } from "@/api/ordersApi";
+import { getCustomerByIdApi } from "@/api/customersApi";
 import { listCustomerAddressesApi, type CustomerAddress } from "@/lib/addresses";
 import { MoneyInput } from "@/components/MoneyInput";
 import { toast } from "sonner";
@@ -30,6 +31,7 @@ export default function OrderOverviewScreen({
   onShippingSubmitted,
   isDepositLoading = false,
   userName,
+  onCustomerClick,
 }: {
   order: Order;
   onBack: () => void;
@@ -40,6 +42,7 @@ export default function OrderOverviewScreen({
   onShippingSubmitted?: () => void;
   isDepositLoading?: boolean;
   userName?: string;
+  onCustomerClick?: (customerKey: string) => void;
 }) {
   const [addProductOpen, setAddProductOpen] = useState(false);
   const [editProductOpen, setEditProductOpen] = useState(false);
@@ -61,6 +64,7 @@ export default function OrderOverviewScreen({
   const [showShippingCreateScreen, setShowShippingCreateScreen] = useState(false);
 
   const [defaultCustomerAddress, setDefaultCustomerAddress] = useState<CustomerAddress | null>(null);
+  const [fetchedCustomerPhone, setFetchedCustomerPhone] = useState<string | null>(null);
 
   function reloadDefaultCustomerAddress() {
     if (!order.customerId) return;
@@ -77,6 +81,16 @@ export default function OrderOverviewScreen({
   useEffect(() => {
     if (!showShippingCreateScreen) reloadDefaultCustomerAddress();
   }, [showShippingCreateScreen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!order.customerId) return;
+    let cancelled = false;
+    getCustomerByIdApi(order.customerId).then((profile) => {
+      if (cancelled) return;
+      if (profile.phone) setFetchedCustomerPhone(profile.phone);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [order.customerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const products = order.products || [];
   const productTotal = getOrderTotal(products);
@@ -238,7 +252,15 @@ export default function OrderOverviewScreen({
           </div>
 
           <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => {
+                const key = order.customerTikTokUsername || order.username;
+                if (key) onCustomerClick?.(key);
+              }}
+              disabled={!onCustomerClick || (!order.customerTikTokUsername && !order.username)}
+              className="flex items-center gap-4 text-left disabled:pointer-events-none"
+            >
               {order.avatarUrl ? (
                 <img
                   src={order.avatarUrl}
@@ -261,13 +283,13 @@ export default function OrderOverviewScreen({
                   <span className="text-[12px] leading-[18px] font-medium text-[#484848]">VIP</span>
                 </div>
               </div>
-            </div>
+            </button>
 
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <span className="shrink-0 text-[#484848]"><PhoneIcon /></span>
                 <p className="text-[12px] leading-[18px] text-[#484848]">
-                  {defaultCustomerAddress?.phone || order.customerPhone || "Chưa có số điện thoại"}
+                  {defaultCustomerAddress?.phone || fetchedCustomerPhone || order.customerPhone || "Chưa có số điện thoại"}
                 </p>
               </div>
               <div className="flex items-center gap-2">

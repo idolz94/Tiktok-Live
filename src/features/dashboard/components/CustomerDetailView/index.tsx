@@ -3,9 +3,13 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CustomerWithTikTok } from "@/features/dashboard/types";
-import { getCustomerOrdersApi, updateCustomerApi } from "@/api/customersApi";
+import { getCustomerByIdApi, getCustomerOrdersApi, updateCustomerApi } from "@/api/customersApi";
 import type { OrderWithTikTok } from "@/types";
+import type { CustomerAddress } from "@/lib/addresses";
+import { listCustomerAddressesApi, createCustomerAddressApi, updateCustomerAddressApi, deleteCustomerAddressApi } from "@/lib/addresses";
 import { formatMoneyFromK, getOrderTotal } from "@/utils/order";
+import { AddressPickerDrawer } from "@/features/orders/components/AddressPickerDrawer";
+import { AddressFormDrawer, type AddressFormState } from "@/features/orders/components/AddressFormDrawer";
 
 function ChevronLeftIcon() {
   return (
@@ -249,8 +253,26 @@ export default function CustomerDetailView({
   const [customerType, setCustomerType] = useState("Lẻ");
   const [phone, setPhone] = useState("");
   const [referenceInfo, setReferenceInfo] = useState("");
-  const [shippingAddress, setShippingAddress] = useState("");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!customer.customerId) return;
+    let cancelled = false;
+    getCustomerByIdApi(customer.customerId).then((profile) => {
+      if (cancelled) return;
+      if (profile.customerType) setCustomerType(profile.customerType);
+      if (profile.phone) setPhone(profile.phone);
+      if (profile.referenceInfo) setReferenceInfo(profile.referenceInfo);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [customer.customerId]);
+
+  const [customerAddresses, setCustomerAddresses] = useState<CustomerAddress[]>([]);
+  const [addressesLoading, setAddressesLoading] = useState(false);
+  const [addressPickerOpen, setAddressPickerOpen] = useState(false);
+  const [addressFormOpen, setAddressFormOpen] = useState(false);
+  const [addressFormInitial, setAddressFormInitial] = useState<Partial<AddressFormState> & { id?: string }>({});
+  const [addressSaving, setAddressSaving] = useState(false);
 
   const [customerOrders, setCustomerOrders] = useState<OrderWithTikTok[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
@@ -278,6 +300,25 @@ export default function CustomerDetailView({
     };
   }, [activeTab, customer.customerId]);
 
+  useEffect(() => {
+    if (!customer.customerId) return;
+    let cancelled = false;
+    setAddressesLoading(true);
+    listCustomerAddressesApi(customer.customerId)
+      .then((list) => {
+        if (!cancelled) setCustomerAddresses(list);
+      })
+      .catch(() => {
+        if (!cancelled) setCustomerAddresses([]);
+      })
+      .finally(() => {
+        if (!cancelled) setAddressesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [customer.customerId]);
+
   const confirmedCount = customerOrders.filter(
     (o) => o.status === "confirmed" || o.status === "packed" || o.status === "shipping" || o.status === "completed",
   ).length;
@@ -301,7 +342,6 @@ export default function CustomerDetailView({
         customerType,
         phone,
         referenceInfo,
-        shippingAddress,
       });
       toast.success("Đã lưu thông tin khách hàng.");
     } catch (error) {
@@ -310,6 +350,38 @@ export default function CustomerDetailView({
       setSaving(false);
     }
   };
+
+  async function handleAddressFormSave(data: AddressFormState) {
+    if (!customer.customerId) {
+      toast.error("Khách hàng chưa được lưu. Không thể lưu địa chỉ.");
+      return;
+    }
+    setAddressSaving(true);
+    try {
+      if (addressFormInitial.id) {
+        const updated = await updateCustomerAddressApi(customer.customerId, addressFormInitial.id, data);
+        setCustomerAddresses((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+      } else {
+        const created = await createCustomerAddressApi(customer.customerId, data);
+        setCustomerAddresses((prev) => [...prev, created]);
+      }
+      setAddressFormOpen(false);
+    } catch {
+      toast.error("Lưu địa chỉ thất bại");
+    } finally {
+      setAddressSaving(false);
+    }
+  }
+
+  async function handleDeleteAddress(a: CustomerAddress) {
+    if (!customer.customerId) return;
+    try {
+      await deleteCustomerAddressApi(customer.customerId, a.id);
+      setCustomerAddresses((prev) => prev.filter((x) => x.id !== a.id));
+    } catch {
+      toast.error("Xoá địa chỉ thất bại");
+    }
+  }
 
   return (
     <div className="flex h-full flex-col bg-white">
@@ -344,21 +416,33 @@ export default function CustomerDetailView({
             <div className="flex gap-3">
               <button
                 type="button"
-                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-[#f2f2f2] text-[12px] font-medium text-black"
+                onClick={() => {
+                  if (customer?.customerTikTokUsername) window.open(`https://www.tiktok.com/${customer?.customerTikTokUsername}`, "_blank");
+                }}
+                disabled={!customer.customerTikTokUsername}
+                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-[#f2f2f2] text-[12px] font-medium text-black disabled:opacity-40"
               >
                 <TikTokIcon size={20} />
                 Tiktok
               </button>
               <button
                 type="button"
-                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-[#f2f2f2] text-[12px] font-medium text-black"
+                onClick={() => {
+                  if (phone) window.open(`https://zalo.me/${phone.replace(/\D/g, "")}`, "_blank");
+                }}
+                disabled={!phone}
+                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-[#f2f2f2] text-[12px] font-medium text-black disabled:opacity-40"
               >
                 <ZaloIcon />
                 Zalo
               </button>
               <button
                 type="button"
-                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-[#f2f2f2] text-[12px] font-medium text-black"
+                onClick={() => {
+                  if (phone) window.location.href = `tel:${phone.replace(/\D/g, "")}`;
+                }}
+                disabled={!phone}
+                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-[#f2f2f2] text-[12px] font-medium text-black disabled:opacity-40"
               >
                 <PhoneIcon />
                 Điện thoại
@@ -441,24 +525,94 @@ export default function CustomerDetailView({
 
             <div className="flex flex-col gap-4">
               <label className="text-[14px] leading-5.5 text-[#484848]">Địa chỉ giao hàng</label>
-              {shippingAddress ? (
-                <textarea
-                  value={shippingAddress}
-                  onChange={(event) => setShippingAddress(event.target.value)}
-                  rows={3}
-                  className="min-h-22 resize-none rounded-lg border border-black/10 px-4 py-3 text-[14px] leading-5.5 text-black outline-none"
-                />
-              ) : (
+              {addressesLoading ? (
+                <div className="h-20 animate-pulse rounded-xl bg-[#f2f2f2]" />
+              ) : customerAddresses.length === 0 ? (
                 <button
                   type="button"
-                  onClick={() => setShippingAddress(" ")}
+                  onClick={() => {
+                    setAddressFormInitial({});
+                    setAddressFormOpen(true);
+                  }}
                   className="flex h-12 items-center justify-center gap-2 rounded-lg border border-dashed border-black/20"
                 >
                   <PlusIcon />
                   <span className="text-[14px] text-[#484848]">Thêm mới</span>
                 </button>
-              )}
+              ) : (() => {
+                const def = customerAddresses.find((a) => a.isDefault) ?? customerAddresses[0];
+                return (
+                  <div className="flex flex-col gap-3 rounded-xl border border-black/10 bg-[#fafafa] px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8f0ff] text-[15px] font-semibold text-[#468adf]">
+                        {def.name?.[0]?.toUpperCase() ?? "?"}
+                      </div>
+                      <p className="min-w-0 flex-1 text-[15px] font-semibold text-black">{def.name}</p>
+                      <button
+                        type="button"
+                        onClick={() => setAddressPickerOpen(true)}
+                        className="flex shrink-0 items-center gap-1"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#484848" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#484848" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <span className="text-[13px] font-medium text-[#484848]">Thay đổi</span>
+                      </button>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      {def.phone && (
+                        <div className="flex items-center gap-2">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.72 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.63 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.63a16 16 0 0 0 6 6l.94-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" stroke="#787878" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          <p className="text-[13px] leading-5 text-[#484848]">{def.phone}</p>
+                        </div>
+                      )}
+                      {(def.address || def.ward || def.district || def.province) && (
+                        <div className="flex items-start gap-2">
+                          <svg className="mt-px shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" stroke="#787878" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="10" r="3" stroke="#787878" strokeWidth="1.8"/></svg>
+                          <p className="text-[13px] leading-5 text-[#484848]">
+                            {[def.ward, def.district, def.province].filter(Boolean).join(", ")}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
+
+            <AddressPickerDrawer
+              open={addressPickerOpen}
+              onOpenChange={setAddressPickerOpen}
+              title="Địa chỉ giao hàng"
+              addresses={customerAddresses}
+              loading={addressesLoading}
+              selected={customerAddresses.find((a) => a.isDefault) ?? customerAddresses[0] ?? null}
+              onSelect={(a) => {
+                setCustomerAddresses((prev) => prev.map((x) => ({ ...x, isDefault: x.id === a.id })));
+                setAddressPickerOpen(false);
+              }}
+              onAdd={() => {
+                setAddressFormInitial({});
+                setAddressPickerOpen(false);
+                setAddressFormOpen(true);
+              }}
+              onEdit={(a) => {
+                setAddressFormInitial({ id: a.id, name: a.name ?? "", phone: a.phone ?? "", address: a.address ?? "", province: a.province ?? "", district: a.district ?? "", ward: a.ward ?? "", label: a.label ?? "home", isDefault: a.isDefault ?? false });
+                setAddressPickerOpen(false);
+                setAddressFormOpen(true);
+              }}
+              onDelete={handleDeleteAddress}
+            />
+
+            <AddressFormDrawer
+              open={addressFormOpen}
+              onOpenChange={setAddressFormOpen}
+              title={addressFormInitial.id ? "Chỉnh sửa địa chỉ" : "Thêm địa chỉ mới"}
+              initial={addressFormInitial}
+              saving={addressSaving}
+              onSave={handleAddressFormSave}
+            />
           </div>
         ) : (
           <div className="flex flex-col">

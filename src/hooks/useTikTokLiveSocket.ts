@@ -85,6 +85,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     currentLiveSession,
     currentLiveSessionId,
     liveHistory,
+    isHistoryLoading,
     liveDurationSeconds,
     liveNowText,
     clearLiveHistory,
@@ -538,6 +539,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     currentLiveSession,
     currentLiveSessionId,
     liveHistory,
+    isHistoryLoading,
     liveDurationSeconds,
     liveNowText,
 

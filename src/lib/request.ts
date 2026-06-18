@@ -37,38 +37,14 @@ type TokenProvider = () => Promise<string | null>;
 
 let tokenProvider: TokenProvider | null = null;
 
-let cachedToken: string | null = null;
-let cachedTokenAt = 0;
-const TOKEN_CACHE_TTL = 30 * 60 * 1000;
-
 export function setAuthTokenProvider(provider: TokenProvider | null) {
   tokenProvider = provider;
-  cachedToken = null;
-  cachedTokenAt = 0;
 }
 
 export async function getAuthToken(): Promise<string> {
   if (!tokenProvider) return "";
-
-  const now = Date.now();
-  if (cachedToken && now - cachedTokenAt < TOKEN_CACHE_TTL) {
-    return cachedToken;
-  }
-
-  // Retry up to 5 times if Clerk returns empty token (race after setActive + redirect)
-  for (let attempt = 0; attempt < 5; attempt++) {
-    if (attempt > 0) {
-      await new Promise((r) => setTimeout(r, 400 * attempt));
-    }
-    const token = (await tokenProvider()) || "";
-    if (token) {
-      cachedToken = token;
-      cachedTokenAt = Date.now();
-      return token;
-    }
-  }
-
-  return "";
+  const token = (await tokenProvider()) || "";
+  return token;
 }
 
 export type AuthChangeReason = "login" | "register" | "logout";
@@ -76,8 +52,6 @@ export type AuthChangeReason = "login" | "register" | "logout";
 export function emitAuthChanged(reason: AuthChangeReason) {
   if (!isBrowser()) return;
   hasEmittedSessionExpired = false;
-  cachedToken = null;
-  cachedTokenAt = 0;
   window.dispatchEvent(new CustomEvent("lumi-auth-change", { detail: { reason } }));
 }
 

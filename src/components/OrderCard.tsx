@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { toast } from "sonner";
 import { Order, OrderProduct } from "../types";
-import { formatMoneyFromK, getOrderTotal } from "../utils/order";
+import { formatMoneyFromK, getOrderTotal, printOrder } from "../utils/order";
 import Avatar from "./Avatar";
 import { getOrderTikTokUsername, openTikTokProfile } from "@/utils/tiktok";
 import { MoneyInput } from "./MoneyInput";
@@ -26,7 +27,11 @@ function PrintIcon() {
 }
 
 function TrashIcon() {
-  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+function NoteIcon() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
 function MoreIcon() {
@@ -73,6 +78,7 @@ export default function OrderCard({
   onToggleDeposit,
   onConfirmOrder,
   onOpenOverview,
+  onOpenCustomer,
   isDepositLoading = false,
 }: {
   item: Order;
@@ -82,16 +88,35 @@ export default function OrderCard({
   onToggleDeposit?: (orderId: string) => void;
   onConfirmOrder?: (orderId: string) => void;
   onOpenOverview?: (orderId: string) => void;
+  onOpenCustomer?: (customerKey: string) => void;
   isDepositLoading?: boolean;
 }) {
   const products = item.products?.length ? item.products : [];
-  const total =  item.subtotalAmount || getOrderTotal(products);
+  const total = item.subtotalAmount || getOrderTotal(products);
   const isPaid = item.depositStatus === "paid" || item.depositStatus === "deposited";
   const tiktokUsername = getOrderTikTokUsername(item);
   const displayName = item.customerName || item.username || "Khách live";
 
   const [codAmount, setCodAmount] = useState<number>(item.codAmount ?? 0);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const [showNoteEditor, setShowNoteEditor] = useState(false);
+  const [noteText, setNoteText] = useState(item.note ?? "");
+  const [noteSaving, setNoteSaving] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
 
   const handleCodChange = useCallback(
     (val: number) => {
@@ -104,6 +129,18 @@ export default function OrderCard({
     [item.id],
   );
 
+  const handleNoteSave = useCallback(async () => {
+    setNoteSaving(true);
+    try {
+      await patchOrderApi(item.id, { note: noteText });
+      toast.success("Đã lưu ghi chú.");
+    } catch {
+      toast.error("Lưu ghi chú thất bại. Vui lòng thử lại.");
+    } finally {
+      setNoteSaving(false);
+    }
+  }, [item.id, noteText]);
+
   void onUpdate;
   void onAddProduct;
   void onConfirmOrder;
@@ -112,28 +149,55 @@ export default function OrderCard({
     <article className="bg-white">
       <div className="px-4 py-4">
         <div className="flex items-start gap-4">
-          <Avatar uri={item.avatar || item.avatarUrl} username={displayName} size={40} />
-
+          {onOpenCustomer ? (
+            <button
+              type="button"
+              className="shrink-0"
+              onClick={() => onOpenCustomer(tiktokUsername || item.username || item.id)}
+            >
+              <Avatar uri={item.avatar || item.avatarUrl} username={displayName} size={40} />
+            </button>
+          ) : (
+            <Avatar uri={item.avatar || item.avatarUrl} username={displayName} size={40} />
+          )}
           <div className="min-w-0 flex-1">
             <button type="button" onClick={() => tiktokUsername && openTikTokProfile(tiktokUsername)} disabled={!tiktokUsername} className="block max-w-full truncate text-left text-[16px] leading-6 font-medium text-black disabled:cursor-default">
               {displayName}
             </button>
             <p className="mt-0.5 text-[12px] leading-[18px] text-[#484848]">Order ID: {createDisplayCode(item.orderCode || item.id)}</p>
           </div>
-
           <div className="flex shrink-0 items-center gap-2">
-            <IconButton label="In đơn"><PrintIcon /></IconButton>
+            <IconButton label="In đơn" onClick={() => printOrder(item)}><PrintIcon /></IconButton>
             <IconButton label="TikTok" disabled={!tiktokUsername} onClick={() => openTikTokProfile(tiktokUsername)}><TikTokIcon /></IconButton>
-            <IconButton label="Xóa đơn" onClick={() => { if (window.confirm("Xóa đơn hàng này?")) onDelete(item.id); }}><TrashIcon /></IconButton>
-            <IconButton label="Mở tổng quan" onClick={() => onOpenOverview?.(item.id)}><MoreIcon /></IconButton>
+            <div className="relative" ref={menuRef}>
+              <IconButton label="Thêm tùy chọn" onClick={() => setMenuOpen((v) => !v)}><MoreIcon /></IconButton>
+              {menuOpen && (
+                <div className="absolute right-0 top-8 z-50 min-w-[160px] overflow-hidden rounded-xl bg-white shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-[14px] text-[#2b2b2b] hover:bg-[#f5f5f5]"
+                    onClick={() => { setShowNoteEditor((v) => !v); setMenuOpen(false); }}
+                  >
+                    <NoteIcon />
+                    Ghi Chú
+                  </button>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-[14px] text-[#ff4242] hover:bg-[#fff0f0]"
+                    onClick={() => { setMenuOpen(false); if (window.confirm("Xóa đơn hàng này?")) onDelete(item.id); }}
+                  >
+                    <TrashIcon />
+                    Xoá đơn hàng
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-
         <div className="mt-2 flex flex-wrap gap-1 pl-14">
           <span className="inline-flex h-6 items-center rounded-2xl bg-[#ffefe4] px-2 text-[12px] font-medium text-[#b85b22]">VIP</span>
           <span className={`inline-flex h-6 items-center rounded-2xl px-2 text-[12px] font-medium ${statusClassName(item.status)}`}>{statusLabel(item.status)}</span>
         </div>
-
         <div className="mt-3">
           {products.length ? (
             products.map((product) => {
@@ -163,12 +227,10 @@ export default function OrderCard({
             </div>
           )}
         </div>
-
         <div className="flex items-center justify-between pt-3">
           <span className="text-[14px] leading-5 text-[#2b2b2b]">Tạm tính</span>
           <strong className="text-[14px] leading-5 font-medium text-[#ff6b8a]">{formatMoneyFromK(total)}</strong>
         </div>
-
         <div className="flex items-center justify-between pt-2">
           <span className="text-[14px] leading-5 text-[#2b2b2b]">Tiền thu hộ (COD)</span>
           <div className="flex items-center gap-1">
@@ -181,7 +243,6 @@ export default function OrderCard({
             <span className="shrink-0 text-[12px] text-[#787878]">₫</span>
           </div>
         </div>
-
         <div className="flex gap-4 pt-4">
           <button type="button" onClick={() => onToggleDeposit?.(item.id)} disabled={isDepositLoading} className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[40px] text-[14px] font-medium disabled:cursor-not-allowed disabled:opacity-70 ${isPaid ? "bg-[#edfaf4] text-[#2ca87b]" : "bg-[#ffe8e8] text-[#ff6b8a]"}`}>
             {isDepositLoading ? <LoadingSpinner /> : isPaid ? <CheckIcon /> : null}
@@ -191,6 +252,25 @@ export default function OrderCard({
             Tổng quan đơn hàng
           </button>
         </div>
+        {showNoteEditor && (
+          <div className="relative mt-3">
+            <textarea
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              placeholder="Nhập ghi chú đơn hàng..."
+              rows={3}
+              className="w-full resize-none rounded-xl border border-[#e0e0e0] bg-[#fafafa] px-3 pb-10 pt-2.5 text-[14px] leading-5 text-[#2b2b2b] outline-none placeholder:text-[#b0b0b0] focus:border-[#ff6b8a]"
+            />
+            <button
+              type="button"
+              onClick={() => void handleNoteSave()}
+              disabled={noteSaving}
+              className="absolute bottom-2.5 right-2.5 rounded-lg bg-[#ff6b8a] px-3 py-1 text-[12px] font-medium text-white disabled:opacity-60"
+            >
+              {noteSaving ? "Đang lưu..." : "Cập nhật"}
+            </button>
+          </div>
+        )}
       </div>
       <div className="h-2 bg-[#f2f2f2]" />
     </article>

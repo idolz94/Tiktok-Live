@@ -6,7 +6,7 @@ export function Divider() {
 
 export function VndBadge() {
   return (
-    <span className="rounded-xs bg-[#f2f2f2] px-2 py-0.75 text-[12px] leading-4.5 font-medium text-[#161616]">VND</span>
+    <span className="shrink-0 text-[12px] leading-4.5 text-[#787878]">VNĐ</span>
   );
 }
 

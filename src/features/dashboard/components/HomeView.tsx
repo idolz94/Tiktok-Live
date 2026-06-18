@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { DrawlerBase } from "@/components/ui/Drawler";
@@ -97,7 +98,8 @@ export default function HomeView({
   onConnectTikTokLive: (username: string) => Promise<boolean | void>;
   onLiveControlsHiddenChange?: (hidden: boolean) => void;
   onChannelAdded?: () => void | Promise<void>;
-})  {
+}) {
+  const router = useRouter();
   const [commentTab, setCommentTab] = useState<CommentTab>("all");
   const [selectedUsername, setSelectedUsername] = useState(tiktokUsername || "");
   const [showAddChannel, setShowAddChannel] = useState(false);
@@ -476,6 +478,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
                   onToggleDeposit={onToggleDeposit}
                   onConfirmOrder={onConfirmOrder}
                   onOpenOverview={onOpenOrderOverview}
+                  onOpenCustomer={(key) => router.push(`/dashboard/customers/${encodeURIComponent(key)}`)}
                   isDepositLoading={depositLoadingIds.has(item.id)}
                 />
               ))

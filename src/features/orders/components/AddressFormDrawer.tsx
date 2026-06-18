@@ -12,7 +12,6 @@ import {
   fetchVnWards,
 } from "@/lib/vn-geo";
 import { GradientButton } from "./shared";
-import { RadioIcon } from "./icons";
 
 export type AddressFormState = {
   name: string;
@@ -32,14 +31,15 @@ type Props = {
   initial?: Partial<AddressFormState> & { id?: string };
   saving: boolean;
   onSave: (data: AddressFormState) => void;
+  isFirstAddress?: boolean;
 };
 
-export function AddressFormDrawer({ open, onOpenChange, title, initial, saving, onSave }: Props) {
+export function AddressFormDrawer({ open, onOpenChange, title, initial, saving, onSave, isFirstAddress }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [address, setAddress] = useState(initial?.address ?? "");
   const [label, setLabel] = useState(initial?.label ?? "");
-  const [isDefault, setIsDefault] = useState(initial?.isDefault ?? false);
+  const [isDefault, setIsDefault] = useState(initial?.isDefault ?? isFirstAddress ?? false);
 
   const [draftProvince, setDraftProvince] = useState(initial?.province ?? "");
   const [draftDistrict, setDraftDistrict] = useState(initial?.district ?? "");
@@ -53,6 +53,37 @@ export function AddressFormDrawer({ open, onOpenChange, title, initial, saving, 
   const [districtOpen, setDistrictOpen] = useState(false);
   const [wardOpen, setWardOpen] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof AddressFormState, string>>>({});
+  const [touched, setTouched] = useState<Partial<Record<"name" | "phone", boolean>>>({});
+
+  // Đầu số VN theo VNPT/Bộ TT&TT (tính đến 2024):
+  // Viettel:      032-039, 086, 096, 097, 098
+  // Mobifone:     070, 076, 077, 078, 079, 089, 090, 093
+  // Vinaphone:    081, 082, 083, 084, 085, 088, 091, 094
+  // Vietnamobile: 052, 056, 058, 092
+  // Gmobile:      059
+  // Reddi:        055
+  const VN_PHONE_RE = /^(\+84|0)(3[2-9]|5[25689]|7[06-9]|8[1-689]|9[0-46-8])\d{7}$/;
+
+  function validateName(v: string): string | undefined {
+    const t = v.trim();
+    if (!t) return "Họ và tên không được để trống";
+    if (t.length < 4) return "Họ và tên phải có ít nhất 4 ký tự";
+    if (t.length > 64) return "Họ và tên không được vượt quá 64 ký tự";
+    return undefined;
+  }
+
+  function validatePhone(v: string): string | undefined {
+    const t = v.trim();
+    if (!t) return "Số điện thoại không được để trống";
+    const digits = t.replace(/\D/g, "");
+    if (digits.length < 10 || digits.length > 12) return "Số điện thoại phải từ 10 đến 12 chữ số";
+    if (!VN_PHONE_RE.test(t)) return "Số điện thoại không đúng nhà mạng Việt Nam";
+    return undefined;
+  }
+
+  const nameError = touched.name ? validateName(name) : undefined;
+  const phoneDigits = phone.replace(/\D/g, "");
+  const phoneError = (touched.phone || phoneDigits.length >= 10) ? validatePhone(phone) : undefined;
 
   useEffect(() => {
     if (!open) return;
@@ -61,8 +92,9 @@ export function AddressFormDrawer({ open, onOpenChange, title, initial, saving, 
     setPhone(initial?.phone ?? "");
     setAddress(initial?.address ?? "");
     setLabel(initial?.label ?? "");
-    setIsDefault(initial?.isDefault ?? false);
+    setIsDefault(initial?.isDefault ?? isFirstAddress ?? false);
     setErrors({});
+    setTouched({});
 
     const p = initial?.province ?? "";
     const d = initial?.district ?? "";
@@ -106,25 +138,19 @@ export function AddressFormDrawer({ open, onOpenChange, title, initial, saving, 
 
   const validate = (): boolean => {
     const next: Partial<Record<keyof AddressFormState, string>> = {};
-    if (!name.trim()) {
-      next.name = "Họ và tên không được để trống";
-    } else if (/[^a-zA-ZÀ-ỹ\s]/.test(name.trim())) {
-      next.name = "Họ và tên không được chứa ký tự đặc biệt";
-    }
-    const digits = phone.trim().replace(/\D/g, "");
-    if (!phone.trim()) {
-      next.phone = "Số điện thoại không được để trống";
-    } else if (digits.length < 10 || digits.length > 12) {
-      next.phone = "Số điện thoại phải từ 10 đến 12 chữ số";
-    }
+    const nameErr = validateName(name);
+    const phoneErr = validatePhone(phone);
+    if (nameErr) next.name = nameErr;
+    if (phoneErr) next.phone = phoneErr;
     if (!draftProvince) next.province = "Vui lòng chọn tỉnh/thành phố";
     if (!draftDistrict) next.district = "Vui lòng chọn huyện/quận";
     if (!draftWard) next.ward = "Vui lòng chọn phường/xã";
     setErrors(next);
+    setTouched({ name: true, phone: true });
     return Object.keys(next).length === 0;
   };
 
-  const canSave = !saving;
+  const canSave = !saving && !validateName(name) && !validatePhone(phone) && !!draftProvince && !!draftDistrict && !!draftWard;
 
   return (
     <>
@@ -149,17 +175,34 @@ export function AddressFormDrawer({ open, onOpenChange, title, initial, saving, 
         <div className="flex flex-col gap-5 px-4 pb-4">
           <div className="flex flex-col gap-2">
             <label className="text-[14px] text-[#484848]">Họ và tên</label>
-            <div className={`flex h-12 items-center rounded-xl border px-4 ${errors.name ? "border-red-400" : "border-black/10"}`}>
-              <input type="text" value={name} onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: undefined })); }} onFocus={(e) => e.currentTarget.scrollIntoView({ behavior: "smooth", block: "center" })} placeholder="Nhập họ và tên" className="min-w-0 flex-1 bg-transparent text-[14px] text-black outline-none placeholder:text-[#787878]" />
+            <div className={`flex h-12 items-center rounded-xl border px-4 ${nameError ? "border-red-400" : "border-black/10"}`}>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onBlur={() => setTouched((p) => ({ ...p, name: true }))}
+                onFocus={(e) => e.currentTarget.scrollIntoView({ behavior: "smooth", block: "center" })}
+                placeholder="Nhập họ và tên"
+                className="min-w-0 flex-1 bg-transparent text-[14px] text-black outline-none placeholder:text-[#787878]"
+              />
             </div>
-            {errors.name && <p className="text-[12px] text-red-500">{errors.name}</p>}
+            {nameError && <p className="text-[12px] text-red-500">{nameError}</p>}
           </div>
           <div className="flex flex-col gap-2">
             <label className="text-[14px] text-[#484848]">Số điện thoại</label>
-            <div className={`flex h-12 items-center rounded-xl border px-4 ${errors.phone ? "border-red-400" : "border-black/10"}`}>
-              <input type="tel" inputMode="tel" value={phone} onChange={(e) => { setPhone(e.target.value); setErrors((p) => ({ ...p, phone: undefined })); }} onFocus={(e) => e.currentTarget.scrollIntoView({ behavior: "smooth", block: "center" })} placeholder="Nhập số điện thoại" className="min-w-0 flex-1 bg-transparent text-[14px] text-black outline-none placeholder:text-[#787878]" />
+            <div className={`flex h-12 items-center rounded-xl border px-4 ${phoneError ? "border-red-400" : "border-black/10"}`}>
+              <input
+                type="tel"
+                inputMode="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                onBlur={() => setTouched((p) => ({ ...p, phone: true }))}
+                onFocus={(e) => e.currentTarget.scrollIntoView({ behavior: "smooth", block: "center" })}
+                placeholder="Nhập số điện thoại"
+                className="min-w-0 flex-1 bg-transparent text-[14px] text-black outline-none placeholder:text-[#787878]"
+              />
             </div>
-            {errors.phone && <p className="text-[12px] text-red-500">{errors.phone}</p>}
+            {phoneError && <p className="text-[12px] text-red-500">{phoneError}</p>}
           </div>
           <div className="flex flex-col gap-2">
             <label className="text-[14px] text-[#484848]">Tỉnh/Thành phố</label>
@@ -205,9 +248,16 @@ export function AddressFormDrawer({ open, onOpenChange, title, initial, saving, 
               <textarea value={address} onChange={(e) => setAddress(e.target.value)} onFocus={(e) => e.currentTarget.scrollIntoView({ behavior: "smooth", block: "center" })} placeholder="Nhập địa chỉ chi tiết (số nhà, đường...)" rows={2} className="min-w-0 flex-1 resize-none bg-transparent text-[14px] text-black outline-none placeholder:text-[#787878]" />
             </div>
           </div>
-          <button type="button" onClick={() => setIsDefault((v) => !v)} className="flex items-center gap-3">
-            <RadioIcon active={isDefault} />
-            <span className="text-[14px] text-black">Đặt làm địa chỉ mặc định</span>
+          <button
+            type="button"
+            onClick={() => !isFirstAddress && setIsDefault((v) => !v)}
+            className="flex items-center gap-3 text-left"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke={isDefault ? "#ff6b8a" : "#dadada"} strokeWidth="2" />
+              {isDefault && <circle cx="12" cy="12" r="5" fill="#ff6b8a" />}
+            </svg>
+            <span className="text-[14px] leading-5.5 text-[#0c0c0c]">Đặt làm địa chỉ mặc định</span>
           </button>
         </div>
       </DrawlerBase>

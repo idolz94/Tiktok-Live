@@ -69,13 +69,14 @@ export async function listShopAddressesApi(): Promise<ShopAddress[]> {
 }
 
 export async function createShopAddressApi(body: AddressBody): Promise<ShopAddress> {
-  const data = await postRequest<{ address: ShopAddress }>("/me/shop-addresses", body);
-  return data.address;
+  const raw = await postRequest<any>("/me/shop-addresses", body);
+  // backend returns { status:"success", data:{ address:{...} } } — unwrapEnvelope won't peel it
+  return (raw?.data?.address ?? raw?.address ?? raw) as ShopAddress;
 }
 
 export async function updateShopAddressApi(addressId: string, body: AddressBody): Promise<ShopAddress> {
-  const data = await patchRequest<{ address: ShopAddress }>(`/me/shop-addresses/${addressId}`, body);
-  return data.address;
+  const raw = await patchRequest<any>(`/me/shop-addresses/${addressId}`, body);
+  return (raw?.data?.address ?? raw?.address ?? raw) as ShopAddress;
 }
 
 export async function deleteShopAddressApi(addressId: string): Promise<void> {
@@ -90,8 +91,8 @@ export async function listCustomerAddressesApi(customerId: string): Promise<Cust
 }
 
 export async function createCustomerAddressApi(customerId: string, body: AddressBody): Promise<CustomerAddress> {
-  const data = await postRequest<{ address: CustomerAddress }>(`/customers/${customerId}/addresses`, body);
-  return data.address;
+  const raw = await postRequest<any>(`/customers/${customerId}/addresses`, body);
+  return (raw?.data?.address ?? raw?.address ?? raw) as CustomerAddress;
 }
 
 export async function updateCustomerAddressApi(
@@ -99,11 +100,8 @@ export async function updateCustomerAddressApi(
   addressId: string,
   body: AddressBody,
 ): Promise<CustomerAddress> {
-  const data = await patchRequest<{ address: CustomerAddress }>(
-    `/customers/${customerId}/addresses/${addressId}`,
-    body,
-  );
-  return data.address;
+  const raw = await patchRequest<any>(`/customers/${customerId}/addresses/${addressId}`, body);
+  return (raw?.data?.address ?? raw?.address ?? raw) as CustomerAddress;
 }
 
 export async function deleteCustomerAddressApi(customerId: string, addressId: string): Promise<void> {

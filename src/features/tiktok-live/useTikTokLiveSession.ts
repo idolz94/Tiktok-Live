@@ -43,6 +43,7 @@ export function useTikTokLiveSession(options: { hasHistory?: boolean } = {}) {
   const [currentLiveSession, setCurrentLiveSessionState] =
     useState<LiveHistoryItem | null>(null);
   const [liveHistory, setLiveHistory] = useState<LiveHistoryItem[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [currentLiveSessionId, setCurrentLiveSessionId] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState(0);
 
@@ -58,22 +59,34 @@ export function useTikTokLiveSession(options: { hasHistory?: boolean } = {}) {
 
   const isRunning = Boolean(currentLiveSession?.startedAt && !currentLiveSession?.endedAt);
 
+  const hasHistoryRef = useRef(options.hasHistory);
+  hasHistoryRef.current = options.hasHistory;
+
   const reloadLiveHistory = useCallback(async () => {
-    if (options.hasHistory === false) return [];
+    if (hasHistoryRef.current === false) {
+      setIsHistoryLoading(false);
+      return [];
+    }
     try {
+      setIsHistoryLoading(true);
       const history = await getLiveHistoryApi();
       setLiveHistory(history);
       return history;
     } catch (error) {
       if (process.env.NEXT_PUBLIC_NODE_ENV === "development") console.error("LOAD LIVE HISTORY ERROR:", error);
       return [];
+    } finally {
+      setIsHistoryLoading(false);
     }
   }, []);
 
+  // Wait until hasHistory is resolved (not undefined) before doing initial load.
+  // This prevents a spurious call when hasHistory===false (no live sessions yet).
+  const hasHistoryResolved = options.hasHistory !== undefined;
+
   useEffect(() => {
-    // Delay initial load to give Clerk time to hydrate the session token
-    // after login/register redirect. The lumi-auth-change event resets the
-    // token cache; we wait an extra tick after that before fetching.
+    if (!hasHistoryResolved) return;
+
     const timer = window.setTimeout(() => {
       void reloadLiveHistory();
     }, 800);
@@ -91,7 +104,7 @@ export function useTikTokLiveSession(options: { hasHistory?: boolean } = {}) {
       window.clearTimeout(timer);
       window.removeEventListener("lumi-auth-change", onAuthChange);
     };
-  }, [reloadLiveHistory]);
+  }, [hasHistoryResolved, reloadLiveHistory]);
 
   useEffect(() => {
     if (!isRunning) return;
@@ -283,6 +296,7 @@ export function useTikTokLiveSession(options: { hasHistory?: boolean } = {}) {
     currentLiveSession,
     currentLiveSessionId,
     liveHistory,
+    isHistoryLoading,
     liveDurationSeconds,
     liveNowText,
     reloadLiveHistory,

@@ -41,6 +41,7 @@ export default function DashboardOrderOverviewPage() {
       }}
       isDepositLoading={orderManager.depositLoadingIds.has(order.id)}
       userName={user?.username ?? undefined}
+      onCustomerClick={(key) => router.push(`/dashboard/customers/${encodeURIComponent(key)}`)}
     />
   );
 }

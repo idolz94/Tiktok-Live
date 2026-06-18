@@ -156,6 +156,12 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
 
   const isLogin = mode === "login";
 
+  const canSubmitRegister =
+    fullName.trim().length > 0 &&
+    username.trim().length > 0 &&
+    password.length >= 8 &&
+    agreedToTerms;
+
   async function handleSubmit() {
     const trimmedUsername = username.trim();
 
@@ -208,7 +214,8 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
         const result = await signUp.create({
           username: trimmedUsername,
           password,
-          firstName: fullName.trim(),
+          firstName: fullName.trim().split(" ")[0],
+          lastName: fullName.trim().split(" ").slice(1).join(" ") || ".",
           unsafeMetadata: {
             tiktokId: tiktokId.trim(),
           },
@@ -423,7 +430,7 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
                       <button
                         type="button"
                         onClick={handleSubmit}
-                        disabled={isSubmitting || !agreedToTerms}
+                        disabled={isSubmitting || !canSubmitRegister}
                         className="flex h-14 w-full items-center justify-center rounded-[40px] text-[16px] font-medium text-black disabled:opacity-40 font-['Inter_Display',sans-serif]"
                         style={{
                           background: "linear-gradient(138.46deg, #FF6B8A 13.52%, #FFA66D 52.12%, #FFC86A 117.76%)",
