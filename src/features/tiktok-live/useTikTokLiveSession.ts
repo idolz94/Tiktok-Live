@@ -30,7 +30,8 @@ function mergeSession(oldSession: LiveHistoryItem | null, nextSession: LiveHisto
     ...(oldSession || {}),
     ...nextSession,
     startedAt: oldSession?.startedAt || nextSession.startedAt,
-    comments: oldSession?.comments?.length ? oldSession.comments : nextSession.comments || [],
+    // Không merge comments vào running session state — sessionCommentsRef là nguồn duy nhất
+    comments: [],
     orders: oldSession?.orders?.length ? oldSession.orders : nextSession.orders || [],
   } as LiveHistoryItem;
 }
@@ -39,13 +40,14 @@ export function useTikTokLiveSession(options: { hasHistory?: boolean } = {}) {
   const currentLiveSessionRef = useRef<LiveHistoryItem | null>(null);
   const currentDbLiveSessionIdRef = useRef<string | null>(null);
   const sessionCommentsRef = useRef<LiveComment[]>([]);
+  // Track timer tick independently — avoids re-rendering the session state on every tick
+  const [tickCount, setTickCount] = useState(0);
 
   const [currentLiveSession, setCurrentLiveSessionState] =
     useState<LiveHistoryItem | null>(null);
   const [liveHistory, setLiveHistory] = useState<LiveHistoryItem[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [currentLiveSessionId, setCurrentLiveSessionId] = useState<string | null>(null);
-  const [nowMs, setNowMs] = useState(0);
 
   const setDbLiveSessionId = useCallback((id: string | null) => {
     currentDbLiveSessionIdRef.current = id;
@@ -109,10 +111,9 @@ export function useTikTokLiveSession(options: { hasHistory?: boolean } = {}) {
   useEffect(() => {
     if (!isRunning) return;
 
-    // Chỉ phụ thuộc isRunning: interval không restart khi session object thay đổi reference
-    // (ví dụ mỗi khi nhận comment), tránh đếm lại từ đầu.
+    // Chỉ phụ thuộc isRunning: interval không restart khi session object thay đổi reference.
     const timer = window.setInterval(() => {
-      setNowMs(Date.now());
+      setTickCount((n) => n + 1);
     }, 1000);
 
     return () => {
@@ -121,26 +122,22 @@ export function useTikTokLiveSession(options: { hasHistory?: boolean } = {}) {
   }, [isRunning]);
 
   const liveDurationSeconds = useMemo(() => {
-    if (!currentLiveSession?.startedAt) return 0;
+    const session = currentLiveSessionRef.current;
+    if (!session?.startedAt) return 0;
+    if (session.endedAt) return session.durationSeconds || 0;
 
-    if (currentLiveSession.endedAt) {
-      return currentLiveSession.durationSeconds || 0;
-    }
-
-    if (!nowMs) {
-      return currentLiveSession.durationSeconds || 0;
-    }
-
-    const start = new Date(currentLiveSession.startedAt).getTime();
+    // tickCount is the dependency that drives updates every second without storing nowMs in state
+    void tickCount;
+    const start = new Date(session.startedAt).getTime();
     if (!start) return 0;
-
-    return Math.max(0, Math.floor((nowMs - start) / 1000));
-  }, [currentLiveSession, nowMs]);
+    return Math.max(0, Math.floor((Date.now() - start) / 1000));
+  }, [tickCount]);
 
   const liveNowText = useMemo(() => {
     if (!isRunning) return "";
-    return formatNowText(nowMs);
-  }, [isRunning, nowMs]);
+    void tickCount;
+    return formatNowText(Date.now());
+  }, [isRunning, tickCount]);
 
   const clearLiveHistory = useCallback(() => {
     setLiveHistory([]);
@@ -150,12 +147,13 @@ export function useTikTokLiveSession(options: { hasHistory?: boolean } = {}) {
     sessionCommentsRef.current = [];
     setCurrentLiveSession(null);
     setDbLiveSessionId(null);
-    setNowMs(0);
   }, [setCurrentLiveSession, setDbLiveSessionId]);
 
   const startSessionFromPayload = useCallback(
     (payload: unknown) => {
       const nextSession = normalizeLiveSession(payload);
+      // Strip comments from the running-session state — sessionCommentsRef is the source of truth
+      nextSession.comments = [];
       const currentSession = currentLiveSessionRef.current;
       const dbLiveSessionId = nextSession.id || null;
 
@@ -166,14 +164,12 @@ export function useTikTokLiveSession(options: { hasHistory?: boolean } = {}) {
         const mergedSession = mergeSession(currentSession, nextSession);
         setCurrentLiveSession(mergedSession);
         setDbLiveSessionId(dbLiveSessionId);
-        setNowMs(Date.now());
         return mergedSession;
       }
 
       sessionCommentsRef.current = [];
       setCurrentLiveSession(nextSession);
       setDbLiveSessionId(dbLiveSessionId);
-      setNowMs(Date.now());
 
       return nextSession;
     },
@@ -207,7 +203,6 @@ export function useTikTokLiveSession(options: { hasHistory?: boolean } = {}) {
       sessionCommentsRef.current = [];
       setCurrentLiveSession(null);
       setDbLiveSessionId(null);
-      setNowMs(0);
 
       window.setTimeout(() => {
         void reloadLiveHistory();
@@ -244,7 +239,6 @@ export function useTikTokLiveSession(options: { hasHistory?: boolean } = {}) {
       sessionCommentsRef.current = [];
       setCurrentLiveSession(null);
       setDbLiveSessionId(null);
-      setNowMs(0);
 
       window.setTimeout(() => {
         void reloadLiveHistory();
@@ -278,15 +272,11 @@ export function useTikTokLiveSession(options: { hasHistory?: boolean } = {}) {
 
       sessionCommentsRef.current = nextComments;
 
+      // Only update the count on the session state — avoid spreading the full comments array
+      // into React state on every incoming comment (this is the main memory/render hotspot).
       const session = currentLiveSessionRef.current;
-      if (session) {
-        const nextSession: LiveHistoryItem = {
-          ...session,
-          commentCount: nextComments.length,
-          comments: nextComments,
-        };
-
-        setCurrentLiveSession(nextSession);
+      if (session && session.commentCount !== nextComments.length) {
+        setCurrentLiveSession({ ...session, commentCount: nextComments.length });
       }
     },
     [setCurrentLiveSession],

@@ -1,11 +1,17 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { ClerkProvider } from "@clerk/nextjs";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { Toaster } from "sonner";
-import { ClerkTokenSync } from "@/components/ClerkTokenSync";
 import SessionExpiredDrawer from "@/components/SessionExpiredDrawer";
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import "./tailwind.css";
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin", "vietnamese"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  display: "swap",
+  variable: "--font-plus-jakarta-sans",
+});
 
 export const metadata: Metadata = {
   title: "TikTok Live Web App",
@@ -35,16 +41,13 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <ClerkProvider>
-      <html lang="vi">
-        <body className="min-h-dvh bg-[#f4f7f8] text-[#273044] antialiased overflow-hidden">
-          <ClerkTokenSync />
-          {children}
-          <SessionExpiredDrawer />
-          <SpeedInsights/>
-          <Toaster position="top-center" richColors />
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="vi" className={plusJakartaSans.variable}>
+      <body className="min-h-dvh bg-[#f4f7f8] text-[#273044] antialiased overflow-hidden font-(family-name:--font-plus-jakarta-sans)">
+        {children}
+        <SessionExpiredDrawer />
+        <SpeedInsights/>
+        <Toaster position="top-center" richColors />
+      </body>
+    </html>
   );
 }

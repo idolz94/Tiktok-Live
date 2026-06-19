@@ -226,7 +226,7 @@ export default function OrderOverviewScreen({
         >
           <BackIcon />
         </button>
-        <h1 className="min-w-0 flex-1 px-4 text-center text-[24px] font-semibold leading-7 text-black">
+        <h1 className="min-w-0 flex-1 px-4 text-center text-[20px] font-semibold leading-7 text-black">
           Tổng quan đơn hàng
         </h1>
         <div className="h-11 w-11" />

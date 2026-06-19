@@ -110,7 +110,7 @@ export type LicensePlan = {
 export type ShopLicense = {
   id: ID;
   shop_id: ID;
-  plan_code: 'free' | 'basic' | 'pro' | 'business';
+  plan_code: 'trial' | 'basic' | 'pro' | 'vip';
   status: LicenseStatus;
   started_at: ISODateString;
   expired_at: ISODateString | null;

@@ -35,6 +35,7 @@ function getRelativeDateTitle(dateKey: string): string {
   return `${d}/${m}/${y}`;
 }
 
+
 function getSessionDuration(item: LiveHistoryItem) {
   if (item.durationSeconds) return item.durationSeconds;
   if (!item.startedAt || !item.endedAt) return 0;
@@ -44,9 +45,6 @@ function getSessionDuration(item: LiveHistoryItem) {
   return Math.max(0, Math.floor((end - start) / 1000));
 }
 
-function hasOrders(item: LiveHistoryItem) {
-  return Number(item.orderCount || item.orders?.length || 0) > 0;
-}
 
 function formatTotalDuration(seconds: number) {
   const h = Math.floor(seconds / 3600);
@@ -146,7 +144,8 @@ export default function PlaceholderView({ liveHistory, onSelectSession }: Placeh
 
     liveHistory?.forEach((item) => {
       if (!item.startedAt) return;
-      if (!hasOrders(item)) return;
+      if (Number(item.commentCount || item.comments?.length || 0) === 0) return;
+      if (Number(item.orderCount || item.orders?.length || 0) === 0) return;
 
       const dateKey = getDateKey(item.startedAt);
       const existing = map.get(dateKey);
@@ -183,7 +182,7 @@ export default function PlaceholderView({ liveHistory, onSelectSession }: Placeh
           </svg>
         </div>
         <p className="text-[14px] font-medium text-[#2b2b2b]">Chưa có lịch sử LIVE</p>
-        <p className="mt-1 text-[12px] text-[#787878]">Các phiên live có đơn hàng sẽ xuất hiện ở đây.</p>
+        <p className="mt-1 text-[12px] text-[#787878]">Các phiên live có comment sẽ xuất hiện ở đây.</p>
       </div>
     );
   }

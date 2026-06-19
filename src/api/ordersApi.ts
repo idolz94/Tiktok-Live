@@ -279,3 +279,25 @@ export async function getShippingTrackingApi(orderId: string): Promise<GhtkTrack
   const data = await getRequest<any>(`/orders/${orderId}/shipping/tracking`);
   return (data?.tracking ?? data) as GhtkTrackingResult;
 }
+
+export type ManualShippingPayload = {
+  trackingCode: string;
+  providerName?: string;
+  shippingFee?: number;
+  note?: string;
+};
+
+export type ManualShippingResult = {
+  orderId: string;
+  trackingCode: string;
+  providerName: string;
+  shippingStatus: string;
+};
+
+export async function submitManualShippingApi(
+  orderId: string,
+  payload: ManualShippingPayload,
+): Promise<ManualShippingResult> {
+  const data = await postRequest<any>(`/orders/${orderId}/shipping/manual`, payload);
+  return (data?.shipping ?? data) as ManualShippingResult;
+}

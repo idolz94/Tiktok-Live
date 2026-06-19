@@ -1,31 +1,76 @@
-// Auth is now handled entirely by Clerk.
-// This file is kept as a stub so existing imports don't break during migration.
-// Remove references to these exports from any remaining callers.
+import { postRequest } from "@/lib/request";
+import { setMemoryToken, clearMemoryToken } from "@/lib/request";
 
-export type SignUpPayload = {
-  fullName: string;
-  phone: string;
+export type LoginPayload = {
+  username: string;
+  password: string;
+};
+
+export type RegisterPayload = {
+  username: string;
   password: string;
   tiktokId: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
 };
 
-export type SignInPayload = {
-  phone: string;
-  password: string;
-  remember?: boolean;
+export type AuthUserResponse = {
+  id: string;
+  username: string;
+  email?: string | null;
+  fullName?: string | null;
 };
 
-/** @deprecated Use Clerk useSignIn hook instead */
-export async function signInApi(_payload: SignInPayload): Promise<void> {
-  throw new Error("signInApi is deprecated — use Clerk useSignIn hook");
+export type AuthResponse = {
+  user: AuthUserResponse;
+  accessToken: string;
+};
+
+const SESSION_KEY = "lumi_has_session";
+
+export function markHasSession() {
+  try { localStorage.setItem(SESSION_KEY, "1"); } catch {}
 }
 
-/** @deprecated Use Clerk useSignUp hook instead */
-export async function signUpApi(_payload: SignUpPayload): Promise<void> {
-  throw new Error("signUpApi is deprecated — use Clerk useSignUp hook");
+export function clearHasSession() {
+  try {
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem("lumi_live_resume_username");
+  } catch {}
 }
 
-/** @deprecated Use Clerk signOut() instead */
-export async function signOutApi(): Promise<boolean> {
-  throw new Error("signOutApi is deprecated — use Clerk signOut()");
+export function hasSession(): boolean {
+  try { return localStorage.getItem(SESSION_KEY) === "1"; } catch { return false; }
+}
+
+export async function loginApi(payload: LoginPayload): Promise<AuthResponse> {
+  const response = await postRequest<AuthResponse>("/auth/login", payload, { skipSessionExpired: true, skipRefresh: true });
+  setMemoryToken(response.accessToken);
+  markHasSession();
+  return response;
+}
+
+export async function registerApi(payload: RegisterPayload): Promise<AuthResponse> {
+  const response = await postRequest<AuthResponse>("/auth/register", payload, { skipSessionExpired: true, skipRefresh: true });
+  setMemoryToken(response.accessToken);
+  markHasSession();
+  return response;
+}
+
+export async function refreshApi(): Promise<{ accessToken: string }> {
+  const response = await postRequest<{ accessToken: string }>("/auth/refresh", {}, { skipSessionExpired: true });
+  setMemoryToken(response.accessToken);
+  markHasSession();
+  return response;
+}
+
+export async function logoutApi(): Promise<void> {
+  clearMemoryToken();
+  clearHasSession();
+  try {
+    await postRequest("/auth/logout", {});
+  } catch {
+    // ignore errors on logout
+  }
 }

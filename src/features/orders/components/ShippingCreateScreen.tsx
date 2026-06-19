@@ -16,7 +16,7 @@ import {
   updateCustomerAddressApi,
   deleteCustomerAddressApi,
 } from "@/lib/addresses";
-import { getShippingFeeApi, submitOrderToGhtkApi, patchOrderApi } from "@/api/ordersApi";
+import { getShippingFeeApi, submitOrderToGhtkApi, submitManualShippingApi, patchOrderApi } from "@/api/ordersApi";
 import { BackIcon, SettingsIcon, MinusIcon, PlusIcon, PencilLineIcon } from "./icons";
 import { Divider, InputField, GradientButton, ToggleSwitch, UnitBadge, RadioOptionRow, VndBadge } from "./shared";
 import { AddressFormDrawer, type AddressFormState } from "./AddressFormDrawer";
@@ -35,6 +35,8 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
     (sum, product) => sum + Number(product.quantity || 0),
     0,
   );
+
+  const [shippingMode, setShippingMode] = useState<"ghtk" | "manual">("ghtk");
 
   const [dimensionsOpen, setDimensionsOpen] = useState(false);
   const [autoScale, setAutoScale] = useState(true);
@@ -58,6 +60,11 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
   const [customerAddressesLoading, setCustomerAddressesLoading] = useState(false);
   const [selectedRecipient, setSelectedRecipient] = useState<CustomerAddress | null>(null);
   const [recipientSaving, setRecipientSaving] = useState(false);
+
+  const [manualTrackingCode, setManualTrackingCode] = useState("");
+  const [manualProviderName, setManualProviderName] = useState("");
+  const [manualShippingFee, setManualShippingFee] = useState("");
+  const [manualNote, setManualNote] = useState("");
 
   const [paymentOption, setPaymentOption] = useState<"sender" | "receiver">("sender");
   const [transport, setTransport] = useState<"road" | "fly">("road");
@@ -227,6 +234,37 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
     }
   }
 
+  async function handleSubmitManual() {
+    if (!manualTrackingCode.trim()) {
+      toast.warning("Vui lòng nhập mã vận đơn");
+      return;
+    }
+    const fee = manualShippingFee.trim() ? Number(manualShippingFee) : undefined;
+    if (fee !== undefined && (isNaN(fee) || fee < 0)) {
+      toast.warning("Phí vận chuyển không hợp lệ");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await submitManualShippingApi(order.id, {
+        trackingCode: manualTrackingCode.trim(),
+        providerName: manualProviderName.trim() || undefined,
+        shippingFee: fee,
+        note: manualNote.trim() || undefined,
+      });
+      toast.success("Đã tạo vận đơn thủ công thành công!");
+      if (onShippingSubmitted) {
+        onShippingSubmitted();
+      } else {
+        onBack();
+      }
+    } catch (err: any) {
+      toast.error(err?.message ?? "Tạo vận đơn thủ công thất bại. Vui lòng thử lại.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function fetchEstimatedFee() {
     if (
       !selectedSender?.province ||
@@ -271,8 +309,8 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
         <button type="button" onClick={onBack} className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]">
           <BackIcon />
         </button>
-        <h1 className="min-w-0 flex-1 px-4 text-center text-20 font-semibold leading-7 text-black">
-          Tạo đơn hàng
+        <h1 className="min-w-0 flex-1 px-4 text-center text-[20px] font-semibold leading-7 text-black">
+          Tạo đơn hàng 
         </h1>
         <button type="button" onClick={() => setDimensionsOpen(true)} className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]">
           <SettingsIcon />
@@ -280,6 +318,14 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto pb-[124px] [-webkit-overflow-scrolling:touch]">
+        <section className="px-4 py-4">
+          <h2 className="text-[16px] leading-6 text-black">Phương thức vận chuyển</h2>
+          <div className="mt-3 flex flex-col gap-3">
+            <RadioOptionRow label="GHTK" active={shippingMode === "ghtk"} onClick={() => setShippingMode("ghtk")} />
+            <RadioOptionRow label="Thủ công" active={shippingMode === "manual"} onClick={() => setShippingMode("manual")} />
+          </div>
+        </section>
+
         <Divider />
 
         <section className="px-4 py-4">
@@ -398,135 +444,230 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
 
         <Divider />
 
-        <section className="px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[16px] leading-6 text-black">Thông tin đơn hàng</h2>
-            <button type="button" onClick={() => setDimensionsOpen(true)} className="flex items-center gap-2">
-              <PencilLineIcon />
-              <span className="text-[14px] font-medium leading-[22px] text-black">Thay đổi</span>
-            </button>
-          </div>
-          <div className="mt-3 flex flex-col gap-[8px] rounded-[16px] border-[0.5px] border-black/10 bg-[#f2f2f2] p-[16px]">
-            {([
-              ["M", `${dimLength} cm`, <svg key="d" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 7H2M22 17H2M12 7v10" stroke="#484848" strokeWidth="1.8" strokeLinecap="round"/></svg>],
-              ["R", `${dimWidth} cm`, <svg key="w" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7 2v20M17 2v20M7 12h10" stroke="#484848" strokeWidth="1.8" strokeLinecap="round"/></svg>],
-              ["C", `${dimHeight} cm`, <svg key="h" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20" stroke="#484848" strokeWidth="1.8" strokeLinecap="round"/></svg>],
-              ["KL", `${dimWeight} gram`, <svg key="kg" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2a4 4 0 0 1 4 4H8a4 4 0 0 1 4-4z" stroke="#484848" strokeWidth="1.8"/><path d="M3 8h18l-2 13H5L3 8z" stroke="#484848" strokeWidth="1.8" strokeLinejoin="round"/></svg>],
-            ] as [string, string, React.ReactNode][]).map(([label, value, icon]) => (
-              <div key={label} className="flex items-center gap-[8px]">
-                {icon}
-                <span className="flex-1 text-[14px] leading-[22px] text-[#484848]">
-                  {label === "M" ? "Dài" : label === "R" ? "Rộng" : label === "C" ? "Cao" : "Khối lượng"}
-                </span>
-                <span className="text-[14px] font-medium leading-[22px] text-black">{value}</span>
+        {shippingMode === "manual" ? (
+          <>
+            <section className="px-4 py-4">
+              <h2 className="text-[16px] leading-6 text-black">Mã vận đơn</h2>
+              <div className="mt-3">
+                <InputField label="Nhập mã vận đơn" placeholder="VD: TK123456789">
+                  <input
+                    value={manualTrackingCode}
+                    onChange={(e) => setManualTrackingCode(e.target.value)}
+                    placeholder="VD: TK123456789"
+                    className="min-w-0 flex-1 bg-transparent text-[14px] leading-5.5 text-black outline-none placeholder:text-[#787878]"
+                  />
+                </InputField>
               </div>
-            ))}
-          </div>
-          <div className="mt-3 flex h-12 items-center justify-between rounded-full bg-[#f2f2f2] px-1">
-            <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black shadow-sm">
-              <MinusIcon />
-            </button>
-            <span className="text-[16px] font-semibold text-black">{totalQuantity || 2}</span>
-            <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black shadow-sm">
-              <PlusIcon />
-            </button>
-          </div>
-        </section>
+            </section>
 
-        <Divider />
+            <Divider />
 
-        <section className="px-4 py-4">
-          <h2 className="text-[16px] leading-6 text-black">Thông tin thanh toán</h2>
-          <div className="mt-3 flex flex-col gap-4">
-            <InputField label="Tiền thu hộ (COD)" suffix={<VndBadge />}>
-              <input readOnly value={Number(order.codAmount ?? 0).toLocaleString("vi-VN")} className="min-w-0 flex-1 bg-transparent text-[14px] leading-[22px] text-black outline-none" />
-            </InputField>
-            <InputField label="Tạm tính" suffix={<VndBadge />}>
-              <input readOnly value={Number(productTotal ?? 0).toLocaleString("vi-VN")} className="min-w-0 flex-1 bg-transparent text-[14px] leading-[22px] text-black outline-none" />
-            </InputField>
-          </div>
-        </section>
+            <section className="px-4 py-4">
+              <h2 className="text-[16px] leading-6 text-black">Tên nhà vận chuyển</h2>
+              <div className="mt-3">
+                <InputField label="VD: Thủ công, Ninja Van, AHA" placeholder="Để trống = Thủ công">
+                  <input
+                    value={manualProviderName}
+                    onChange={(e) => setManualProviderName(e.target.value)}
+                    placeholder="Để trống = Thủ công"
+                    className="min-w-0 flex-1 bg-transparent text-[14px] leading-5.5 text-black outline-none placeholder:text-[#787878]"
+                  />
+                </InputField>
+              </div>
+            </section>
 
-        <Divider />
+            <Divider />
 
-        <section className="px-4 py-4">
-          <h2 className="text-[16px] leading-6 text-black">Tùy chọn thanh toán</h2>
-          <div className="mt-3 flex flex-col gap-3">
-            <RadioOptionRow label="Bên gửi trả phí" active={paymentOption === "sender"} onClick={() => setPaymentOption("sender")} />
-            <RadioOptionRow label="Bên nhận trả phí" active={paymentOption === "receiver"} onClick={() => setPaymentOption("receiver")} />
-          </div>
-        </section>
+            <section className="px-4 py-4">
+              <h2 className="text-[16px] leading-6 text-black">Phí vận chuyển</h2>
+              <div className="mt-3">
+                <InputField label="VD: 25000" placeholder="Để trống = không có phí" suffix={<VndBadge />}>
+                  <input
+                    value={manualShippingFee}
+                    onChange={(e) => setManualShippingFee(e.target.value)}
+                    placeholder="Để trống = không có phí"
+                    type="number"
+                    className="min-w-0 flex-1 bg-transparent text-[14px] leading-5.5 text-black outline-none placeholder:text-[#787878]"
+                  />
+                </InputField>
+              </div>
+            </section>
 
-        <Divider />
+            <Divider />
 
-        <section className="px-4 py-4">
-          <h2 className="text-[16px] leading-6 text-black">Gói dịch vụ</h2>
-          <div className="mt-3 flex flex-col gap-3">
-            <RadioOptionRow label="GHTK đường bộ" active={transport === "road"} onClick={() => setTransport("road")} />
-            <RadioOptionRow label="GHTK hàng không" active={transport === "fly"} onClick={() => setTransport("fly")} />
-          </div>
-          {(feeLoading || estimatedFee !== null || feeError) && (
-            <div className="mt-3 rounded-xl border border-black/10 px-4 py-3">
-              {feeLoading ? (
-                <p className="text-[13px] text-[#787878]">Đang tính phí ship...</p>
-              ) : feeError ? (
-                <p className="text-[13px] text-[#e55]">{feeError}</p>
-              ) : estimatedFee !== null ? (
-                <div className="flex items-center justify-between">
-                  <span className="text-[13px] text-[#484848]">Phí dự kiến</span>
-                  <span className="text-[14px] font-semibold text-black">{estimatedFee.toLocaleString("vi-VN")} VNĐ</span>
+            <section className="px-4 py-4">
+              <h2 className="text-[16px] leading-6 text-black">Ghi chú</h2>
+              <textarea
+                value={manualNote}
+                onChange={(e) => setManualNote(e.target.value)}
+                placeholder="VD: Giao hàng trước 17h, liên hệ trước khi tới"
+                className="mt-3 min-h-24 w-full resize-none rounded-xl border border-black/10 p-4 text-[14px] outline-none placeholder:text-[#787878]"
+              />
+            </section>
+          </>
+        ) : (
+          <>
+            <section className="px-4 py-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-[16px] leading-6 text-black">Thông tin đơn hàng</h2>
+                <button type="button" onClick={() => setDimensionsOpen(true)} className="flex items-center gap-2">
+                  <PencilLineIcon />
+                  <span className="text-[14px] font-medium leading-[22px] text-black">Thay đổi</span>
+                </button>
+              </div>
+              <div className="mt-3 flex flex-col gap-[8px] rounded-[16px] border-[0.5px] border-black/10 bg-[#f2f2f2] p-[16px]">
+                {([
+                  ["M", `${dimLength} cm`, <svg key="d" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 7H2M22 17H2M12 7v10" stroke="#484848" strokeWidth="1.8" strokeLinecap="round"/></svg>],
+                  ["R", `${dimWidth} cm`, <svg key="w" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7 2v20M17 2v20M7 12h10" stroke="#484848" strokeWidth="1.8" strokeLinecap="round"/></svg>],
+                  ["C", `${dimHeight} cm`, <svg key="h" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20" stroke="#484848" strokeWidth="1.8" strokeLinecap="round"/></svg>],
+                  ["KL", `${dimWeight} gram`, <svg key="kg" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2a4 4 0 0 1 4 4H8a4 4 0 0 1 4-4z" stroke="#484848" strokeWidth="1.8"/><path d="M3 8h18l-2 13H5L3 8z" stroke="#484848" strokeWidth="1.8" strokeLinejoin="round"/></svg>],
+                ] as [string, string, React.ReactNode][]).map(([label, value, icon]) => (
+                  <div key={label} className="flex items-center gap-[8px]">
+                    {icon}
+                    <span className="flex-1 text-[14px] leading-[22px] text-[#484848]">
+                      {label === "M" ? "Dài" : label === "R" ? "Rộng" : label === "C" ? "Cao" : "Khối lượng"}
+                    </span>
+                    <span className="text-[14px] font-medium leading-[22px] text-black">{value}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 flex h-12 items-center justify-between rounded-full bg-[#f2f2f2] px-1">
+                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black shadow-sm">
+                  <MinusIcon />
+                </button>
+                <span className="text-[16px] font-semibold text-black">{totalQuantity || 2}</span>
+                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black shadow-sm">
+                  <PlusIcon />
+                </button>
+              </div>
+            </section>
+
+            <Divider />
+
+            <section className="px-4 py-4">
+              <h2 className="text-[16px] leading-6 text-black">Thông tin thanh toán</h2>
+              <div className="mt-3 flex flex-col gap-4">
+                <InputField label="Tiền thu hộ (COD)" suffix={<VndBadge />}>
+                  <input readOnly value={Number(order.codAmount ?? 0).toLocaleString("vi-VN")} className="min-w-0 flex-1 bg-transparent text-[14px] leading-[22px] text-black outline-none" />
+                </InputField>
+                <InputField label="Tạm tính" suffix={<VndBadge />}>
+                  <input readOnly value={Number(productTotal ?? 0).toLocaleString("vi-VN")} className="min-w-0 flex-1 bg-transparent text-[14px] leading-[22px] text-black outline-none" />
+                </InputField>
+              </div>
+            </section>
+
+            <Divider />
+
+            <section className="px-4 py-4">
+              <h2 className="text-[16px] leading-6 text-black">Tùy chọn thanh toán</h2>
+              <div className="mt-3 flex flex-col gap-3">
+                <RadioOptionRow label="Bên gửi trả phí" active={paymentOption === "sender"} onClick={() => setPaymentOption("sender")} />
+                <RadioOptionRow label="Bên nhận trả phí" active={paymentOption === "receiver"} onClick={() => setPaymentOption("receiver")} />
+              </div>
+            </section>
+
+            <Divider />
+
+            <section className="px-4 py-4">
+              <h2 className="text-[16px] leading-6 text-black">Gói dịch vụ</h2>
+              <div className="mt-3 flex flex-col gap-3">
+                <RadioOptionRow label="GHTK đường bộ" active={transport === "road"} onClick={() => setTransport("road")} />
+                <RadioOptionRow label="GHTK hàng không" active={transport === "fly"} onClick={() => setTransport("fly")} />
+              </div>
+              {(feeLoading || estimatedFee !== null || feeError) && (
+                <div className="mt-3 rounded-xl border border-black/10 px-4 py-3">
+                  {feeLoading ? (
+                    <p className="text-[13px] text-[#787878]">Đang tính phí ship...</p>
+                  ) : feeError ? (
+                    <p className="text-[13px] text-[#e55]">{feeError}</p>
+                  ) : estimatedFee !== null ? (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px] text-[#484848]">Phí dự kiến</span>
+                      <span className="text-[14px] font-semibold text-black">{estimatedFee.toLocaleString("vi-VN")} VNĐ</span>
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
-            </div>
-          )}
-        </section>
+              )}
+            </section>
 
-        <Divider />
+            <Divider />
 
-        <section className="px-4 py-4">
-          <h2 className="text-[16px] leading-6 text-black">Lưu ý cho xem hàng</h2>
-          <div className="mt-3 flex flex-col gap-3">
-            <RadioOptionRow label="Không cho xem hàng" active={viewCondition === "none"} onClick={() => setViewCondition("none")} />
-            <RadioOptionRow label="Cho xem hàng không thử" active={viewCondition === "view"} onClick={() => setViewCondition("view")} />
-            <RadioOptionRow label="Cho thử hàng" active={viewCondition === "try"} onClick={() => setViewCondition("try")} />
-          </div>
-        </section>
+            <section className="px-4 py-4">
+              <h2 className="text-[16px] leading-6 text-black">Lưu ý cho xem hàng</h2>
+              <div className="mt-3 flex flex-col gap-3">
+                <RadioOptionRow label="Không cho xem hàng" active={viewCondition === "none"} onClick={() => setViewCondition("none")} />
+                <RadioOptionRow label="Cho xem hàng không thử" active={viewCondition === "view"} onClick={() => setViewCondition("view")} />
+                <RadioOptionRow label="Cho thử hàng" active={viewCondition === "try"} onClick={() => setViewCondition("try")} />
+              </div>
+            </section>
 
-        <Divider />
+            <Divider />
 
-        <section className="px-4 py-4">
-          <h2 className="text-[16px] leading-6 text-black">Shipper lấy hàng</h2>
-          <div className="mt-3 flex flex-col gap-3">
-            <RadioOptionRow label="Tại cửa hàng" active={pickupOption === "store"} onClick={() => setPickupOption("store")} />
-            <RadioOptionRow label="Gửi tại điểm dịch vụ" active={pickupOption === "dropoff"} onClick={() => setPickupOption("dropoff")} />
-          </div>
-        </section>
+            <section className="px-4 py-4">
+              <h2 className="text-[16px] leading-6 text-black">Shipper lấy hàng</h2>
+              <div className="mt-3 flex flex-col gap-3">
+                <RadioOptionRow label="Tại cửa hàng" active={pickupOption === "store"} onClick={() => setPickupOption("store")} />
+                <RadioOptionRow label="Gửi tại điểm dịch vụ" active={pickupOption === "dropoff"} onClick={() => setPickupOption("dropoff")} />
+              </div>
+            </section>
 
-        <Divider />
+            <Divider />
 
-        <section className="px-4 py-4">
-          <h2 className="text-[16px] leading-6 text-black">Ghi chú</h2>
-          <textarea
-            placeholder="Nhập ghi chú"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            className="mt-3 min-h-24 w-full resize-none rounded-xl border border-black/10 p-4 text-[14px] outline-none placeholder:text-[#787878]"
-          />
-        </section>
+            <section className="px-4 py-4">
+              <h2 className="text-[16px] leading-6 text-black">Ghi chú</h2>
+              <textarea
+                placeholder="Nhập ghi chú"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="mt-3 min-h-24 w-full resize-none rounded-xl border border-black/10 p-4 text-[14px] outline-none placeholder:text-[#787878]"
+              />
+            </section>
+          </>
+        )}
       </div>
 
       <div className="fixed bottom-0 left-1/2 w-full -translate-x-1/2 border-t border-black/8 bg-white px-4 pb-8 pt-3">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-[14px] leading-[22px] text-[#484848]">Phí dự kiến</span>
-          <span className="text-[18px] font-semibold text-black">
-            {feeLoading ? "..." : estimatedFee !== null ? `${estimatedFee.toLocaleString("vi-VN")} VNĐ` : "—"}
-          </span>
-        </div>
-        <GradientButton
-          label={submitting ? "Đang tạo đơn..." : "Tạo đơn hàng"}
-          disabled={submitting || !selectedSender || !selectedRecipient}
-          onClick={handleSubmitToGhtk}
-        />
+        {shippingMode === "ghtk" ? (
+          <>
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-[14px] leading-[22px] text-[#484848]">Phí dự kiến</span>
+              <span className="text-[18px] font-semibold text-black">
+                {feeLoading ? "..." : estimatedFee !== null ? `${estimatedFee.toLocaleString("vi-VN")} VNĐ` : "—"}
+              </span>
+            </div>
+            <GradientButton
+              label={submitting ? "Đang tạo đơn..." : "Tạo đơn hàng"}
+              disabled={submitting || !selectedSender || !selectedRecipient}
+              onClick={handleSubmitToGhtk}
+            />
+          </>
+        ) : (
+          <>
+            <div className="space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-[#7a8a99]">Tổng tiền hàng</span>
+                <span className="font-medium text-[#273044]">{productTotal.toLocaleString("vi-VN")} ₫</span>
+              </div>
+              {manualShippingFee.trim() && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#7a8a99]">Phí vận chuyển</span>
+                  <span className="font-medium text-[#273044]">{Number(manualShippingFee).toLocaleString("vi-VN")} ₫</span>
+                </div>
+              )}
+              <div className="flex justify-between border-t border-black/8 pt-1">
+                <span className="font-medium text-[#273044]">Tổng cộng</span>
+                <span className="font-semibold text-[#ff6b8a]">
+                  {(productTotal + (manualShippingFee.trim() ? Number(manualShippingFee) : 0)).toLocaleString("vi-VN")} ₫
+                </span>
+              </div>
+            </div>
+            <GradientButton
+              label={submitting ? "Đang tạo đơn..." : "Tạo đơn hàng"}
+              disabled={submitting || !manualTrackingCode.trim()}
+              onClick={handleSubmitManual}
+            />
+          </>
+        )}
       </div>
 
       <DrawlerBase open={dimensionsOpen} onOpenChange={setDimensionsOpen} title="Kích thước sản phẩm (SHIP)" height="auto">

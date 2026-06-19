@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { TIKTOK_USERNAME } from "@/constants/config";
-import type { LiveComment } from "@/types";
 import { useTikTokComments } from "@/features/tiktok-live/useTikTokComments";
 import { useTikTokLiveSession } from "@/features/tiktok-live/useTikTokLiveSession";
 import {
@@ -62,6 +61,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
   const tiktokUsernameRef = useRef(normalizeTikTokUsername(options.initialUsername || TIKTOK_USERNAME));
   const isConnectedRef = useRef(false);
   const onOrderShippingUpdatedRef = useRef(options.onOrderShippingUpdated);
+  const handleServerEventRef = useRef<((type: string, payload: Record<string, any>) => void) | null>(null);
 
   const [status, setStatus] = useState("Đang kết nối Backend SSE...");
   const [isConnected, setIsConnected] = useState(false);
@@ -270,6 +270,10 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
     ],
   );
 
+  useEffect(() => {
+    handleServerEventRef.current = handleServerEvent;
+  });
+
   const connectSse = useCallback(async () => {
     if (isAuthFailedRef.current) {
       setStatus("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.");
@@ -344,7 +348,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
 
         try {
           const payload = JSON.parse(event.data || "{}");
-          handleServerEvent(type, payload);
+          handleServerEventRef.current?.(type, payload);
         } catch (error) {
           if (process.env.NEXT_PUBLIC_NODE_ENV === "development") {
             console.error("SSE parse error:", error);
@@ -359,7 +363,7 @@ export function useTikTokLiveSocket(options: UseTikTokLiveSocketOptions = {}) {
         setStatus("SSE Backend mất kết nối, đang thử kết nối lại...");
       },
     });
-  }, [handleServerEvent]);
+  }, []);
 
   const subscribeTikTokUsername = useCallback(
     async (username: string) => {

@@ -100,7 +100,9 @@ export function normalizeComment(input: any): LiveComment | null {
   const displayName = String(source.displayName || source.display_name || username);
   const uniqueId = String(source.uniqueId || source.unique_id || source.tiktokUniqueId || source.tiktok_unique_id || "").trim();
   const createdAt = String(source.createdAt || source.created_at || new Date().toISOString());
-  const avatar = String(source.avatar || source.avatarUrl || source.avatar_url || source.profilePictureUrl || "");
+  const profilePicUrls = source.user?.profilePicture?.url ?? source.profilePicture?.url;
+  const avatarFromProfilePicture = Array.isArray(profilePicUrls) ? profilePicUrls[0] : profilePicUrls;
+  const avatar = String(source.avatar || source.avatarUrl || source.avatar_url || source.profilePictureUrl || avatarFromProfilePicture || "");
 
   return {
     id,
@@ -156,7 +158,7 @@ export function removeAt(username: string) {
 export function normalizeTikTokUsername(value: string) {
   const cleanValue = String(value || "").trim();
   if (!cleanValue) return "";
-  return cleanValue.startsWith("@") ? cleanValue : `@${cleanValue}`;
+  return cleanValue.startsWith("@") ? cleanValue : `${cleanValue}`;
 }
 
 

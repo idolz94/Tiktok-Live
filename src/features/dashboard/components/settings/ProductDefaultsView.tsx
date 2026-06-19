@@ -24,6 +24,7 @@ export function ProductDefaultsSettingsView({ onBack }: { onBack: () => void }) 
   const [draftCode, setDraftCode] = useState("");
   const [draftColor, setDraftColor] = useState("");
   const [draftPriceDisplay, setDraftPriceDisplay] = useState("");
+  const [errors, setErrors] = useState<{ code?: string; price?: string }>({});
 
   const reload = async () => {
     const data = await listProductPresetsApi();
@@ -41,6 +42,7 @@ export function ProductDefaultsSettingsView({ onBack }: { onBack: () => void }) 
     setDraftCode("");
     setDraftColor("");
     setDraftPriceDisplay("");
+    setErrors({});
     setDrawerMode("add");
   };
 
@@ -49,12 +51,14 @@ export function ProductDefaultsSettingsView({ onBack }: { onBack: () => void }) 
     setDraftCode(preset.code);
     setDraftColor(preset.color ?? "");
     setDraftPriceDisplay(preset.price > 0 ? formatPrice(preset.price) : "");
+    setErrors({});
     setDrawerMode("edit");
   };
 
   const closeDrawer = () => {
     setDrawerMode(null);
     setSelected(null);
+    setErrors({});
   };
 
   const handlePriceInput = (raw: string) => {
@@ -64,11 +68,15 @@ export function ProductDefaultsSettingsView({ onBack }: { onBack: () => void }) 
   };
 
   const submitForm = async () => {
-    if (!draftCode.trim()) {
-      toast.error("Tên sản phẩm không được trống");
+    const newErrors: { code?: string; price?: string } = {};
+    if (!draftCode.trim()) newErrors.code = "Tên sản phẩm không được trống";
+    const price = parsePrice(draftPriceDisplay);
+    if (!draftPriceDisplay.trim() || price <= 0) newErrors.price = "Giá phải lớn hơn 0";
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
-    const price = parsePrice(draftPriceDisplay);
+    setErrors({});
     setSaving(true);
     try {
       if (drawerMode === "add") {
@@ -126,9 +134,11 @@ export function ProductDefaultsSettingsView({ onBack }: { onBack: () => void }) 
           <button
             type="button"
             onClick={openAdd}
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-[#ff6b8a] text-[24px] text-white"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-[#ff6b8a] text-white"
           >
-            +
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
           </button>
         </div>
 
@@ -213,8 +223,8 @@ export function ProductDefaultsSettingsView({ onBack }: { onBack: () => void }) 
           <button
             type="button"
             onClick={submitForm}
-            disabled={saving}
-            className="flex w-full items-center justify-center rounded-[40px] py-4 text-[16px] font-medium text-black disabled:opacity-60"
+            disabled={saving || !draftCode.trim() || parsePrice(draftPriceDisplay) <= 0}
+            className="flex w-full items-center justify-center rounded-[40px] py-4 text-[16px] font-medium text-black disabled:opacity-40"
             style={{ backgroundImage: "linear-gradient(138deg, #ff6b8a 13%, #ffa66d 52%, #ffc86a 118%)" }}
           >
             {saving ? "Đang lưu..." : drawerMode === "add" ? "Thêm sản phẩm" : "Cập nhật"}
@@ -226,15 +236,16 @@ export function ProductDefaultsSettingsView({ onBack }: { onBack: () => void }) 
             <span className="text-[13px] font-medium text-[#111827]">
               Tên sản phẩm <span className="text-[#ef4444]">*</span>
             </span>
-            <div className="flex h-11 items-center rounded-[8px] border border-[#d1d5db] bg-white px-3">
+            <div className={`flex h-11 items-center rounded-[8px] border bg-white px-3 ${errors.code ? "border-[#ef4444]" : "border-[#d1d5db]"}`}>
               <input
                 type="text"
                 value={draftCode}
-                onChange={(e) => setDraftCode(e.target.value)}
+                onChange={(e) => { setDraftCode(e.target.value); if (errors.code) setErrors((prev) => ({ ...prev, code: undefined })); }}
                 placeholder="VD: Áo thun trắng"
                 className="flex-1 bg-transparent text-[14px] text-black outline-none placeholder:text-[#d1d5db]"
               />
             </div>
+            {errors.code && <p className="text-[12px] text-[#ef4444]">{errors.code}</p>}
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -251,18 +262,19 @@ export function ProductDefaultsSettingsView({ onBack }: { onBack: () => void }) 
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-[#111827]">Giá</span>
-            <div className="flex h-11 items-center rounded-[8px] border border-[#d1d5db] bg-white px-3">
+            <span className="text-[13px] font-medium text-[#111827]">Giá <span className="text-[#ef4444]">*</span></span>
+            <div className={`flex h-11 items-center rounded-[8px] border bg-white px-3 ${errors.price ? "border-[#ef4444]" : "border-[#d1d5db]"}`}>
               <input
                 type="text"
                 inputMode="numeric"
                 value={draftPriceDisplay}
-                onChange={(e) => handlePriceInput(e.target.value)}
+                onChange={(e) => { handlePriceInput(e.target.value); if (errors.price) setErrors((prev) => ({ ...prev, price: undefined })); }}
                 placeholder="0"
                 className="flex-1 bg-transparent text-[14px] text-black outline-none placeholder:text-[#d1d5db]"
               />
               <span className="text-[13px] text-[#9ca3af]">VNĐ</span>
             </div>
+            {errors.price && <p className="text-[12px] text-[#ef4444]">{errors.price}</p>}
           </div>
         </div>
       </DrawlerBase>

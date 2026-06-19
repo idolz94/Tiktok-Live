@@ -141,6 +141,8 @@ export default function OrderCard({
     }
   }, [item.id, noteText]);
 
+  console.log("object : ",item);
+
   void onUpdate;
   void onAddProduct;
   void onConfirmOrder;

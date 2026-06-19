@@ -105,7 +105,13 @@ function mapDbLiveComment(row: any): LiveComment {
 
 export function mapDbLiveSession(row: any): LiveHistoryItem {
   const startedAt = row?.startedAt || row?.started_at || row?.createdAt || row?.created_at || new Date().toISOString();
-  const endedAt = row?.endedAt || row?.ended_at || null;
+  const rawEndedAt = row?.endedAt || row?.ended_at || null;
+  const durationSecondsRaw = toNumber(row?.durationSeconds || row?.duration_seconds);
+  const endedAt =
+    rawEndedAt ||
+    (durationSecondsRaw > 0
+      ? new Date(new Date(startedAt).getTime() + durationSecondsRaw * 1000).toISOString()
+      : null);
 
   const comments = Array.isArray(row?.comments)
     ? row.comments.map(mapDbLiveComment)
@@ -121,7 +127,7 @@ export function mapDbLiveSession(row: any): LiveHistoryItem {
     username: normalizeAtUsername(row?.username || row?.tiktokUsername || row?.tiktok_username),
     startedAt,
     endedAt,
-    durationSeconds: toNumber(row?.durationSeconds || row?.duration_seconds || calcDurationSeconds(startedAt, endedAt)),
+    durationSeconds: durationSecondsRaw || calcDurationSeconds(startedAt, endedAt),
     commentCount: toNumber(row?.commentCount || row?.comment_count || comments.length),
     orderCount: toNumber(row?.orderCount || row?.order_count || orders.length),
     status: row?.status || "ended",
@@ -134,11 +140,9 @@ export function mapDbLiveSession(row: any): LiveHistoryItem {
 }
 
 function shouldShowLiveSession(session: LiveHistoryItem) {
-  const durationSeconds = Number(session.durationSeconds || 0);
   const commentCount = Number(session.commentCount || session.comments?.length || 0);
   const orderCount = Number(session.orderCount || session.orders?.length || 0);
-
-  return durationSeconds > 0 || commentCount > 0 || orderCount > 0;
+  return commentCount > 0 && orderCount > 0;
 }
 
 export async function getLiveHistoryApi(limit = 100) {

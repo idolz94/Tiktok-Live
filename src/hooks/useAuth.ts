@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAuth as useClerkAuth, useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { getMeBootstrapApi, MeBootstrapResponse } from "@/api/meApi";
-import { getAuthToken } from "@/lib/request";
+import { getMemoryToken } from "@/lib/request";
+import { logoutApi, refreshApi, hasSession } from "@/api/authApi";
 import type { ShopTikTokChannel } from "@/types/database";
 
 export type AuthUser = {
@@ -32,26 +33,16 @@ type AuthState = {
   logout: () => Promise<void>;
 };
 
-function mapProfileToAuthUser(clerkUser: any, profile: MeBootstrapResponse): AuthUser {
+function mapProfileToAuthUser(profile: MeBootstrapResponse): AuthUser {
   return {
-    id: clerkUser?.id || profile?.user?.id || "",
-    email: clerkUser?.primaryEmailAddress?.emailAddress || profile?.user?.email || null,
-    username:
-      profile?.profile?.full_name ||
-      profile?.profile?.phone ||
-      clerkUser?.fullName ||
-      clerkUser?.firstName ||
-      "User",
-    fullName:
-      profile?.profile?.full_name ||
-      clerkUser?.fullName ||
-      "",
-    phone: profile?.profile?.phone || clerkUser?.primaryPhoneNumber?.phoneNumber || null,
+    id: profile?.user?.id || "",
+    email: profile?.user?.email || null,
+    username: profile?.user?.username || null,
+    fullName: profile?.user?.full_name || null,
+    phone: profile?.user?.phone || null,
     shopId: profile?.shop?.id || null,
     shopName: profile?.shop?.name || null,
-    tiktokUsername:
-      profile?.shop?.default_tiktok_username ||
-      null,
+    tiktokUsername: profile?.shop?.default_tiktok_username || null,
     tiktokChannels: Array.isArray(profile?.tiktokChannels) ? profile.tiktokChannels : [],
     role: profile?.shopMember?.role || null,
     canUseApp: profile?.canUseApp ?? false,
@@ -61,28 +52,31 @@ function mapProfileToAuthUser(clerkUser: any, profile: MeBootstrapResponse): Aut
 }
 
 export function useAuth(): AuthState {
-  const { isSignedIn, isLoaded: authLoaded, signOut } = useClerkAuth();
-  const { user: clerkUser, isLoaded: userLoaded } = useUser();
-
+  const router = useRouter();
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSignedIn, setIsSignedIn] = useState(false);
   const bootstrappedUserIdRef = useRef<string | null>(null);
 
   const fetchProfile = useCallback(async (options?: { background?: boolean }) => {
     const isBackground = options?.background ?? false;
 
     try {
-      if (!isBackground) {
-        setIsLoading(true);
-      }
+      if (!isBackground) setIsLoading(true);
       setError(null);
 
-      const profile = await getMeBootstrapApi();
+      if (!getMemoryToken()) {
+        setIsSignedIn(false);
+        setAuthUser(null);
+        return;
+      }
 
-      const mapped = mapProfileToAuthUser(clerkUser, profile);
+      const profile = await getMeBootstrapApi();
+      setIsSignedIn(true);
+      const mapped = mapProfileToAuthUser(profile);
       setAuthUser(mapped);
-      bootstrappedUserIdRef.current = clerkUser?.id || mapped.id || null;
+      bootstrappedUserIdRef.current = mapped.id;
     } catch (err) {
       if (process.env.NEXT_PUBLIC_NODE_ENV === "development") {
         console.error("AUTH PROFILE ERROR:", err);
@@ -90,57 +84,57 @@ export function useAuth(): AuthState {
 
       if (!isBackground) {
         setAuthUser(null);
+        setIsSignedIn(false);
       }
       setError(err instanceof Error ? err.message : "Không thể tải thông tin tài khoản");
     } finally {
-      if (!isBackground) {
-        setIsLoading(false);
-      }
+      if (!isBackground) setIsLoading(false);
     }
-  }, [clerkUser?.id]);
+  }, []);
 
   const refreshAuth = useCallback(async () => {
-    if (!isSignedIn) return;
     await fetchProfile({ background: Boolean(authUser) });
-  }, [authUser, isSignedIn, fetchProfile]);
+  }, [authUser, fetchProfile]);
 
   const logout = useCallback(async () => {
     try {
       setIsLoading(true);
-      await signOut();
       setAuthUser(null);
+      setIsSignedIn(false);
       setError(null);
+      await logoutApi();
+      router.replace("/");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Đăng xuất thất bại");
     } finally {
       setIsLoading(false);
     }
-  }, [signOut]);
+  }, [router]);
 
   useEffect(() => {
-    if (!authLoaded || !userLoaded) return;
-
-    if (!isSignedIn) {
-      bootstrappedUserIdRef.current = null;
-      setAuthUser(null);
-      setIsLoading(false);
-      setError(null);
+    if (getMemoryToken()) {
+      fetchProfile();
       return;
     }
 
-    const clerkUserId = clerkUser?.id || null;
-    const hasBootstrappedCurrentUser = bootstrappedUserIdRef.current === clerkUserId;
+    // Chỉ thử refresh khi user đã từng login (có session flag trong localStorage)
+    if (!hasSession()) {
+      setIsSignedIn(false);
+      setAuthUser(null);
+      setIsLoading(false);
+      return;
+    }
 
-    // Wait for a valid token before calling bootstrap.
-    // Clerk marks isSignedIn=true before getToken() can return a JWT
-    // (race condition after setActive + page redirect).
-    getAuthToken().then((token) => {
-      if (!token) return;
-      void fetchProfile({ background: hasBootstrappedCurrentUser });
-    });
-  }, [authLoaded, userLoaded, isSignedIn, clerkUser?.id, fetchProfile]);
+    // memoryToken mất sau refresh browser — thử dùng httpOnly cookie để lấy lại token
+    setIsLoading(true);
+    refreshApi()
+      .then(() => fetchProfile())
+      .catch(() => {
+        setIsSignedIn(false);
+        setAuthUser(null);
+        setIsLoading(false);
+      });
+  }, [fetchProfile]);
 
-  const combinedLoading = !authLoaded || !userLoaded || isLoading;
-
-  return { user: authUser, isLoading: combinedLoading, isSignedIn: isSignedIn ?? false, error, refreshAuth, logout };
+  return { user: authUser, isLoading, isSignedIn, error, refreshAuth, logout };
 }

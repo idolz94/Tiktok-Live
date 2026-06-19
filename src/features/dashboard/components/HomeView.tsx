@@ -383,7 +383,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
 
           {/* Channel list card */}
           {channelOptions.length > 0 && (
-            <div className="mb-4 overflow-hidden rounded-2xl border border-[#f2f2f2] bg-white">
+            <div className="mb-4 overflow-hidden rounded-2xl border border-[#f2f2f2] bg-white shadow-md">
               {channelOptions.map((option, index) => (
                 <div key={option.id}>
                   {index > 0 && <div className="mx-4 h-px bg-[#f2f2f2]" />}
@@ -418,23 +418,6 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
               ))}
             </div>
           )}
-
-          {/* Add new channel button */}
-          <div className="flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={() => setShowAddChannel(true)}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-black/20 bg-white text-[14px] leading-[22px] text-[#484848]"
-            >
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <path d="M9 3.75v10.5M3.75 9h10.5" stroke="#484848" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
-              Thêm mới
-            </button>
-            <p className="text-[12px] leading-[18px] text-[#484848]">
-              Tên người dùng chỉ có thể chứa chữ thường, số, dấu gạch dưới và dấu chấm.
-            </p>
-          </div>
         </div>
       ) : (
         <div className="h-full overflow-y-auto pb-6.5 [-webkit-overflow-scrolling:touch]">

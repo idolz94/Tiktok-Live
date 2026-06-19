@@ -9,6 +9,7 @@ export default function DashboardSettingsPage() {
   return (
     <section className="min-h-0 flex-1 overflow-y-auto [-webkit-overflow-scrolling:touch]">
       <SettingsView
+        userId={user?.id}
         username={user?.fullName || user?.phone || user?.username || "User"}
         tiktokUsername={live.tiktokUsername || registeredTikTokUsername}
         tiktokChannels={user?.tiktokChannels || []}

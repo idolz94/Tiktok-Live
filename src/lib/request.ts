@@ -7,44 +7,36 @@ const apiClient = axios.create({
   withCredentials: true,
 });
 
+// ─── In-memory access token ────────────────────────────────────────────────────
+// httpOnly cookie không đọc được từ JS.
+// Access token được lưu trong memory sau login/register/refresh.
+// Refresh token nằm hoàn toàn trong httpOnly cookie — backend tự đọc.
+
+let memoryToken: string = "";
+
+export function setMemoryToken(token: string) {
+  memoryToken = token;
+}
+
+export function clearMemoryToken() {
+  memoryToken = "";
+}
+
+export function getMemoryToken(): string {
+  return memoryToken;
+}
+
+// getAuthToken kept for any remaining call sites — reads from memory directly
+export async function getAuthToken(): Promise<string> {
+  return memoryToken;
+}
+
+// ─── Session expired event ─────────────────────────────────────────────────────
+
 let hasEmittedSessionExpired = false;
 
 function isBrowser() {
   return typeof window !== "undefined";
-}
-
-export type RequestParams = Record<string, string | number | boolean | null | undefined>;
-
-export type RequestOptions = {
-  headers?: Record<string, string>;
-  credentials?: RequestCredentials;
-  skipSessionExpired?: boolean;
-};
-
-export class ApiError extends Error {
-  status: number;
-  data: any;
-
-  constructor(message: string, status: number, data?: any) {
-    super(message);
-    this.name = "ApiError";
-    this.status = status;
-    this.data = data;
-  }
-}
-
-type TokenProvider = () => Promise<string | null>;
-
-let tokenProvider: TokenProvider | null = null;
-
-export function setAuthTokenProvider(provider: TokenProvider | null) {
-  tokenProvider = provider;
-}
-
-export async function getAuthToken(): Promise<string> {
-  if (!tokenProvider) return "";
-  const token = (await tokenProvider()) || "";
-  return token;
 }
 
 export type AuthChangeReason = "login" | "register" | "logout";
@@ -62,11 +54,94 @@ export function emitSessionExpired() {
   window.dispatchEvent(new Event("lumi-session-expired"));
 }
 
+// ─── Auto-refresh on 401 ───────────────────────────────────────────────────────
+
+let isRefreshing = false;
+let refreshQueue: Array<(token: string) => void> = [];
+
+async function doRefresh(): Promise<string> {
+  const response = await axios.post<{ data: { accessToken: string } }>(
+    `${API_BASE_URL}/auth/refresh`,
+    {},
+    { withCredentials: true },
+  );
+  const newToken = response.data?.data?.accessToken ?? "";
+  setMemoryToken(newToken);
+  return newToken;
+}
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config as typeof error.config & { _retry?: boolean };
+
+    const status = error.response?.status;
+    const skipRefresh = originalRequest?.skipRefresh as boolean | undefined;
+
+    if (status === 401 && !originalRequest._retry && !skipRefresh) {
+      originalRequest._retry = true;
+
+      if (isRefreshing) {
+        // Queue this request until refresh completes
+        return new Promise((resolve, reject) => {
+          refreshQueue.push((token) => {
+            originalRequest.headers["Authorization"] = `Bearer ${token}`;
+            resolve(apiClient(originalRequest));
+          });
+          // Also add a reject path after timeout (safety)
+          setTimeout(() => reject(error), 10_000);
+        });
+      }
+
+      isRefreshing = true;
+      try {
+        const newToken = await doRefresh();
+        refreshQueue.forEach((cb) => cb(newToken));
+        refreshQueue = [];
+
+        originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
+        return apiClient(originalRequest);
+      } catch {
+        refreshQueue = [];
+        clearMemoryToken();
+        emitSessionExpired();
+        return Promise.reject(error);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    return Promise.reject(error);
+  },
+);
+
+// ─── Request helpers ───────────────────────────────────────────────────────────
+
+export type RequestParams = Record<string, string | number | boolean | null | undefined>;
+
+export type RequestOptions = {
+  headers?: Record<string, string>;
+  credentials?: RequestCredentials;
+  skipSessionExpired?: boolean;
+  skipRefresh?: boolean;
+};
+
+export class ApiError extends Error {
+  status: number;
+  data: any;
+
+  constructor(message: string, status: number, data?: any) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.data = data;
+  }
+}
+
 function appendParams(url: string, params?: RequestParams) {
   if (!params) return url;
 
   const searchParams = new URLSearchParams();
-
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== "") {
       searchParams.set(key, String(value));
@@ -75,17 +150,13 @@ function appendParams(url: string, params?: RequestParams) {
 
   const queryString = searchParams.toString();
   if (!queryString) return url;
-
   return `${url}${url.includes("?") ? "&" : "?"}${queryString}`;
 }
 
 function joinUrl(baseUrl: string, path: string) {
   if (/^https?:\/\//i.test(path)) return path;
-
   const safePath = path.startsWith("/") ? path : `/${path}`;
-
   if (!baseUrl) return safePath;
-
   return `${baseUrl.replace(/\/+$/, "")}/${safePath.replace(/^\/+/, "")}`;
 }
 
@@ -105,7 +176,6 @@ function getErrorMessage(result: any, fallback: string) {
 
 function cleanParams(params?: RequestParams) {
   if (!params) return undefined;
-
   return Object.fromEntries(
     Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== ""),
   );
@@ -157,7 +227,7 @@ function toApiError(error: unknown, skip?: boolean): ApiError {
 }
 
 async function buildHeaders(options?: RequestOptions, hasBody = false) {
-  const token = await getAuthToken();
+  const token = memoryToken;
 
   return {
     ...(hasBody ? { "Content-Type": "application/json" } : {}),
@@ -183,7 +253,6 @@ export async function getRequest<T>(
     });
 
     if (response.status === 204) return null as T;
-
     return unwrapEnvelope<T>(response.data, response.status, options?.skipSessionExpired);
   } catch (error) {
     throw toApiError(error, options?.skipSessionExpired);
@@ -199,10 +268,10 @@ export async function postRequest<T>(
     const response = await apiClient.post<T>(path, data ?? {}, {
       withCredentials: resolveWithCredentials(options),
       headers: await buildHeaders(options, true),
+      skipRefresh: options?.skipRefresh,
     });
 
     if (response.status === 204) return null as T;
-
     return unwrapEnvelope<T>(response.data, response.status, options?.skipSessionExpired);
   } catch (error) {
     throw toApiError(error, options?.skipSessionExpired);
@@ -221,7 +290,6 @@ export async function patchRequest<T>(
     });
 
     if (response.status === 204) return null as T;
-
     return unwrapEnvelope<T>(response.data, response.status, options?.skipSessionExpired);
   } catch (error) {
     throw toApiError(error, options?.skipSessionExpired);
@@ -241,7 +309,6 @@ export async function deleteRequest<T>(
     });
 
     if (response.status === 204) return null as T;
-
     return unwrapEnvelope<T>(response.data, response.status, options?.skipSessionExpired);
   } catch (error) {
     throw toApiError(error, options?.skipSessionExpired);

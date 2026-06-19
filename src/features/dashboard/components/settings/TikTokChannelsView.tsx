@@ -4,8 +4,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { DrawlerBase } from "@/components/ui/Drawler";
 import {
-  createTikTokChannelApi,
-  deleteTikTokChannelApi,
   updateTikTokChannelApi,
   type UpdateTikTokChannelPayload,
 } from "@/api/meApi";
@@ -29,17 +27,12 @@ export function TikTokChannelsView({
   onChannelsChange: (channels: ShopTikTokChannel[]) => void;
 }) {
   const [savingAction, setSavingAction] = useState<string | null>(null);
-  const [drawerMode, setDrawerMode] = useState<"add" | "edit" | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<ShopTikTokChannel | null>(null);
   const [draftUsername, setDraftUsername] = useState("");
-  const [draftIsDefault, setDraftIsDefault] = useState(false);
-  const [confirmTarget, setConfirmTarget] = useState<{
-    type: "setDefault" | "delete";
-    channel: ShopTikTokChannel;
-  } | null>(null);
+  const [confirmSetDefaultTarget, setConfirmSetDefaultTarget] = useState<ShopTikTokChannel | null>(null);
 
   const sortedChannels = [...channels].sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
-  const defaultChannel = channels.find((c) => c.isDefault) ?? null;
 
   const reloadChannels = async () => {
     const { getTikTokChannelsApi } = await import("@/api/meApi");
@@ -49,30 +42,21 @@ export function TikTokChannelsView({
   };
 
   const closeDrawer = () => {
-    setDrawerMode(null);
+    setDrawerOpen(false);
     setSelectedChannel(null);
     setDraftUsername("");
-    setDraftIsDefault(false);
-  };
-
-  const openAddDrawer = () => {
-    setSelectedChannel(null);
-    setDraftUsername("");
-    setDraftIsDefault(channels.length === 0);
-    setDrawerMode("add");
   };
 
   const openEditDrawer = (channel: ShopTikTokChannel) => {
     setSelectedChannel(channel);
     setDraftUsername(channel.tiktokUsername);
-    setDraftIsDefault(channel.isDefault);
-    setDrawerMode("edit");
+    setDrawerOpen(true);
   };
 
   const hasDuplicateUsername = (nextUsername: string) => {
     const normalized = normalizeTikTokUsername(nextUsername);
     return channels.some((c) => {
-      if (drawerMode === "edit" && selectedChannel?.id === c.id) return false;
+      if (selectedChannel?.id === c.id) return false;
       return normalizeTikTokUsername(c.tiktokUsername) === normalized;
     });
   };
@@ -87,29 +71,19 @@ export function TikTokChannelsView({
       toast.error("Kênh TikTok này đã tồn tại");
       return;
     }
+    if (!selectedChannel) return;
     setSavingAction("form");
     try {
-      if (drawerMode === "add") {
-        await createTikTokChannelApi({
-          tiktokUsername: nextUsername,
-          isDefault: draftIsDefault || channels.length === 0,
-        });
-        toast.success("Đã thêm kênh TikTok");
-      } else if (drawerMode === "edit" && selectedChannel) {
-        const payload: UpdateTikTokChannelPayload = {};
-        if (nextUsername !== normalizeTikTokUsername(selectedChannel.tiktokUsername)) {
-          payload.tiktokUsername = nextUsername;
-        }
-        if (!selectedChannel.isDefault && draftIsDefault) {
-          payload.isDefault = true;
-        }
-        if (!Object.keys(payload).length) {
-          closeDrawer();
-          return;
-        }
-        await updateTikTokChannelApi(selectedChannel.id, payload);
-        toast.success("Đã cập nhật kênh TikTok");
+      const payload: UpdateTikTokChannelPayload = {};
+      if (nextUsername !== normalizeTikTokUsername(selectedChannel.tiktokUsername)) {
+        payload.tiktokUsername = nextUsername;
       }
+      if (!Object.keys(payload).length) {
+        closeDrawer();
+        return;
+      }
+      await updateTikTokChannelApi(selectedChannel.id, payload);
+      toast.success("Đã cập nhật kênh TikTok");
       closeDrawer();
       await reloadChannels();
     } catch (error) {
@@ -120,30 +94,15 @@ export function TikTokChannelsView({
   };
 
   const confirmSetDefault = async () => {
-    if (!confirmTarget || confirmTarget.type !== "setDefault") return;
-    setSavingAction(confirmTarget.channel.id);
+    if (!confirmSetDefaultTarget) return;
+    setSavingAction(confirmSetDefaultTarget.id);
     try {
-      await updateTikTokChannelApi(confirmTarget.channel.id, { isDefault: true });
+      await updateTikTokChannelApi(confirmSetDefaultTarget.id, { isDefault: true });
       toast.success("Đã đặt làm kênh mặc định");
-      setConfirmTarget(null);
+      setConfirmSetDefaultTarget(null);
       await reloadChannels();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không thể đặt mặc định");
-    } finally {
-      setSavingAction(null);
-    }
-  };
-
-  const doDelete = async () => {
-    if (!confirmTarget || confirmTarget.type !== "delete") return;
-    setSavingAction(confirmTarget.channel.id);
-    try {
-      await deleteTikTokChannelApi(confirmTarget.channel.id);
-      toast.success("Đã xoá kênh TikTok");
-      setConfirmTarget(null);
-      await reloadChannels();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể xoá kênh");
     } finally {
       setSavingAction(null);
     }
@@ -164,44 +123,20 @@ export function TikTokChannelsView({
             <div className="text-center">
               <h1 className="text-[18px] font-semibold leading-6 text-[#111827]">Kênh TikTok</h1>
               <p className="text-[12px] leading-[18px] text-[#787878]">
-                {channels.length} kênh · {isConnected ? "Đang LIVE" : status}
+                {isConnected ? "Đang LIVE" : status}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={openAddDrawer}
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-[#ff6b8a] text-[24px] text-white"
-            >
-              +
-            </button>
+            <div className="h-11 w-11" />
           </div>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-28 [-webkit-overflow-scrolling:touch]">
           {isLoadingChannels ? (
             <TikTokChannelsLoadingSkeleton />
-          ) : sortedChannels.length === 0 ? (
-            <div className="rounded-3xl bg-white p-6 text-center shadow-sm">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#ffe8ef] text-[24px]">
-                ♪
-              </div>
-              <p className="mt-4 text-[16px] font-semibold text-[#111827]">Chưa có kênh TikTok</p>
-              <p className="mt-1 text-[13px] leading-5 text-[#787878]">
-                Thêm kênh TikTok để bắt đầu nhận comment LIVE.
-              </p>
-              <button
-                type="button"
-                onClick={openAddDrawer}
-                className="mt-5 h-11 rounded-full bg-[#ff6b8a] px-6 text-[14px] font-semibold text-white"
-              >
-                Thêm kênh
-              </button>
-            </div>
           ) : (
             <div className="space-y-3">
               {sortedChannels.map((channel) => {
                 const normalizedUsername = normalizeTikTokUsername(channel.tiktokUsername);
-                const isSaving = savingAction === channel.id;
                 return (
                   <div
                     key={channel.id}
@@ -212,45 +147,22 @@ export function TikTokChannelsView({
                         {normalizedUsername.charAt(0).toUpperCase() || "L"}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="truncate text-[16px] font-semibold leading-6 text-[#111827]">
-                            {normalizedUsername}
-                          </p>
-                          {channel.isDefault && (
-                            <span className="rounded-full bg-[#fff1cc] px-2 py-0.5 text-[11px] font-semibold text-[#b7791f]">
-                              Mặc định
-                            </span>
-                          )}
-                        </div>
+                        <p className="truncate text-[16px] font-semibold leading-6 text-[#111827]">
+                          {normalizedUsername}
+                        </p>
                         <p className="mt-1 text-[12px] leading-[18px] text-[#787878]">
-                          {defaultChannel?.id === channel.id ? "Đang dùng cho phiên LIVE" : "Kênh TikTok LIVE"}
+                          Kênh TikTok LIVE
                         </p>
                       </div>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-3 gap-2">
+                    <div className="mt-4">
                       <button
                         type="button"
                         onClick={() => openEditDrawer(channel)}
-                        className="h-10 rounded-full bg-[#f2f2f2] text-[13px] font-medium text-[#111827]"
+                        className="h-10 w-full rounded-full bg-[#f2f2f2] text-[13px] font-medium text-[#111827]"
                       >
-                        Sửa
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmTarget({ type: "setDefault", channel })}
-                        disabled={channel.isDefault || isSaving}
-                        className="h-10 rounded-full bg-[#f2f2f2] text-[13px] font-medium text-[#111827] disabled:opacity-45"
-                      >
-                        Mặc định
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmTarget({ type: "delete", channel })}
-                        disabled={isSaving}
-                        className="h-10 rounded-full bg-[#fff1f1] text-[13px] font-medium text-[#ef4444] disabled:opacity-45"
-                      >
-                        Xoá
+                        Sửa tài khoản Tiktok
                       </button>
                     </div>
                   </div>
@@ -262,12 +174,12 @@ export function TikTokChannelsView({
       </div>
 
       <DrawlerBase
-        open={drawerMode !== null}
+        open={drawerOpen}
         onOpenChange={(open) => { if (!open) closeDrawer(); }}
         height="auto"
         showHandle
         showCloseButton={false}
-        title={drawerMode === "add" ? "Thêm kênh TikTok" : "Sửa kênh TikTok"}
+        title="Sửa kênh TikTok"
         footer={
           <button
             type="button"
@@ -276,61 +188,47 @@ export function TikTokChannelsView({
             className="flex w-full items-center justify-center rounded-[40px] py-3.5 text-[16px] font-medium text-black disabled:opacity-60"
             style={{ backgroundImage: "linear-gradient(138deg, #ff6b8a 13%, #ffa66d 52%, #ffc86a 118%)" }}
           >
-            {savingAction === "form" ? "Đang lưu..." : drawerMode === "add" ? "Thêm kênh" : "Lưu thay đổi"}
+            {savingAction === "form" ? "Đang lưu..." : "Lưu thay đổi"}
           </button>
         }
       >
         <div className="space-y-4">
           <label className="block">
             <span className="text-[14px] font-medium leading-[22px] text-[#111827]">TikTok username</span>
-            <input
-              value={draftUsername}
-              onChange={(e) => setDraftUsername(e.target.value)}
-              autoCapitalize="none"
-              autoCorrect="off"
-              placeholder="Nhập TikTok ID"
-              className="mt-2 h-12 w-full rounded-2xl border border-black/10 bg-[#f8f8f8] px-4 text-[15px] font-medium text-[#111827] outline-none focus:border-[#ff6b8a]"
-            />
-          </label>
-
-          <button
-            type="button"
-            onClick={() => setDraftIsDefault((v) => !v)}
-            disabled={selectedChannel?.isDefault}
-            className="flex w-full items-center justify-between rounded-2xl bg-[#f8f8f8] px-4 py-3 text-left disabled:opacity-60"
-          >
-            <div>
-              <p className="text-[14px] font-medium leading-[22px] text-[#111827]">Đặt làm kênh mặc định</p>
-              <p className="mt-0.5 text-[12px] leading-[18px] text-[#787878]">
-                Kênh mặc định sẽ tự được chọn khi mở LIVE.
-              </p>
+            <div className="mt-2 flex h-12 items-center rounded-2xl border border-black/10 bg-[#f8f8f8] px-4 focus-within:border-[#ff6b8a]">
+              <span className="shrink-0 text-[15px] font-medium text-[#787878]">@</span>
+              <input
+                value={draftUsername}
+                onChange={(e) => setDraftUsername(e.target.value)}
+                autoCapitalize="none"
+                autoCorrect="off"
+                placeholder="username"
+                className="min-w-0 flex-1 bg-transparent text-[15px] font-medium text-[#111827] outline-none"
+              />
             </div>
-            <span className={`h-6 w-11 rounded-full p-0.5 transition ${draftIsDefault ? "bg-[#ff6b8a]" : "bg-[#d1d5db]"}`}>
-              <span className={`block h-5 w-5 rounded-full bg-white transition ${draftIsDefault ? "translate-x-5" : "translate-x-0"}`} />
-            </span>
-          </button>
+          </label>
         </div>
       </DrawlerBase>
 
       <DrawlerBase
-        open={confirmTarget !== null}
-        onOpenChange={(open) => { if (!open) setConfirmTarget(null); }}
+        open={confirmSetDefaultTarget !== null}
+        onOpenChange={(open) => { if (!open) setConfirmSetDefaultTarget(null); }}
         height="auto"
         showHandle
         showCloseButton={false}
-        title={confirmTarget?.type === "delete" ? "Xoá kênh TikTok?" : "Đặt kênh mặc định?"}
+        title="Đặt kênh mặc định?"
         footer={
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => setConfirmTarget(null)}
+              onClick={() => setConfirmSetDefaultTarget(null)}
               className="h-12 rounded-full bg-[#f2f2f2] text-[15px] font-medium text-[#111827]"
             >
               Huỷ
             </button>
             <button
               type="button"
-              onClick={confirmTarget?.type === "delete" ? doDelete : confirmSetDefault}
+              onClick={confirmSetDefault}
               disabled={!!savingAction}
               className="h-12 rounded-full bg-[#ff6b8a] text-[15px] font-medium text-white disabled:opacity-60"
             >
@@ -340,9 +238,7 @@ export function TikTokChannelsView({
         }
       >
         <p className="text-[14px] leading-[22px] text-[#484848]">
-          {confirmTarget?.type === "delete"
-            ? `Bạn có chắc muốn xoá kênh ${normalizeTikTokUsername(confirmTarget.channel.tiktokUsername)}?`
-            : `Dùng ${confirmTarget ? normalizeTikTokUsername(confirmTarget.channel.tiktokUsername) : "kênh này"} làm kênh mặc định?`}
+          {`Dùng ${confirmSetDefaultTarget ? normalizeTikTokUsername(confirmSetDefaultTarget.tiktokUsername) : "kênh này"} làm kênh mặc định?`}
         </p>
       </DrawlerBase>
     </>

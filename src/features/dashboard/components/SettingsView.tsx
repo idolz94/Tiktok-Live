@@ -9,6 +9,7 @@ import { GeneralSettingsView } from "./settings/GeneralSettingsView";
 import { ProductDefaultsSettingsView } from "./settings/ProductDefaultsView";
 import { ShippingConfigView } from "./settings/ShippingConfigView";
 import { TikTokChannelsView } from "./settings/TikTokChannelsView";
+import { LicenseView, AdminView, useLicense } from "@/features/licenses";
 import {
   ChevronRightIcon,
   IconTikTok,
@@ -61,6 +62,7 @@ function SocialButton({ label, children }: { label: string; children: React.Reac
 }
 
 export default function SettingsView({
+  userId,
   username,
   tiktokUsername,
   tiktokChannels = [],
@@ -68,6 +70,7 @@ export default function SettingsView({
   status,
   onLogout,
 }: {
+  userId?: string;
   username?: string;
   tiktokUsername: string;
   tiktokChannels?: ShopTikTokChannel[];
@@ -75,9 +78,13 @@ export default function SettingsView({
   status: string;
   onLogout: () => void;
 }) {
-  const [subScreen, setSubScreen] = useState<"main" | "tiktokChannels" | "generalSettings" | "productDefaults" | "shippingConfig">("main");
+  const [subScreen, setSubScreen] = useState<"main" | "tiktokChannels" | "generalSettings" | "productDefaults" | "shippingConfig" | "license" | "admin">("main");
   const [channels, setChannels] = useState<ShopTikTokChannel[]>(tiktokChannels);
   const [isLoadingChannels, setIsLoadingChannels] = useState(false);
+  const licenseData = useLicense();
+
+  const adminUserId = process.env.NEXT_PUBLIC_USERADMIN;
+  const isAdmin = !!adminUserId && userId === adminUserId;
 
   const normalizedCurrentUsername = normalizeTikTokUsername(tiktokUsername);
   const displayTikTokUsername = normalizedCurrentUsername || normalizeTikTokUsername(channels.find((c) => c.isDefault)?.tiktokUsername || "");
@@ -123,6 +130,23 @@ export default function SettingsView({
 
   if (subScreen === "shippingConfig") {
     return <ShippingConfigView onBack={() => setSubScreen("main")} />;
+  }
+
+  if (subScreen === "license") {
+    return (
+      <LicenseView
+        license={licenseData.license}
+        isLoading={licenseData.isLoading}
+        error={licenseData.error}
+        onBack={() => setSubScreen("main")}
+        onUpgrade={() => toast.info("Tính năng đang phát triển")}
+        onRefresh={licenseData.refresh}
+      />
+    );
+  }
+
+  if (subScreen === "admin") {
+    return <AdminView onBack={() => setSubScreen("main")} />;
   }
 
   return (
@@ -210,30 +234,50 @@ export default function SettingsView({
       </section>
 
       <div className="flex flex-col gap-4 px-4 py-4 pb-8">
-        <div className="flex flex-col gap-4 rounded-2xl border border-black/10 bg-white p-4 shadow-[0px_6px_8px_rgba(17,12,34,0.10)]">
+        <button
+          type="button"
+          onClick={() => setSubScreen("license")}
+          className="flex flex-col gap-4 rounded-2xl border border-black/10 bg-white p-4 shadow-[0px_6px_8px_rgba(17,12,34,0.10)] text-left w-full"
+        >
           <div className="flex items-center gap-4">
             <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[12px]">
               <div className="absolute inset-0" style={{ background: "linear-gradient(136deg, #ff6b8a 4%, #ffa66d 63%, #ffc86a 131%)" }} />
-              <svg className="relative z-10" width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                <circle cx="12" cy="13" r="4" stroke="white" strokeWidth="1.8"/>
+              <svg className="relative z-10" width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-medium leading-[22px] text-black">Gói Lumi Live Mini</p>
-              <p className="text-[14px] leading-[22px] text-[#484848]">1172-2700 đơn</p>
+              {licenseData.isLoading && !licenseData.license ? (
+                <>
+                  <div className="h-4 w-24 animate-pulse rounded bg-[#f2f2f2]" />
+                  <div className="mt-1 h-3 w-36 animate-pulse rounded bg-[#f2f2f2]" />
+                </>
+              ) : (
+                <>
+                  <p className="text-[14px] font-medium leading-[22px] text-black">
+                    Gói {licenseData.license?.plan_code === "trial" ? "Dùng thử"
+                      : licenseData.license?.plan_code === "basic" ? "Basic"
+                      : licenseData.license?.plan_code === "pro" ? "Pro"
+                      : licenseData.license?.plan_code === "vip" ? "VIP"
+                      : "Dùng thử"}
+                  </p>
+                  <p className="text-[13px] leading-[20px] text-[#484848]">
+                    {licenseData.license?.max_orders_per_month == null
+                      ? "Không giới hạn đơn"
+                      : `Tối đa ${licenseData.license.max_orders_per_month} đơn/tháng`}
+                  </p>
+                </>
+              )}
             </div>
             <ChevronRightIcon />
           </div>
-          <button
-            type="button"
-            onClick={() => toast.info("Tính năng đang phát triển")}
-            className="flex h-10 w-full items-center justify-center rounded-[40px] text-[14px] font-medium text-black"
+          <div
+            className="flex h-10 w-full items-center justify-center rounded-[40px] text-[14px] font-medium text-white"
             style={{ background: "linear-gradient(146deg, #ff6b8a 14%, #ffa66d 52%, #ffc86a 118%)" }}
           >
-            Nâng cấp
-          </button>
-        </div>
+            {licenseData.license?.plan_code === "vip" ? "Xem gói dịch vụ" : "Nâng cấp"}
+          </div>
+        </button>
 
         <div className="flex flex-col">
           <SettingsRow
@@ -247,6 +291,23 @@ export default function SettingsView({
             onClick={() => toast.info("Tính năng đang phát triển")}
           />
         </div>
+
+        {isAdmin && (
+          <>
+            <div className="h-px bg-black/8" />
+            <div className="flex flex-col">
+              <SettingsRow
+                label="Quản lý"
+                icon={
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" fill="currentColor"/>
+                  </svg>
+                }
+                onClick={() => setSubScreen("admin")}
+              />
+            </div>
+          </>
+        )}
 
         <div className="h-px bg-black/8" />
 

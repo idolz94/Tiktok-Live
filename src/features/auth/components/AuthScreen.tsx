@@ -3,31 +3,9 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { useSignIn, useSignUp } from "@clerk/nextjs/legacy";
-import { createTikTokChannelApi } from "@/api/meApi";
+import { loginApi, registerApi } from "@/api/authApi";
 import { emitAuthChanged } from "@/lib/request";
 import { ForgotPasswordDrawer } from "@/features/auth/ForgotPassword";
-
-function mapClerkError(err: { code?: string; message?: string; longMessage?: string }): string {
-  switch (err.code) {
-    case "form_password_pwned":
-      return "Mật khẩu này đã bị lộ trong các vụ rò rỉ dữ liệu. Vui lòng dùng mật khẩu khác.";
-    case "form_password_not_strong_enough":
-      return "Mật khẩu quá yếu. Hãy dùng mật khẩu có chữ hoa, chữ thường và số.";
-    case "form_identifier_exists":
-      return "Tên đăng nhập này đã được sử dụng.";
-    case "form_identifier_not_found":
-      return "Tên đăng nhập không tồn tại.";
-    case "form_password_incorrect":
-      return "Mật khẩu không đúng.";
-    case "too_many_requests":
-      return "Bạn đã thử quá nhiều lần. Vui lòng thử lại sau.";
-    case "session_exists":
-      return "Bạn đang đăng nhập rồi.";
-    default:
-      return err.longMessage || err.message || "Có lỗi xảy ra, vui lòng thử lại.";
-  }
-}
 
 type Mode = "login" | "register";
 
@@ -67,29 +45,38 @@ function InputField({
   label,
   value,
   onChange,
+  onBlur,
+  onKeyDown,
   type = "text",
   rightSlot,
+  error,
 }: {
   label: string;
-  placeholder?: string;
   value: string;
   onChange: (v: string) => void;
+  onBlur?: () => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   type?: string;
   rightSlot?: React.ReactNode;
+  error?: string;
 }) {
   return (
-    <div className="form-item font-['Inter_Display',sans-serif]">
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder=" "
-        className="font-['Inter_Display',sans-serif]"
-      />
-      {rightSlot}
-      <label className="font-['Inter_Display',sans-serif]">
-        {label}
-      </label>
+    <div className="flex flex-col gap-1.5">
+      <div className={`form-item${error ? " border-[#ff6b8a]!" : ""}`}>
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
+          onKeyDown={onKeyDown}
+          placeholder=" "
+        />
+        {rightSlot}
+        <label>{label}</label>
+      </div>
+      {error && (
+        <p className="px-1 text-[12px] leading-4.5 text-[#ff6b8a]">{error}</p>
+      )}
     </div>
   );
 }
@@ -102,9 +89,10 @@ function HeroHeader() {
         background: "linear-gradient(150.59deg, #FF6B8A 5.85%, #FFA66D 45.40%, #FFC86A 84.96%)",
       }}
     >
-      <p className="absolute left-1/2 top-[79px] w-[184px] -translate-x-1/2 text-center font-['Inter_Display',sans-serif] text-[20px] font-semibold leading-[24px] text-black">
+      <p className="absolute left-1/2 top-[79px] w-[184px] -translate-x-1/2 text-center text-[20px] font-semibold leading-6 text-black">
         3 bước đơn giản, chốt đơn dễ dàng
       </p>
+
 
       <div className="absolute top-[150px] left-0 right-0 flex items-center justify-between gap-0 px-6">
         <div className="flex items-center justify-center" style={{ width: 88, height: 88 }}>
@@ -131,18 +119,44 @@ function HeroHeader() {
       </div>
 
       <div className="absolute bottom-[22px] left-0 right-0 flex justify-around px-4 text-center">
-        <span className="text-[14px] leading-[22px] text-black font-['Inter_Display',sans-serif]">Gom comment</span>
-        <span className="text-[14px] leading-[22px] text-black font-['Inter_Display',sans-serif]">Xác nhận đơn</span>
-        <span className="text-[14px] leading-[22px] text-black font-['Inter_Display',sans-serif]">Gửi vận chuyển</span>
+        <span className="text-[14px] leading-[22px] text-black">Gom comment</span>
+        <span className="text-[14px] leading-[22px] text-black">Xác nhận đơn</span>
+        <span className="text-[14px] leading-[22px] text-black">Gửi vận chuyển</span>
       </div>
     </div>
   );
 }
 
+type RegisterErrors = {
+  fullName?: string;
+  username?: string;
+  password?: string;
+  tiktokId?: string;
+};
+
+function validateRegisterField(field: keyof RegisterErrors, value: string): string {
+  if (field === "fullName") {
+    return value.trim().length === 0 ? "Vui lòng nhập họ và tên" : "";
+  }
+  if (field === "username") {
+    if (value.trim().length === 0) return "Vui lòng nhập tên tài khoản";
+    if (value.trim().length < 5) return "Tên tài khoản phải có ít nhất 5 ký tự";
+    if (!/^[a-z0-9_.-]+$/.test(value.trim())) return "Tên tài khoản chỉ gồm chữ thường, số, _ . -";
+    return "";
+  }
+  if (field === "password") {
+    if (value.length === 0) return "Vui lòng nhập mật khẩu";
+    if (value.length < 6) return "Mật khẩu phải có ít nhất 6 ký tự";
+    return "";
+  }
+  if (field === "tiktokId") {
+    return value.trim().length === 0 ? "Vui lòng nhập TikTok ID" : "";
+  }
+  return "";
+}
+
 export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mode }) {
   const router = useRouter();
-  const { signIn, setActive: setSignInActive } = useSignIn();
-  const { signUp, setActive: setSignUpActive } = useSignUp();
   const [mode, setMode] = useState<Mode>(initialMode);
 
   const [fullName, setFullName] = useState("");
@@ -151,6 +165,8 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
   const [tiktokId, setTiktokId] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
+  const [registerErrors, setRegisterErrors] = useState<RegisterErrors>({});
+
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -158,9 +174,26 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
 
   const canSubmitRegister =
     fullName.trim().length > 0 &&
-    username.trim().length > 0 &&
-    password.length >= 8 &&
+    username.trim().length >= 5 &&
+    /^[a-z0-9_.-]+$/.test(username.trim()) &&
+    password.length >= 6 &&
+    tiktokId.trim().length > 0 &&
     agreedToTerms;
+
+  function handleRegisterBlur(field: keyof RegisterErrors, value: string) {
+    const error = validateRegisterField(field, value);
+    setRegisterErrors((prev) => ({ ...prev, [field]: error }));
+  }
+
+  function switchMode(next: Mode) {
+    setMode(next);
+    setRegisterErrors({});
+    setFullName("");
+    setUsername("");
+    setPassword("");
+    setTiktokId("");
+    setAgreedToTerms(false);
+  }
 
   async function handleSubmit() {
     const trimmedUsername = username.trim();
@@ -170,13 +203,23 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
       return;
     }
 
-    if (!password.trim()) {
+    if (trimmedUsername.length < 5) {
+      toast.warning("Tên tài khoản phải có ít nhất 5 ký tự");
+      return;
+    }
+
+    if (!/^[a-z0-9_.-]+$/.test(trimmedUsername)) {
+      toast.warning("Tên tài khoản chỉ gồm chữ thường, số, _ . -");
+      return;
+    }
+
+    if (!password) {
       toast.warning("Vui lòng nhập mật khẩu");
       return;
     }
 
-    if (password.length < 8) {
-      toast.warning("Mật khẩu phải có ít nhất 8 ký tự");
+    if (password.length < 6) {
+      toast.warning("Mật khẩu phải có ít nhất 6 ký tự");
       return;
     }
 
@@ -190,66 +233,36 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
       return;
     }
 
+    if (!isLogin && !tiktokId.trim()) {
+      toast.warning("Vui lòng nhập TikTok ID");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
       if (isLogin) {
-        if (!signIn) throw new Error("Sign in not available");
-
-        const result = await signIn.create({
-          identifier: trimmedUsername,
-          password,
-        });
-
-        if (result.status === "complete") {
-          await setSignInActive({ session: result.createdSessionId });
-          emitAuthChanged("login");
-          router.replace("/dashboard/live");
-        } else {
-          toast.info("Vui lòng hoàn tất xác minh.");
-        }
+        await loginApi({ username: trimmedUsername, password });
+        emitAuthChanged("login");
+        router.replace("/dashboard/live");
       } else {
-        if (!signUp) throw new Error("Sign up not available");
-
-        const result = await signUp.create({
+        await registerApi({
           username: trimmedUsername,
           password,
-          firstName: fullName.trim().split(" ")[0],
-          lastName: fullName.trim().split(" ").slice(1).join(" ") || ".",
-          unsafeMetadata: {
-            tiktokId: tiktokId.trim(),
-          },
+          tiktokId: tiktokId.trim(),
+          fullName: fullName.trim() || undefined,
         });
-
-        if (result.status === "complete") {
-          await setSignUpActive({ session: result.createdSessionId });
-          emitAuthChanged("register");
-
-          if (tiktokId.trim()) {
-            await createTikTokChannelApi({
-              tiktokUsername: tiktokId.trim(),
-              isDefault: true,
-            });
-          }
-
-          router.replace("/dashboard/live");
-        } else {
-          toast.info("Tài khoản đã tạo. Vui lòng hoàn tất xác minh.");
-        }
+        emitAuthChanged("register");
+        router.replace("/dashboard/live");
       }
-    } catch (error: any) {
-      const clerkErrors = error?.errors;
-      if (clerkErrors?.length) {
-        toast.error(mapClerkError(clerkErrors[0]));
-      } else {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : isLogin
-              ? "Đăng nhập thất bại"
-              : "Đăng ký thất bại",
-        );
-      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : isLogin
+            ? "Đăng nhập thất bại"
+            : "Đăng ký thất bại",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -261,7 +274,7 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
         <HeroHeader />
 
         <div
-          className="relative -mt-[41px] flex flex-col rounded-t-[32px] bg-white"
+          className="relative -mt-10.25 flex flex-col rounded-t-4xl bg-white"
           style={{ height: "calc(100dvh - 309px)" }}
         >
           <div className="flex-1 overflow-y-auto px-4 pt-6 pb-6 [-webkit-overflow-scrolling:touch]">
@@ -269,46 +282,44 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
 
               {isLogin ? (
                 <>
-                  <p className="w-full text-center font-['Inter_Display',sans-serif] text-[18px] font-medium leading-[24px] text-black">
+                  <p className="w-full text-center text-[18px] font-medium leading-6 text-black">
                     Đăng nhập
                   </p>
 
-                  <div className="flex flex-col gap-5">
-                    <InputField
+                  <div className="flex flex-col gap-5">                    <InputField
                       label="Tên tài khoản"
-                      placeholder="Nhập tên tài khoản của bạn"
                       value={username}
                       onChange={setUsername}
+                      onKeyDown={(e) => { if (e.key === "Enter" && username.trim() && password) handleSubmit(); }}
                     />
 
-                    <div className="flex flex-col gap-1.5">
+                    <InputField
+                      label="Mật khẩu"
+                      value={password}
+                      onChange={setPassword}
+                      onKeyDown={(e) => { if (e.key === "Enter" && username.trim() && password) handleSubmit(); }}
+                      type={isPasswordVisible ? "text" : "password"}
+                      rightSlot={
+                        <button
+                          type="button"
+                          onClick={() => setIsPasswordVisible((v) => !v)}
+                          className="shrink-0"
+                        >
+                          {isPasswordVisible ? <EyeOnIcon /> : <EyeOffIcon />}
+                        </button>
+                      }
+                    />
+                  </div>
 
-                      <InputField
-                        label="Mật khẩu"
-                        value={password}
-                        onChange={setPassword}
-                        type={isPasswordVisible ? "text" : "password"}
-                        rightSlot={
-                          <button
-                            type="button"
-                            onClick={() => setIsPasswordVisible((v) => !v)}
-                            className="shrink-0"
-                          >
-                            {isPasswordVisible ? <EyeOnIcon /> : <EyeOffIcon />}
-                          </button>
-                        }
-                      />
-                    </div>
-                                          <div className="flex justify-end">
-                        <ForgotPasswordDrawer />
-                      </div>
+                  <div className="flex justify-end">
+                    <ForgotPasswordDrawer />
                   </div>
 
                   <button
                     type="button"
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className="flex h-14 w-full items-center justify-center rounded-[40px] text-[16px] font-medium text-black disabled:opacity-60 font-['Inter_Display',sans-serif]"
+                    className="flex h-14 w-full items-center justify-center rounded-[40px] text-[16px] font-medium text-black disabled:opacity-60"
                     style={{
                       background: "linear-gradient(138.46deg, #FF6B8A 13.52%, #FFA66D 52.12%, #FFC86A 117.76%)",
                     }}
@@ -318,38 +329,23 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
 
                   <div className="flex items-center gap-3">
                     <span className="h-px flex-1 bg-[#dadada]" />
-                    <span className="text-[12px] font-medium leading-[18px] text-[#484848] font-['Inter_Display',sans-serif]">
+                    <span className="text-[12px] font-medium leading-4.5 text-[#484848]">
                       Tư vấn
                     </span>
                     <span className="h-px flex-1 bg-[#dadada]" />
                   </div>
 
                   <div className="flex items-center justify-center gap-4">
-                    <button
-                      type="button"
-                      className="flex size-12 items-center justify-center rounded-[12px] border border-[#dadada] bg-white"
-                    >
-                      <img src="/images/auth/icon-phone.svg" alt="Phone" className="size-5" />
-                    </button>
-                    <button
-                      type="button"
-                      className="flex size-12 items-center justify-center rounded-[12px] border border-[#dadada] bg-white"
-                    >
-                      <img src="/images/auth/icon-messenger.svg" alt="Messenger" className="size-5" />
-                    </button>
-                    <button
-                      type="button"
-                      className="flex size-12 items-center justify-center rounded-[12px] border border-[#dadada] bg-white"
-                    >
-                      <img src="/images/auth/icon-instagram.svg" alt="Instagram" className="size-5" />
-                    </button>
+                    <img src="/assets/icon/fb.png" alt="Phone" className="w-10 h-10" />
+                    <img src="/assets/icon/tiktok.png" alt="tiktok" className="w-10 h-10" />
+                    <img src="/assets/icon/zalo.png" alt="Instagram" className="w-10 h-10" />
                   </div>
 
-                  <p className="text-center text-[14px] leading-[22px] text-[#484848] font-['Inter_Display',sans-serif]">
+                  <p className="text-center text-[14px] leading-[22px] text-[#484848]">
                     Bạn chưa có tài khoản.{" "}
                     <button
                       type="button"
-                      onClick={() => setMode("register")}
+                      onClick={() => switchMode("register")}
                       className="font-medium text-[#ff6b8a]"
                     >
                       Đăng kí ngay
@@ -359,14 +355,14 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
               ) : (
                 <>
                   <div className="flex flex-col items-center gap-2">
-                    <p className="text-center font-['Inter_Display',sans-serif] text-[18px] font-medium leading-[24px] text-black">
+                    <p className="text-center text-[18px] font-medium leading-6 text-black">
                       Đăng kí
                     </p>
-                    <p className="text-center text-[14px] leading-[22px] text-[#484848] font-['Inter_Display',sans-serif]">
+                    <p className="text-center text-[14px] leading-5.5 text-[#484848]">
                       Bạn có tài khoản.{" "}
                       <button
                         type="button"
-                        onClick={() => setMode("login")}
+                        onClick={() => switchMode("login")}
                         className="font-medium text-[#ff6b8a]"
                       >
                         Đăng nhập
@@ -374,25 +370,29 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
                     </p>
                   </div>
 
-                  <div className="flex flex-col gap-5">
+
+                  <div className="flex flex-col gap-4">
                     <InputField
                       label="Họ và tên"
-                      placeholder="Nhập họ và tên của bạn"
                       value={fullName}
                       onChange={setFullName}
+                      onBlur={() => handleRegisterBlur("fullName", fullName)}
+                      error={registerErrors.fullName}
                     />
                     <InputField
                       label="Tên tài khoản"
-                      placeholder="Nhập tên tài khoản của bạn"
                       value={username}
                       onChange={setUsername}
+                      onBlur={() => handleRegisterBlur("username", username)}
+                      error={registerErrors.username}
                     />
                     <InputField
                       label="Mật khẩu"
-                      placeholder="Nhập mật khẩu"
                       value={password}
                       onChange={setPassword}
+                      onBlur={() => handleRegisterBlur("password", password)}
                       type={isPasswordVisible ? "text" : "password"}
+                      error={registerErrors.password}
                       rightSlot={
                         <button
                           type="button"
@@ -405,9 +405,10 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
                     />
                     <InputField
                       label="Tiktok ID (@wii15_08)"
-                      placeholder="username"
                       value={tiktokId}
                       onChange={setTiktokId}
+                      onBlur={() => handleRegisterBlur("tiktokId", tiktokId)}
+                      error={registerErrors.tiktokId}
                     />
                   </div>
 
@@ -417,7 +418,7 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
                     className="flex items-start gap-3"
                   >
                     <CheckboxIcon checked={agreedToTerms} />
-                    <p className="text-left text-[14px] leading-[22px] text-[#484848] font-['Inter_Display',sans-serif]">
+                    <p className="text-left text-[14px] leading-5.5 text-[#484848]">
                       Bấm nút đăng kí bạn đồng ý với{" "}
                       <span className="font-medium text-[#ff6b8a]">điều kiện</span>
                       {" "}và{" "}
@@ -426,24 +427,21 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
                     </p>
                   </button>
 
-                  {!isLogin && (
-                      <button
-                        type="button"
-                        onClick={handleSubmit}
-                        disabled={isSubmitting || !canSubmitRegister}
-                        className="flex h-14 w-full items-center justify-center rounded-[40px] text-[16px] font-medium text-black disabled:opacity-40 font-['Inter_Display',sans-serif]"
-                        style={{
-                          background: "linear-gradient(138.46deg, #FF6B8A 13.52%, #FFA66D 52.12%, #FFC86A 117.76%)",
-                        }}
-                      >
-                        {isSubmitting ? "Đang xử lý..." : "Đăng kí"}
-                      </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || !canSubmitRegister}
+                    className="flex h-14 w-full items-center justify-center rounded-[40px] text-[16px] font-medium text-black disabled:opacity-40"
+                    style={{
+                      background: "linear-gradient(138.46deg, #FF6B8A 13.52%, #FFA66D 52.12%, #FFC86A 117.76%)",
+                    }}
+                  >
+                    {isSubmitting ? "Đang xử lý..." : "Đăng kí"}
+                  </button>
                 </>
               )}
             </div>
           </div>
-
         </div>
       </div>
     </main>
