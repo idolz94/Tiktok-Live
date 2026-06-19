@@ -1,24 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DrawlerBase } from "@/components/ui/Drawler";
 import { Order, OrderProduct } from "@/types";
-import { formatMoneyFromK, getOrderTotal } from "@/utils/order";
+import { formatMoney, getOrderTotal } from "@/utils/order";
 import { addOrderItemApi, deleteOrderItemApi, updateOrderItemApi } from "@/api/ordersApi";
 import { getCustomerByIdApi } from "@/api/customersApi";
 import { listCustomerAddressesApi, type CustomerAddress } from "@/lib/addresses";
-import { MoneyInput } from "@/components/MoneyInput";
 import { toast } from "sonner";
 import { getOrderTikTokUsername, openTikTokProfile } from "@/utils/tiktok";
 import { ProductDrawer } from "./ProductDrawer";
 import { ShippingCreateScreen } from "./ShippingCreateScreen";
+import { ShipmentPanel } from "./ShipmentPanel";
 import {
   BackIcon, PhoneIcon, AddressIcon, TikTokIcon, PrinterIcon,
-  PlusCircleIcon, ChevronRightIcon, EyeIcon, InfoIcon, ChevronDownIcon,
-  ShipIcon, TrashIcon, EditIcon, ConfirmIcon, ShareIcon, DepositSpinner,
+  PlusCircleIcon, ChevronDownIcon,
+  TrashIcon, EditIcon, ConfirmIcon, ShareIcon, DepositSpinner,
 } from "./icons";
-import { Divider, VndBadge, GradientButton } from "./shared";
-import { CARRIERS } from "../constants/carriers";
+import { Divider } from "./shared";
 import { buildOrderHtml, formatOrderDate, statusLabel } from "../utils/orderOverview";
 
 export default function OrderOverviewScreen({
@@ -46,19 +44,8 @@ export default function OrderOverviewScreen({
 }) {
   const [addProductOpen, setAddProductOpen] = useState(false);
   const [editProductOpen, setEditProductOpen] = useState(false);
-  const [carrierOpen, setCarrierOpen] = useState(false);
-  const [linkCarrierOpen, setLinkCarrierOpen] = useState(false);
-
-  const [localShippingFee, setLocalShippingFee] = useState(order.shippingFee ?? 0);
-  const [localPrepaid, setLocalPrepaid] = useState(0);
 
   const [deletingProductId, setDeletingProductId] = useState("");
-
-  const [selectedCarrier, setSelectedCarrier] = useState<(typeof CARRIERS)[0] | null>(null);
-  const [linkAccount, setLinkAccount] = useState("");
-  const [linkPassword, setLinkPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [linkIsDefault, setLinkIsDefault] = useState(true);
 
   const [showAllProducts, setShowAllProducts] = useState(false);
   const [showShippingCreateScreen, setShowShippingCreateScreen] = useState(false);
@@ -94,9 +81,8 @@ export default function OrderOverviewScreen({
 
   const products = order.products || [];
   const productTotal = getOrderTotal(products);
-  const shippingFee = localShippingFee;
-  const prepaid = localPrepaid;
-  const remain = productTotal + shippingFee - prepaid;
+  const shippingFee = order.shippingFee ?? 0;
+  const remain = order.totalAmount ?? Math.max(0, productTotal + shippingFee - (order.discountAmount ?? 0));
   const totalQuantity = products.reduce((s, p) => s + Number(p.quantity || 0), 0);
   const displayProducts = showAllProducts ? products : products.slice(0, 3);
 
@@ -196,13 +182,6 @@ export default function OrderOverviewScreen({
     setTimeout(() => win.print(), 400);
   }
 
-  function openLinkCarrier(carrier: (typeof CARRIERS)[0]) {
-    setSelectedCarrier(carrier);
-    setLinkAccount("");
-    setLinkPassword("");
-    setLinkIsDefault(true);
-    setLinkCarrierOpen(true);
-  }
 
   if (showShippingCreateScreen) {
     return (
@@ -374,7 +353,7 @@ export default function OrderOverviewScreen({
 
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-[14px] font-medium leading-[22px] text-black">
-                    {formatMoneyFromK(Number(product.price || 0) * Number(product.quantity || 0))}
+                    {formatMoney(Number(product.price || 0) * Number(product.quantity || 0))}
                   </span>
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="text-[12px] leading-4.5 text-[#787878]">x{product.quantity}</span>
@@ -412,7 +391,7 @@ export default function OrderOverviewScreen({
             <div className="flex items-center justify-between gap-4">
               <span className="text-[14px] leading-5.5 text-[#484848]">Tổng tiền</span>
               <span className="text-[14px] font-semibold leading-5.5 text-[#ff6b8a]">
-                {formatMoneyFromK(productTotal)}
+                {formatMoney(productTotal)}
               </span>
             </div>
           </div>
@@ -423,100 +402,39 @@ export default function OrderOverviewScreen({
         <section className="px-4 pb-4 pt-5">
           <h2 className="text-[18px] font-semibold leading-6 text-black">Đơn vị vận chuyển</h2>
 
-          <div className="mt-4 flex flex-col gap-3">
+          <div className="mt-2 flex flex-col gap-3">
             <div className="flex items-center justify-between gap-4">
               <span className="shrink-0 text-[14px] leading-5.5 text-[#2b2b2b]">Phí vận chuyển</span>
-              <div className="flex h-10 w-36 items-center gap-1 rounded-xl border border-black/10 px-3">
-                <MoneyInput value={localShippingFee} onChange={setLocalShippingFee} />
-                <VndBadge />
-              </div>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="shrink-0 text-[14px] leading-5.5 text-[#2b2b2b]">Trả trước</span>
-              <div className="flex h-10 w-36 items-center gap-1 rounded-xl border border-black/10 px-3">
-                <MoneyInput value={localPrepaid} onChange={setLocalPrepaid} />
-                <VndBadge />
-              </div>
+              <span className="text-[14px] font-semibold leading-5.5 text-black">
+                {shippingFee > 0 ? formatMoney(shippingFee) : "—"}
+              </span>
             </div>
             <div className="flex items-center justify-between gap-4 border-t border-black/10 pt-3">
               <span className="text-[14px] leading-5.5 text-[#484848]">Còn lại</span>
               <span className="text-[14px] font-semibold leading-5.5 text-[#ff6b8a]">
-                {formatMoneyFromK(remain)}
+                {formatMoney(remain)}
               </span>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setCarrierOpen(true)}
-            className="mt-4 w-full overflow-hidden rounded-xl border border-black/10 bg-white text-left"
-          >
-            <div className="flex items-center justify-between gap-4 px-4 py-3">
-              <span className="text-[12px] leading-4.5 text-[#484848]">Mã VTP</span>
-              <span className="truncate text-[12px] leading-4.5 text-black">
-                {order.orderCode || order.id}
-              </span>
-            </div>
-            <div className="flex items-center gap-4 bg-[#f2f2f2] px-4 py-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#d71920] text-[10px] font-bold text-white">
-                VTP
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[14px] font-medium leading-5.5 text-black">Viettel Post</p>
-                  <span className="text-[12px] font-medium leading-4.5 text-[#2ca87b]">Đang giao hàng</span>
-                </div>
-                <div className="mt-1 flex items-center justify-between gap-3">
-                  <p className="truncate text-[12px] leading-4.5 text-[#484848]">
-                    {formatOrderDate(order.createdAt)}
-                  </p>
-                  <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium leading-4.5 text-black">
-                    Theo dõi
-                    <ChevronRightIcon />
-                  </span>
-                </div>
-              </div>
-            </div>
-          </button>
+        <ShipmentPanel
+            order={order}
+            onCreateShipment={() => setShowShippingCreateScreen(true)}
+            onCancelled={onShippingSubmitted}
+          />
         </section>
 
         <Divider />
 
         <section className="px-4 pb-6 pt-4">
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => onToggleDeposit(order.id)}
-              disabled={isDepositLoading}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-[40px] py-3 text-[14px] font-medium disabled:cursor-not-allowed disabled:opacity-70 ${
-                order.depositStatus === "paid" || order.depositStatus === "deposited"
-                  ? "bg-[#2ca87b] text-white"
-                  : "bg-[#f5c842] text-black"
-              }`}
-            >
-              {isDepositLoading ? <DepositSpinner /> : <ConfirmIcon />}
-              {isDepositLoading
-                ? "Đang cập nhật..."
-                : order.depositStatus === "paid" || order.depositStatus === "deposited"
-                  ? "Đã cọc"
-                  : "Chưa cọc"}
-            </button>
-            <button
-              type="button"
-              className="flex flex-1 items-center justify-center gap-2 rounded-[40px] py-3 text-[14px] font-medium text-white"
-              style={{ backgroundImage: "linear-gradient(90deg, #5b8dee 0%, #7b5cf0 100%)" }}
-            >
-              <ShareIcon />
-              Chia sẻ hoá đơn
-            </button>
-          </div>
           <button
             type="button"
-            onClick={handlePrint}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-[40px] bg-[#ffe8e8] py-3 text-[14px] font-medium text-[#ff6b8a]"
+            onClick={() => {}}
+            className="flex w-full items-center justify-center gap-2 rounded-[40px] py-3 text-[14px] font-medium text-white"
+            style={{ backgroundImage: "linear-gradient(90deg, #5b8dee 0%, #7b5cf0 100%)" }}
           >
-            <PrinterIcon size={18} />
-            In đơn hàng
+            <ShareIcon />
+            Chia sẻ hoá đơn
           </button>
         </section>
       </div>
@@ -525,24 +443,28 @@ export default function OrderOverviewScreen({
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => setCarrierOpen(true)}
-            className="flex flex-1 items-center gap-2 overflow-hidden rounded-[40px] border border-black/10 bg-[#f2f2f2] px-4 py-3"
+            onClick={() => onToggleDeposit(order.id)}
+            disabled={isDepositLoading}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-[40px] py-3 text-[14px] font-medium disabled:cursor-not-allowed disabled:opacity-70 ${
+              order.depositStatus === "paid" || order.depositStatus === "deposited"
+                ? "bg-[#2ca87b] text-white"
+                : "bg-[#f5c842] text-black"
+            }`}
           >
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#d71920] text-[9px] font-bold text-white">
-              VTP
-            </div>
-            <span className="min-w-0 flex-1 truncate text-left text-[14px] font-medium text-black">
-              Viettel Post
-            </span>
-            <ChevronRightIcon />
+            {isDepositLoading ? <DepositSpinner /> : <ConfirmIcon />}
+            {isDepositLoading
+              ? "Đang cập nhật..."
+              : order.depositStatus === "paid" || order.depositStatus === "deposited"
+                ? "Đã cọc"
+                : "Chưa cọc"}
           </button>
           <button
             type="button"
-            onClick={() => setShowShippingCreateScreen(true)}
-            className="flex shrink-0 items-center justify-center gap-2 rounded-[40px] bg-[#f5c842] px-6 py-3 text-[14px] font-semibold text-black"
+            onClick={handlePrint}
+            className="flex shrink-0 items-center justify-center gap-2 rounded-[40px] bg-[#ffe8e8] px-6 py-3 text-[14px] font-medium text-[#ff6b8a]"
           >
-            <ShipIcon />
-            Ship
+            <PrinterIcon size={18} />
+            In đơn
           </button>
         </div>
       </div>
@@ -568,127 +490,6 @@ export default function OrderOverviewScreen({
         onSave={(data) => void handleUpdateProduct(data)}
       />
 
-      <DrawlerBase
-        open={carrierOpen}
-        onOpenChange={setCarrierOpen}
-        title="Đối tác vận chuyển"
-        height="auto"
-      >
-        <div className="flex flex-col gap-1 px-4 pb-6">
-          <p className="mb-2 text-[12px] font-medium uppercase tracking-wide text-[#787878]">
-            Đã kết nối
-          </p>
-          {CARRIERS.filter((c) => c.linked).map((carrier) => (
-            <div key={carrier.id} className="flex items-center gap-3 rounded-xl bg-[#f2f2f2] p-3">
-              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${carrier.bgColor} text-[11px] font-bold text-white`}>
-                {carrier.shortName}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-[14px] font-medium text-black">{carrier.name}</span>
-                  {carrier.isDefault && (
-                    <span className="rounded-full bg-[#edfaf4] px-2 py-0.5 text-[11px] font-medium text-[#2ca87b]">
-                      Mặc định
-                    </span>
-                  )}
-                </div>
-                <p className="text-[12px] text-[#787878]">{carrier.description}</p>
-              </div>
-            </div>
-          ))}
-
-          <p className="mb-2 mt-4 text-[12px] font-medium uppercase tracking-wide text-[#787878]">
-            Chưa kết nối
-          </p>
-          {CARRIERS.filter((c) => !c.linked).map((carrier) => (
-            <button
-              key={carrier.id}
-              type="button"
-              onClick={() => openLinkCarrier(carrier)}
-              className="flex w-full items-center gap-3 rounded-xl border border-black/8 bg-white p-3 text-left"
-            >
-              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${carrier.bgColor} text-[11px] font-bold text-white`}>
-                {carrier.shortName}
-              </div>
-              <div className="min-w-0 flex-1">
-                <span className="text-[14px] font-medium text-black">{carrier.name}</span>
-                <p className="text-[12px] text-[#787878]">{carrier.description}</p>
-              </div>
-              <ChevronRightIcon />
-            </button>
-          ))}
-        </div>
-      </DrawlerBase>
-
-      <DrawlerBase
-        open={linkCarrierOpen}
-        onOpenChange={setLinkCarrierOpen}
-        title={selectedCarrier?.name ?? "Liên kết"}
-        height="auto"
-        footer={
-          <div className="px-4 pb-2 pt-1">
-            <GradientButton
-              label="Kết nối"
-              disabled={!linkAccount || !linkPassword}
-              onClick={() => setLinkCarrierOpen(false)}
-            />
-          </div>
-        }
-      >
-        <div className="flex flex-col gap-5 px-4 pb-4">
-          <div className="flex items-start gap-2 rounded-xl bg-[#e9f2ff] p-3">
-            <span className="mt-0.5 shrink-0 text-[#468adf]">
-              <InfoIcon />
-            </span>
-            <p className="text-[13px] leading-5 text-[#468adf]">
-              Nhập thông tin tài khoản {selectedCarrier?.name ?? "đơn vị vận chuyển"} để liên kết và tạo vận đơn tự động.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label className="text-[14px] text-[#484848]">Tài khoản</label>
-            <div className="flex h-12 items-center rounded-xl border border-black/10 px-4">
-              <input
-                type="tel"
-                inputMode="tel"
-                value={linkAccount}
-                onChange={(e) => setLinkAccount(e.target.value)}
-                placeholder="Số điện thoại"
-                className="min-w-0 flex-1 bg-transparent text-[14px] text-black outline-none placeholder:text-[#787878]"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label className="text-[14px] text-[#484848]">Mật khẩu</label>
-            <div className="flex h-12 items-center gap-2 rounded-xl border border-black/10 px-4">
-              <input
-                type={showPassword ? "text" : "password"}
-                value={linkPassword}
-                onChange={(e) => setLinkPassword(e.target.value)}
-                placeholder="••••••••"
-                className="min-w-0 flex-1 bg-transparent text-[14px] text-black outline-none placeholder:text-[#787878]"
-              />
-              <button type="button" onClick={() => setShowPassword((v) => !v)} className="text-[#787878]">
-                <EyeIcon />
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-[14px] text-[#484848]">Đặt làm mặc định</span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={linkIsDefault}
-              onClick={() => setLinkIsDefault((v) => !v)}
-              className={`relative h-7 w-12 rounded-full transition-colors ${linkIsDefault ? "bg-[#ff6b8a]" : "bg-[#d1d1d1]"}`}
-            >
-              <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${linkIsDefault ? "translate-x-6" : "translate-x-1"}`} />
-            </button>
-          </div>
-        </div>
-      </DrawlerBase>
     </main>
   );
 }

@@ -50,7 +50,12 @@ function getCustomerName(order: OrderWithCustomer) {
 function getCustomerAvatar(order: OrderWithCustomer) {
   const customer = getOrderCustomer(order);
 
-  return customer?.avatar_url || undefined;
+  return (
+    customer?.avatar_url ||
+    (order as any).customerAvatarUrl ||
+    (order as any).customer_avatar_url ||
+    undefined
+  );
 }
 
 function getCustomerPhone(order: OrderWithCustomer) {

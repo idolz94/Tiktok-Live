@@ -21,15 +21,18 @@ export default function HomePage() {
       router.replace("/dashboard/live");
       return;
     }
-    // Signed in via Clerk but bootstrap still loading — keep splash
     if (isSignedIn && isLoading) return;
-    // Signed in but bootstrap failed (user=null) — redirect to dashboard anyway
-    // to avoid showing login form while a Clerk session is active
     if (isSignedIn && !isLoading && !user) {
       router.replace("/dashboard/live");
       return;
     }
     if (!isLoading && !user) {
+      const forceLogin = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("screen") === "login";
+      if (forceLogin) {
+        localStorage.setItem(HAS_SEEN_WELCOME_KEY, "true");
+        setScreen("auth-login");
+        return;
+      }
       const hasSeenWelcome = typeof window !== "undefined" && localStorage.getItem(HAS_SEEN_WELCOME_KEY) === "true";
       const targetScreen = hasSeenWelcome ? "auth-login" : "welcome";
       const timer = setTimeout(() => setScreen(targetScreen), 1200);

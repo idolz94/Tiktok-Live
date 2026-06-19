@@ -7,7 +7,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variants: Record<ButtonVariant, string> = {
-  primary: "bg-slate-950 text-white active:bg-slate-800",
+  primary: " bg-[#ff6b8a] text-white active:bg-[#ff5a7d] ",
   secondary: "bg-slate-100 text-slate-900 active:bg-slate-200",
   danger: "bg-red-600 text-white active:bg-red-500",
   ghost: "bg-transparent text-slate-700 active:bg-slate-100",

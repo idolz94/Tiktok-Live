@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CustomerWithTikTok } from "@/features/dashboard/types";
+import Avatar from "@/components/Avatar";
 
 type CustomerTab = "all" | "new" | "tiktok";
 
@@ -16,13 +17,6 @@ function TikTokIcon() {
   );
 }
 
-function AvatarPlaceholder({ letter }: { letter: string }) {
-  return (
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] text-[15px] font-semibold text-[#ff6b8a]">
-      {letter}
-    </div>
-  );
-}
 
 export default function CustomersView({
   customers,
@@ -82,7 +76,6 @@ export default function CustomersView({
           <div className="flex flex-col">
             {displayed.map((item, index) => {
               const tiktokUsername = item.customerTikTokUsername || "";
-              const letter = item.username.charAt(0).toUpperCase();
               const isLast = index === displayed.length - 1;
 
               const customerKey = tiktokUsername || item.username;
@@ -94,7 +87,7 @@ export default function CustomersView({
                     onClick={() => onOpenCustomer?.(customerKey)}
                     className="flex w-full items-center gap-3 py-3.5 text-left"
                   >
-                    <AvatarPlaceholder letter={letter} />
+                    <Avatar uri={item.avatar} username={item.username} size={40} />
                     <div className="min-w-0 flex-1">
                       <p className="text-[15px] font-medium leading-6 text-[#2b2b2b]">{item.username}</p>
                       {tiktokUsername && (

@@ -16,7 +16,6 @@
     "gn:setup": "gitnexus setup"
   },
   "dependencies": {
-    "@clerk/nextjs": "^7.4.3",
     "@hookform/resolvers": "^5.4.0",
     "@lottiefiles/dotlottie-react": "^0.19.4",
     "@microsoft/fetch-event-source": "^2.0.1",

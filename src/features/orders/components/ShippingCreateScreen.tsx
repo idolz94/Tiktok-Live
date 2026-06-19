@@ -626,7 +626,7 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
         )}
       </div>
 
-      <div className="fixed bottom-0 left-1/2 w-full -translate-x-1/2 border-t border-black/8 bg-white px-4 pb-8 pt-3">
+      <div className="fixed bottom-0 left-1/2 w-full -translate-x-1/2 border-t border-black/8 bg-white px-4 pb-[env(safe-area-inset-bottom,32px)] pt-3">
         {shippingMode === "ghtk" ? (
           <>
             <div className="mb-3 flex items-center justify-between">

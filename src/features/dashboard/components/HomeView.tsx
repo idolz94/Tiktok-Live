@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { DrawlerBase } from "@/components/ui/Drawler";
+import Button from "@/components/ui/Button";
 import liveDotAnimation from "../../../../public/assets/animations/dot.json";
 import { createTikTokChannelApi } from "@/api/meApi";
 import type { ShopTikTokChannel } from "@/types/database";
@@ -204,36 +205,35 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col bg-[#F2F2F2]">
-          <div className="shrink-0 flex gap-2 px-4 my-3">
-            <button
+          <div className="my-3 flex shrink-0 gap-2 px-4">
+            <Button
               type="button"
+              variant={commentTab === "all" ? "primary" : "secondary"}
               onClick={() => setCommentTab("all")}
-              className={`rounded-2xl px-4 py-2 text-[13px] font-semibold ${
-                commentTab === "all"
-                  ? "bg-[#2b2b2b] text-white"
-                  : "bg-white text-[#484848]"
-              }`}
+              className={commentTab === "all"
+                ? "min-h-10 rounded-full bg-[#ff6b8a] px-5 text-[13px] text-white shadow-sm active:bg-[#ff5a7d]"
+                : "min-h-10 rounded-full bg-white px-5 text-[13px] text-[#394a67] shadow-sm active:bg-[#fff1f5]"}
             >
               Tất cả · {comments?.length}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant={commentTab === "priority" ? "primary" : "secondary"}
               onClick={() => setCommentTab("priority")}
-              className={`rounded-2xl px-4 py-2 text-[13px] font-semibold ${
-                commentTab === "priority"
-                  ? "bg-[#ff8c42] text-white"
-                  : "bg-white text-[#ff8c42]"
-              }`}
+              className={commentTab === "priority"
+                ? "min-h-10 rounded-full bg-[#ff6b8a] px-5 text-[13px] text-white shadow-sm active:bg-[#ff5a7d]"
+                : "min-h-10 rounded-full bg-white px-5 text-[13px] text-[#394a67] shadow-sm active:bg-[#fff1f5]"}
             >
               Ưu tiên · {priorityComments?.length}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
               onClick={onClearComments}
-              className="ml-auto rounded-2xl bg-white px-4 py-2 text-[13px] font-semibold text-[#ff4242]"
+              className="ml-auto min-h-10 rounded-full bg-white px-5 text-[13px] text-[#ff4242] shadow-sm active:bg-[#fff1f1]"
             >
               Xóa
-            </button>
+            </Button>
           </div>
 
           {/* Scrollable comment list */}

@@ -20,7 +20,7 @@ export default function SessionExpiredDrawer() {
   const handleLogin = () => {
     setOpen(false);
     emitAuthChanged("logout");
-    router.replace("/");
+    router.replace("/?screen=login");
   };
 
   return (

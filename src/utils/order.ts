@@ -153,6 +153,8 @@ export function normalizeApiOrderForUi(order: any): OrderWithTikTok {
     depositStatus: order?.depositStatus || order?.deposit_status || "unpaid",
     paymentStatus: order?.paymentStatus || order?.payment_status || "unpaid",
     shippingStatus: order?.shippingStatus || order?.shipping_status || "not_shipped",
+    trackingCode: order?.trackingCode || order?.tracking_code || null,
+    providerName: order?.providerName || order?.provider_name || null,
     subtotalAmount,
     shippingFee: Number(order?.shippingFee || order?.shipping_fee || 0),
     discountAmount: Number(order?.discountAmount || order?.discount_amount || 0),

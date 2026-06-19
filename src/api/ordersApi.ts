@@ -301,3 +301,22 @@ export async function submitManualShippingApi(
   const data = await postRequest<any>(`/orders/${orderId}/shipping/manual`, payload);
   return (data?.shipping ?? data) as ManualShippingResult;
 }
+
+export type CancelShipmentPayload = {
+  trackingId?: string;
+  reason?: string;
+};
+
+export type CancelShipmentResult = {
+  providerCode?: string;
+  status?: string;
+  logId?: string | null;
+};
+
+export async function cancelShipmentApi(
+  orderId: string,
+  payload?: CancelShipmentPayload,
+): Promise<CancelShipmentResult> {
+  const data = await postRequest<any>(`/orders/${orderId}/shipping/cancel`, payload ?? {});
+  return (data?.shipping ?? data) as CancelShipmentResult;
+}

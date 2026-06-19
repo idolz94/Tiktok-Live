@@ -249,7 +249,9 @@ export function useOrderManager({
       }
     });
 
-    return Array.from(map.values()).sort((a, b) => b.totalComments - a.totalComments);
+    return Array.from(map.values())
+      .filter((c) => c.totalOrders > 0)
+      .sort((a, b) => b.totalComments - a.totalComments);
   }, [comments, orders]);
 
   const createOrderFromComment = useCallback(
