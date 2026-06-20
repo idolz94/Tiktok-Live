@@ -112,28 +112,43 @@ export function useAuth(): AuthState {
   }, [router]);
 
   useEffect(() => {
-    if (getMemoryToken()) {
-      fetchProfile();
-      return;
-    }
+    let cancelled = false;
 
-    // Chỉ thử refresh khi user đã từng login (có session flag trong localStorage)
-    if (!hasSession()) {
-      setIsSignedIn(false);
-      setAuthUser(null);
-      setIsLoading(false);
-      return;
-    }
+    const run = async () => {
+      if (getMemoryToken()) {
+        await fetchProfile();
+        return;
+      }
 
-    // memoryToken mất sau refresh browser — thử dùng httpOnly cookie để lấy lại token
-    setIsLoading(true);
-    refreshApi()
-      .then(() => fetchProfile())
-      .catch(() => {
+      // Chỉ thử refresh khi user đã từng login (có session flag trong localStorage)
+      if (!hasSession()) {
+        if (cancelled) return;
         setIsSignedIn(false);
         setAuthUser(null);
         setIsLoading(false);
-      });
+        return;
+      }
+
+      // memoryToken mất sau refresh browser — thử dùng httpOnly cookie để lấy lại token
+      if (!cancelled) setIsLoading(true);
+
+      try {
+        await refreshApi();
+        if (cancelled) return;
+        await fetchProfile();
+      } catch {
+        if (cancelled) return;
+        setIsSignedIn(false);
+        setAuthUser(null);
+        setIsLoading(false);
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
   }, [fetchProfile]);
 
   return { user: authUser, isLoading, isSignedIn, error, refreshAuth, logout };
