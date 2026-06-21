@@ -1,36 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Order, OrderProduct } from "@/types";
-import { formatMoney, getOrderTotal } from "@/utils/order";
-import { addOrderItemApi, deleteOrderItemApi, updateOrderItemApi } from "@/api/ordersApi";
-import { getCustomerByIdApi } from "@/api/customersApi";
-import { listCustomerAddressesApi, type CustomerAddress } from "@/lib/addresses";
-import { toast } from "sonner";
-import { getOrderTikTokUsername, openTikTokProfile } from "@/utils/tiktok";
+import type { Order, OrderProduct } from "@/types";
 import { ProductDrawer } from "./ProductDrawer";
 import { ShippingCreateScreen } from "./ShippingCreateScreen";
-import { ShipmentPanel } from "./ShipmentPanel";
-import {
-  BackIcon, PhoneIcon, AddressIcon, TikTokIcon, PrinterIcon,
-  PlusCircleIcon, ChevronDownIcon,
-  TrashIcon, EditIcon, ConfirmIcon, ShareIcon, DepositSpinner,
-} from "./icons";
-import { Divider } from "./shared";
-import { buildOrderHtml, formatOrderDate, statusLabel } from "../utils/orderOverview";
+import { useOrderOverview } from "../hooks/useOrderOverview";
+import { BackIcon, PrinterIcon, ShareIcon } from "./icons";
+import { formatOrderDate, statusLabel } from "../utils/orderOverview";
+import { buildDeliverySlipHtml } from "../utils/printHtml";
+import { listShopAddressesApi } from "@/lib/addresses";
+import { OrderCustomerSection } from "./OrderCustomerSection";
+import { OrderProductsSection } from "./OrderProductsSection";
+import { OrderShippingSection } from "./OrderShippingSection";
+import { ShippingDrawer } from "./ShippingDrawer";
+import { OrderFooterActions } from "./OrderFooterActions";
 
-export default function OrderOverviewScreen({
-  order,
-  onBack,
-  onToggleDeposit,
-  onAddProduct,
-  onDeleteProduct,
-  onUpdateProduct,
-  onShippingSubmitted,
-  isDepositLoading = false,
-  userName,
-  onCustomerClick,
-}: {
+type Props = {
   order: Order;
   onBack: () => void;
   onToggleDeposit: (orderId: string) => void;
@@ -41,147 +25,89 @@ export default function OrderOverviewScreen({
   isDepositLoading?: boolean;
   userName?: string;
   onCustomerClick?: (customerKey: string) => void;
-}) {
-  const [addProductOpen, setAddProductOpen] = useState(false);
-  const [editProductOpen, setEditProductOpen] = useState(false);
+};
 
-  const [deletingProductId, setDeletingProductId] = useState("");
+export default function OrderOverviewScreen({
+  order,
+  onBack,
+  onToggleDeposit,
+  onAddProduct,
+  onDeleteProduct: _onDeleteProduct,
+  onUpdateProduct,
+  onShippingSubmitted,
+  isDepositLoading = false,
+  userName,
+  onCustomerClick,
+}: Props) {
 
-  const [showAllProducts, setShowAllProducts] = useState(false);
-  const [showShippingCreateScreen, setShowShippingCreateScreen] = useState(false);
+  const {
+    addProductOpen,
+    setAddProductOpen,
+    editProductOpen,
+    setEditProductOpen,
+    showAllProducts,
+    setShowAllProducts,
+    showShippingCreateScreen,
+    setShowShippingCreateScreen,
+    showShippingDrawer,
+    setShowShippingDrawer,
+    selectedShippingProvider,
+    setSelectedShippingProvider,
+    shippingFeeInput,
+    setShippingFeeInput,
+    prepaidAmountInput,
+    setPrepaidAmountInput,
+    defaultCustomerAddress,
+    fetchedCustomerPhone,
+    products,
+    productTotal,
+    shippingFee,
+    remain,
+    totalQuantity,
+    displayProducts,
+    isAddingProduct,
+    isUpdatingProduct,
+    editInitialPrice,
+    editInitialQty,
+    handleAddProduct,
+    handleUpdateProduct,
+    startEditProduct,
+    clearEditProduct,
+  } = useOrderOverview(order, {
+    onAddProduct,
+    onUpdateProduct,
+  });
 
-  const [defaultCustomerAddress, setDefaultCustomerAddress] = useState<CustomerAddress | null>(null);
-  const [fetchedCustomerPhone, setFetchedCustomerPhone] = useState<string | null>(null);
-
-  function reloadDefaultCustomerAddress() {
-    if (!order.customerId) return;
-    listCustomerAddressesApi(order.customerId).then((list) => {
-      const def = list.find((a) => a?.isDefault) ?? list[0] ?? null;
-      setDefaultCustomerAddress(def);
-    }).catch(() => {});
-  }
-
-  useEffect(() => {
-    reloadDefaultCustomerAddress();
-  }, [order.customerId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!showShippingCreateScreen) reloadDefaultCustomerAddress();
-  }, [showShippingCreateScreen]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!order.customerId) return;
-    let cancelled = false;
-    getCustomerByIdApi(order.customerId).then((profile) => {
-      if (cancelled) return;
-      if (profile.phone) setFetchedCustomerPhone(profile.phone);
-    }).catch(() => {});
-    return () => { cancelled = true; };
-  }, [order.customerId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const products = order.products || [];
-  const productTotal = getOrderTotal(products);
-  const shippingFee = order.shippingFee ?? 0;
-  const remain = order.totalAmount ?? Math.max(0, productTotal + shippingFee - (order.discountAmount ?? 0));
-  const totalQuantity = products.reduce((s, p) => s + Number(p.quantity || 0), 0);
-  const displayProducts = showAllProducts ? products : products.slice(0, 3);
-
-  const [isAddingProduct, setIsAddingProduct] = useState(false);
-  const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
-  const [editingProductId, setEditingProductId] = useState("");
-  const [editInitialPrice, setEditInitialPrice] = useState("");
-  const [editInitialQty, setEditInitialQty] = useState(1);
-
-  async function handleAddProduct(data: { code: string; price: number; quantity: number }) {
+  async function executePrint() {
+    let sender = null;
     try {
-      setIsAddingProduct(true);
-      const item = await addOrderItemApi(order.id, {
-        productCode: data.code,
-        productName: data.code,
-        price: data.price,
-        quantity: data.quantity,
-      });
-
-      const itemId = String(item.id || item.itemId || item.item_id || item.orderItemId || item.order_item_id || "");
-
-      onAddProduct?.(order.id, {
-        id: itemId,
-        code: String(item.productCode || item.product_code || data.code),
-        name: String(item.productName || item.product_name || data.code),
-        price: Number(item.price || data.price),
-        quantity: Number(item.quantity || data.quantity),
-      });
-
-      setAddProductOpen(false);
-      toast.success("Đã thêm sản phẩm");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Thêm sản phẩm thất bại");
-    } finally {
-      setIsAddingProduct(false);
+      const addresses = await listShopAddressesApi();
+      sender = addresses.find((a) => a.isDefault) ?? addresses[0] ?? null;
+    } catch {
+      // print without sender info if fetch fails
     }
-  }
 
-  async function handleDeleteProduct(product: OrderProduct) {
-    const itemId = String(product.id || "").trim();
+    const html = buildDeliverySlipHtml(order, sender);
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, "_blank");
 
-    if (!itemId) {
-      toast.error("Không tìm thấy ID sản phẩm để xoá");
+    if (!win) {
+      URL.revokeObjectURL(url);
       return;
     }
 
-    if (!window.confirm(`Xóa sản phẩm "${product.name || product.code}"?`)) return;
-
-    try {
-      setDeletingProductId(itemId);
-      await deleteOrderItemApi(order.id, itemId);
-      onDeleteProduct?.(order.id, itemId);
-      toast.success("Đã xoá sản phẩm");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Xoá sản phẩm thất bại");
-    } finally {
-      setDeletingProductId("");
-    }
-  }
-
-  function startEditProduct(product: OrderProduct) {
-    setEditingProductId(String(product.id || ""));
-    setEditInitialPrice(String(product.price || 0));
-    setEditInitialQty(product.quantity || 1);
-    setEditProductOpen(true);
-  }
-
-  async function handleUpdateProduct(data: { code: string; price: number; quantity: number }) {
-    const itemId = editingProductId.trim();
-
-    if (!itemId) {
-      toast.error("Không tìm thấy ID sản phẩm để cập nhật");
-      return;
-    }
-
-    try {
-      setIsUpdatingProduct(true);
-      await updateOrderItemApi(order.id, itemId, { price: data.price, quantity: data.quantity });
-      onUpdateProduct?.(order.id, itemId, { price: data.price, quantity: data.quantity });
-      setEditingProductId("");
-      setEditProductOpen(false);
-      toast.success("Đã cập nhật sản phẩm");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Cập nhật sản phẩm thất bại");
-    } finally {
-      setIsUpdatingProduct(false);
-    }
+    const revoke = () => URL.revokeObjectURL(url);
+    win.addEventListener("load", () => {
+      win.print();
+      revoke();
+    }, { once: true });
+    win.addEventListener("beforeunload", revoke, { once: true });
   }
 
   function handlePrint() {
-    const html = buildOrderHtml(order);
-    const win = window.open("", "_blank");
-    if (!win) return;
-    win.document.write(html);
-    win.document.close();
-    win.focus();
-    setTimeout(() => win.print(), 400);
+    void executePrint();
   }
-
 
   if (showShippingCreateScreen) {
     return (
@@ -191,283 +117,76 @@ export default function OrderOverviewScreen({
         onShippingSubmitted={onShippingSubmitted}
         productTotal={productTotal}
         userName={userName}
+        initialShippingFee={shippingFee}
       />
     );
   }
 
   return (
     <main className="mx-auto flex h-dvh w-full flex-col bg-white text-black">
-      <header className="sticky top-0 z-20 flex shrink-0 items-center justify-between bg-white px-4 pb-4 pt-3">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]"
-        >
-          <BackIcon />
-        </button>
-        <h1 className="min-w-0 flex-1 px-4 text-center text-[20px] font-semibold leading-7 text-black">
-          Tổng quan đơn hàng
-        </h1>
-        <div className="h-11 w-11" />
+      <header className="sticky top-0 z-20 flex shrink-0 items-center justify-between bg-white px-4 pt-3 pb-4">
+        <button type="button" onClick={onBack} className="flex size-11 items-center justify-center rounded-full bg-[#f2f2f2]"><BackIcon /></button>
+        <h1 className="min-w-0 flex-1 px-4 text-center text-[20px] leading-7 font-semibold text-black">Tổng quan đơn hàng</h1>
+        <div className="flex size-11 items-center justify-end gap-2 text-[#484848]"><PrinterIcon size={18} /><ShareIcon /></div>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto [-webkit-overflow-scrolling:touch]">
-        <div className="flex flex-col gap-6 px-4 pb-5 pt-2">
+        <div className="px-4 py-2">
           <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 text-[12px] leading-[18px] text-[#484848]">
-              <span className="min-w-0 flex-1 truncate">
-                Order ID: {order.orderCode || order.id}
-              </span>
-              <span className="h-3 w-px shrink-0 bg-[#dadada]" />
-              <span className="shrink-0 whitespace-nowrap">
-                {formatOrderDate(order.createdAt)}
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="inline-flex h-6 items-center rounded-2xl bg-[#d9ffee] px-2 text-[12px] font-medium leading-[18px] text-[#2ca87b]">
-                {statusLabel(order.status)}
-              </span>
-            </div>
+            <div className="flex items-center gap-2 text-[12px] leading-4.5 text-[#484848]"><span className="min-w-0 flex-1 truncate">Order ID: {order.orderCode || order.id}</span><span className="h-3 w-px shrink-0 bg-[#dadada]" /><span className="shrink-0 whitespace-nowrap">{formatOrderDate(order.createdAt)}</span></div>
+            <div className="flex items-center gap-1"><span className="inline-flex h-6 items-center rounded-2xl bg-[#f2f2f2] px-2 text-[12px] leading-[18px] font-medium text-[#2b2b2b]">{statusLabel(order.status)}</span></div>
           </div>
 
-          <div className="flex flex-col gap-4">
-            <button
-              type="button"
-              onClick={() => {
-                const key = order.customerTikTokUsername || order.username;
-                if (key) onCustomerClick?.(key);
-              }}
-              disabled={!onCustomerClick || (!order.customerTikTokUsername && !order.username)}
-              className="flex items-center gap-4 text-left disabled:pointer-events-none"
-            >
-              {order.avatarUrl ? (
-                <img
-                  src={order.avatarUrl}
-                  alt={order.username}
-                  className="h-10 w-10 shrink-0 rounded-full object-cover"
-                />
-              ) : (
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] text-[15px] font-semibold text-[#ff6b8a]">
-                  {(order.customerName || order.username || "?")?.[0]?.toUpperCase()}
-                </div>
-              )}
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <p className="w-full text-[16px] font-medium leading-6 text-black">
-                  {order.customerName || order.username}
-                </p>
-                <div className="flex items-center gap-2">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 2l2.09 6.26L20 9.27l-4.91 4.79 1.18 6.94L12 17.77l-4.27 3.23 1.18-6.94L4 9.27l5.91-1.01z" fill="#f5c842" />
-                  </svg>
-                  <span className="text-[12px] leading-[18px] font-medium text-[#484848]">VIP</span>
-                </div>
-              </div>
-            </button>
-
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <span className="shrink-0 text-[#484848]"><PhoneIcon /></span>
-                <p className="text-[12px] leading-[18px] text-[#484848]">
-                  {defaultCustomerAddress?.phone || fetchedCustomerPhone || order.customerPhone || "Chưa có số điện thoại"}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="shrink-0 text-[#484848]"><AddressIcon /></span>
-                <p className="text-[12px] leading-[18px] text-[#484848]">
-                  {defaultCustomerAddress
-                    ? [defaultCustomerAddress.address, defaultCustomerAddress.ward, defaultCustomerAddress.district, defaultCustomerAddress.province].filter(Boolean).join(", ") || order.customerAddress || "Chưa có địa chỉ"
-                    : order.customerAddressData
-                      ? [order.customerAddressData?.address, order.customerAddressData?.ward, order.customerAddressData?.district, order.customerAddressData?.province].filter(Boolean).join(", ") || order.customerAddress || "Chưa có địa chỉ"
-                      : order.customerAddress || "Chưa có địa chỉ"}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => openTikTokProfile(getOrderTikTokUsername(order))}
-                disabled={!getOrderTikTokUsername(order)}
-                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-[#f2f2f2] text-[12px] font-medium text-black disabled:opacity-40"
-              >
-                <TikTokIcon />
-                Tiktok
-              </button>
-              <button
-                type="button"
-                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-[#f2f2f2] text-[12px] font-medium text-black"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M20 4H4v12h8l4 4v-4h4V4Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-                  <path d="M8 10h8M8 7h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                </svg>
-                Zalo
-              </button>
-              <button
-                type="button"
-                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-[#f2f2f2] text-[12px] font-medium text-black"
-              >
-                <PhoneIcon />
-                Điện thoại
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <Divider />
-
-        <section className="px-4 py-5">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-[18px] font-semibold leading-6 text-black">
-              Danh sách sản phẩm
-            </h2>
-            <button
-              type="button"
-              onClick={() => setAddProductOpen(true)}
-              className="flex shrink-0 items-center gap-1 text-[14px] font-medium leading-[22px] text-black"
-            >
-              <PlusCircleIcon />
-              Thêm mới
-            </button>
-          </div>
-
-          <div className="mt-1 flex flex-col">
-            {displayProducts.map((product, index) => (
-              <div
-                key={product.id || index}
-                className="flex flex-col gap-2 border-b border-black/10 py-3"
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <p className="min-w-0 flex-1 break-words text-[14px] leading-[22px] text-[#2b2b2b]">
-                    {product.name || product.code || "Sản phẩm"}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => startEditProduct(product)}
-                    className="shrink-0 text-[#484848]"
-                    aria-label="Sửa sản phẩm"
-                  >
-                    <EditIcon />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-[14px] font-medium leading-[22px] text-black">
-                    {formatMoney(Number(product.price || 0) * Number(product.quantity || 0))}
-                  </span>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="text-[12px] leading-4.5 text-[#787878]">x{product.quantity}</span>
-                    <button
-                      type="button"
-                      onClick={() => void handleDeleteProduct(product)}
-                      disabled={!!deletingProductId && deletingProductId === product.id}
-                      className="flex h-7 w-7 items-center justify-center rounded-full bg-[#fff0f0] text-[#ff6b8a] disabled:opacity-40"
-                      aria-label="Xoá sản phẩm"
-                    >
-                      <TrashIcon />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {products.length > 3 && (
-            <button
-              type="button"
-              onClick={() => setShowAllProducts((value) => !value)}
-              className="flex h-11 w-full items-center justify-center gap-1 text-[14px] font-medium leading-[22px] text-[#484848]"
-            >
-              {showAllProducts ? "Thu gọn" : `Xem thêm (${products.length - 3})`}
-              <ChevronDownIcon />
-            </button>
-          )}
-
-          <div className="mt-1 flex flex-col gap-1.5">
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-[14px] leading-5.5 text-[#484848]">Tổng sản phẩm</span>
-              <span className="text-[14px] font-semibold leading-5.5 text-black">{totalQuantity}</span>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-[14px] leading-5.5 text-[#484848]">Tổng tiền</span>
-              <span className="text-[14px] font-semibold leading-5.5 text-[#ff6b8a]">
-                {formatMoney(productTotal)}
-              </span>
-            </div>
-          </div>
-        </section>
-
-        <Divider />
-
-        <section className="px-4 pb-4 pt-5">
-          <h2 className="text-[18px] font-semibold leading-6 text-black">Đơn vị vận chuyển</h2>
-
-          <div className="mt-2 flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-4">
-              <span className="shrink-0 text-[14px] leading-5.5 text-[#2b2b2b]">Phí vận chuyển</span>
-              <span className="text-[14px] font-semibold leading-5.5 text-black">
-                {shippingFee > 0 ? formatMoney(shippingFee) : "—"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-4 border-t border-black/10 pt-3">
-              <span className="text-[14px] leading-5.5 text-[#484848]">Còn lại</span>
-              <span className="text-[14px] font-semibold leading-5.5 text-[#ff6b8a]">
-                {formatMoney(remain)}
-              </span>
-            </div>
-          </div>
-
-        <ShipmentPanel
+          <OrderCustomerSection
             order={order}
-            onCreateShipment={() => setShowShippingCreateScreen(true)}
-            onCancelled={onShippingSubmitted}
+            phone={defaultCustomerAddress?.phone || fetchedCustomerPhone || order.customerPhone || "Chưa có số điện thoại"}
+            address={defaultCustomerAddress ? [defaultCustomerAddress.address, defaultCustomerAddress.ward, defaultCustomerAddress.district, defaultCustomerAddress.province].filter(Boolean).join(", ") || order.customerAddress || "Chưa có địa chỉ" : order.customerAddressData ? [order.customerAddressData?.address, order.customerAddressData?.ward, order.customerAddressData?.district, order.customerAddressData?.province].filter(Boolean).join(", ") || order.customerAddress || "Chưa có địa chỉ" : order.customerAddress || "Chưa có địa chỉ"}
+            onCustomerClick={onCustomerClick}
           />
-        </section>
 
-        <Divider />
-
-        <section className="px-4 pb-6 pt-4">
-          <button
-            type="button"
-            onClick={() => {}}
-            className="flex w-full items-center justify-center gap-2 rounded-[40px] py-3 text-[14px] font-medium text-white"
-            style={{ backgroundImage: "linear-gradient(90deg, #5b8dee 0%, #7b5cf0 100%)" }}
-          >
-            <ShareIcon />
-            Chia sẻ hoá đơn
-          </button>
-        </section>
-      </div>
-
-      <div className="shrink-0 border-t border-black/10 bg-white px-4 pb-[env(safe-area-inset-bottom,8px)] pt-3">
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => onToggleDeposit(order.id)}
-            disabled={isDepositLoading}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-[40px] py-3 text-[14px] font-medium disabled:cursor-not-allowed disabled:opacity-70 ${
-              order.depositStatus === "paid" || order.depositStatus === "deposited"
-                ? "bg-[#2ca87b] text-white"
-                : "bg-[#f5c842] text-black"
-            }`}
-          >
-            {isDepositLoading ? <DepositSpinner /> : <ConfirmIcon />}
-            {isDepositLoading
-              ? "Đang cập nhật..."
-              : order.depositStatus === "paid" || order.depositStatus === "deposited"
-                ? "Đã cọc"
-                : "Chưa cọc"}
-          </button>
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="flex shrink-0 items-center justify-center gap-2 rounded-[40px] bg-[#ffe8e8] px-6 py-3 text-[14px] font-medium text-[#ff6b8a]"
-          >
-            <PrinterIcon size={18} />
-            In đơn
-          </button>
         </div>
+
+        <OrderProductsSection
+          products={products}
+          displayProducts={displayProducts}
+          showAllProducts={showAllProducts}
+          totalQuantity={totalQuantity}
+          productTotal={productTotal}
+          onToggleShowAll={() => setShowAllProducts((value) => !value)}
+          onAdd={() => setAddProductOpen(true)}
+          onEdit={startEditProduct}
+        />
+
+        <OrderShippingSection
+          selectedShippingProvider={selectedShippingProvider}
+          shippingFeeInput={shippingFeeInput}
+          prepaidAmountInput={prepaidAmountInput}
+          remain={remain}
+          onOpenDrawer={() => setShowShippingDrawer(true)}
+          onShippingFeeChange={setShippingFeeInput}
+          onPrepaidAmountChange={setPrepaidAmountInput}
+        />
+
+
+        <OrderFooterActions
+          orderId={order.id}
+          depositStatus={order.depositStatus}
+          isDepositLoading={isDepositLoading}
+          onPrint={handlePrint}
+          onToggleDeposit={onToggleDeposit}
+          onShip={() => setShowShippingCreateScreen(true)}
+        />
       </div>
+
+      <ShippingDrawer
+        open={showShippingDrawer}
+        selectedShippingProvider={selectedShippingProvider}
+        onOpenChange={setShowShippingDrawer}
+        onSelectProvider={(provider) => {
+          setSelectedShippingProvider(provider);
+          setShowShippingDrawer(false);
+        }}
+      />
 
       <ProductDrawer
         open={addProductOpen}
@@ -481,7 +200,7 @@ export default function OrderOverviewScreen({
         open={editProductOpen}
         onOpenChange={(open) => {
           setEditProductOpen(open);
-          if (!open) setEditingProductId("");
+          if (!open) clearEditProduct();
         }}
         mode="edit"
         initialPrice={editInitialPrice}
@@ -489,7 +208,6 @@ export default function OrderOverviewScreen({
         loading={isUpdatingProduct}
         onSave={(data) => void handleUpdateProduct(data)}
       />
-
     </main>
   );
 }

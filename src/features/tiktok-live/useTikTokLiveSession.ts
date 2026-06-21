@@ -40,8 +40,7 @@ export function useTikTokLiveSession(options: { hasHistory?: boolean } = {}) {
   const currentLiveSessionRef = useRef<LiveHistoryItem | null>(null);
   const currentDbLiveSessionIdRef = useRef<string | null>(null);
   const sessionCommentsRef = useRef<LiveComment[]>([]);
-  // Track timer tick independently — avoids re-rendering the session state on every tick
-  const [tickCount, setTickCount] = useState(0);
+  const [nowMs, setNowMs] = useState(0);
 
   const [currentLiveSession, setCurrentLiveSessionState] =
     useState<LiveHistoryItem | null>(null);
@@ -74,8 +73,7 @@ export function useTikTokLiveSession(options: { hasHistory?: boolean } = {}) {
       const history = await getLiveHistoryApi();
       setLiveHistory(history);
       return history;
-    } catch (error) {
-      if (process.env.NEXT_PUBLIC_NODE_ENV === "development") console.error("LOAD LIVE HISTORY ERROR:", error);
+    } catch {
       return [];
     } finally {
       setIsHistoryLoading(false);
@@ -113,31 +111,28 @@ export function useTikTokLiveSession(options: { hasHistory?: boolean } = {}) {
 
     // Chỉ phụ thuộc isRunning: interval không restart khi session object thay đổi reference.
     const timer = window.setInterval(() => {
-      setTickCount((n) => n + 1);
+      setNowMs(Date.now());
     }, 1000);
 
     return () => {
       window.clearInterval(timer);
     };
-  }, [isRunning]);
+  }, [isRunning, setNowMs]);
 
   const liveDurationSeconds = useMemo(() => {
     const session = currentLiveSessionRef.current;
     if (!session?.startedAt) return 0;
     if (session.endedAt) return session.durationSeconds || 0;
 
-    // tickCount is the dependency that drives updates every second without storing nowMs in state
-    void tickCount;
     const start = new Date(session.startedAt).getTime();
     if (!start) return 0;
-    return Math.max(0, Math.floor((Date.now() - start) / 1000));
-  }, [tickCount]);
+    return Math.max(0, Math.floor((nowMs - start) / 1000));
+  }, [nowMs]);
 
   const liveNowText = useMemo(() => {
     if (!isRunning) return "";
-    void tickCount;
-    return formatNowText(Date.now());
-  }, [isRunning, tickCount]);
+    return formatNowText(nowMs);
+  }, [isRunning, nowMs]);
 
   const clearLiveHistory = useCallback(() => {
     setLiveHistory([]);

@@ -56,17 +56,17 @@ export function GeneralSettingsView({
 
   return (
     <div className="flex h-full flex-col bg-white">
-      <div className="shrink-0 flex items-center justify-between px-4 pt-3 pb-4">
+      <div className="flex shrink-0 items-center justify-between px-4 pt-3 pb-4">
         <button
           type="button"
           onClick={onBack}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]"
+          className="flex size-11 items-center justify-center rounded-full bg-[#f2f2f2]"
           aria-label="Quay lại"
         >
           <ChevronLeftSmIcon />
         </button>
-        <p className="text-[18px] font-medium leading-6 text-black">Cài đặt chung</p>
-        <div className="h-11 w-11" />
+        <p className="text-[18px] leading-6 font-medium text-black">Cài đặt chung</p>
+        <div className="size-11" />
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto [-webkit-overflow-scrolling:touch]">
@@ -74,7 +74,7 @@ export function GeneralSettingsView({
           <div key={section.title}>
             {sIdx > 0 && <div className="h-2 bg-[#f2f2f2]" />}
             <div className="flex flex-col gap-4 px-4 py-5">
-              <p className="text-[16px] font-medium leading-6 text-black">{section.title}</p>
+              <p className="text-[16px] leading-6 font-medium text-black">{section.title}</p>
               <div className="flex flex-col gap-4">
                 {section.items.map((item, iIdx) => (
                   <div key={item.label}>
@@ -91,7 +91,7 @@ export function GeneralSettingsView({
                             toggles[item.key] ? "justify-end bg-[#ff6b8a]" : "justify-start bg-[#d1d5db]"
                           }`}
                         >
-                          <span className="block h-[19px] w-[19px] rounded-full bg-white shadow-sm" />
+                          <span className="block size-[19px] rounded-full bg-white shadow-sm" />
                         </button>
                       </div>
                     ) : (
@@ -100,7 +100,7 @@ export function GeneralSettingsView({
                         onClick={item.onClick ?? (() => toast.info("Tính năng đang phát triển"))}
                         className="flex w-full items-center gap-4"
                       >
-                        <div className="flex h-6 w-6 shrink-0 items-center justify-center text-[#484848]">
+                        <div className="flex size-6 shrink-0 items-center justify-center text-[#484848]">
                           {item.icon}
                         </div>
                         <p className="flex-1 text-left text-[14px] leading-[22px] text-black">{item.label}</p>

@@ -19,7 +19,7 @@ export default function ProductTable({
 
         {onAddProduct && (
           <button
-            className="h-[42px] w-[42px] rounded-[10px] border border-gray-300 bg-slate-50 text-[28px] leading-[30px] font-light text-gray-700"
+            className="size-[42px] rounded-[10px] border border-gray-300 bg-slate-50 text-[28px] leading-[30px] font-light text-gray-700"
             onClick={onAddProduct}
             type="button"
             aria-label="Thêm sản phẩm"

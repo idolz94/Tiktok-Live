@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { Order, OrderProduct } from "../types";
-import { formatMoneyFromK, getOrderTotal, printOrder } from "../utils/order";
+import { formatMoney, getOrderTotal, printOrder } from "@/utils/order";
 import Avatar from "./Avatar";
 import { getOrderTikTokUsername, openTikTokProfile } from "@/utils/tiktok";
 import { MoneyInput } from "./MoneyInput";
@@ -16,7 +16,7 @@ function createDisplayCode(orderCode: string) {
 
 function IconButton({ children, label, onClick, disabled = false }: { children: React.ReactNode; label: string; onClick?: () => void; disabled?: boolean }) {
   return (
-    <button type="button" aria-label={label} disabled={disabled} onClick={onClick} className="flex h-6 w-6 items-center justify-center text-[#484848] disabled:text-[#c9c9c9]">
+    <button type="button" aria-label={label} disabled={disabled} onClick={onClick} className="flex size-6 items-center justify-center text-[#484848] disabled:text-[#c9c9c9]">
       {children}
     </button>
   );
@@ -47,7 +47,7 @@ function CheckIcon() {
 }
 
 function LoadingSpinner() {
-  return <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />;
+  return <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />;
 }
 
 function formatProductMeta(_product: OrderProduct, fallbackCreatedAt: string) {
@@ -141,15 +141,13 @@ export default function OrderCard({
     }
   }, [item.id, noteText]);
 
-  console.log("object : ",item);
-
   void onUpdate;
   void onAddProduct;
   void onConfirmOrder;
 
   return (
     <article className="bg-white">
-      <div className="px-4 py-4">
+      <div className="p-4">
         <div className="flex items-start gap-4">
           {onOpenCustomer ? (
             <button
@@ -174,7 +172,7 @@ export default function OrderCard({
             <div className="relative" ref={menuRef}>
               <IconButton label="Thêm tùy chọn" onClick={() => setMenuOpen((v) => !v)}><MoreIcon /></IconButton>
               {menuOpen && (
-                <div className="absolute right-0 top-8 z-50 min-w-[160px] overflow-hidden rounded-xl bg-white shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
+                <div className="absolute top-8 right-0 z-50 min-w-[160px] overflow-hidden rounded-xl bg-white shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
                   <button
                     type="button"
                     className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-[14px] text-[#2b2b2b] hover:bg-[#f5f5f5]"
@@ -207,11 +205,11 @@ export default function OrderCard({
               return (
                 <div key={product.id} className="flex gap-3 border-b border-[#f2f2f2] py-3 last:border-b-0">
                   <div className="min-w-0 flex-1">
-                    <p className="break-words text-[14px] leading-5 text-[#2b2b2b]">{product.name || item.productName || item.comment}</p>
+                    <p className="text-[14px] leading-5 break-words text-[#2b2b2b]">{product.name || item.productName || item.comment}</p>
                     <p className="mt-1 truncate text-[12px] leading-[18px] text-[#787878]">{formatProductMeta(product, item.createdAt)}</p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="text-[14px] leading-5 font-medium text-black">{formatMoneyFromK(productTotal)} x{product.quantity || 1}</p>
+                    <p className="text-[14px] leading-5 font-medium text-black">{formatMoney(productTotal)} x{product.quantity || 1}</p>
                   </div>
                 </div>
               );
@@ -219,11 +217,11 @@ export default function OrderCard({
           ) : (
             <div className="flex gap-3 border-b border-[#f2f2f2] py-3">
               <div className="min-w-0 flex-1">
-                <p className="break-words text-[14px] leading-5 text-[#2b2b2b]">{item.productName || item.comment || "Sản phẩm"}</p>
+                <p className="text-[14px] leading-5 break-words text-[#2b2b2b]">{item.productName || item.comment || "Sản phẩm"}</p>
                 <p className="mt-1 truncate text-[12px] leading-[18px] text-[#787878]">{new Date(item.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}</p>
               </div>
               <div className="shrink-0 text-right">
-                <p className="text-[14px] leading-5 font-medium text-black">{formatMoneyFromK(Number(item.price || 0) * Number(item.quantity || 1))}</p>
+                <p className="text-[14px] leading-5 font-medium text-black">{formatMoney(Number(item.price || 0) * Number(item.quantity || 1))}</p>
                 <p className="mt-1 text-[12px] leading-[18px] text-[#787878]">x{item.quantity || 1}</p>
               </div>
             </div>
@@ -231,7 +229,7 @@ export default function OrderCard({
         </div>
         <div className="flex items-center justify-between pt-3">
           <span className="text-[14px] leading-5 text-[#2b2b2b]">Tạm tính</span>
-          <strong className="text-[14px] leading-5 font-medium text-[#ff6b8a]">{formatMoneyFromK(total)}</strong>
+          <strong className="text-[14px] leading-5 font-medium text-[#ff6b8a]">{formatMoney(total)}</strong>
         </div>
         <div className="flex items-center justify-between pt-2">
           <span className="text-[14px] leading-5 text-[#2b2b2b]">Tiền thu hộ (COD)</span>
@@ -240,7 +238,7 @@ export default function OrderCard({
               value={codAmount}
               onChange={handleCodChange}
               placeholder="0"
-              className="w-28 text-right text-[14px] font-medium text-black outline-none bg-transparent"
+              className="w-28 bg-transparent text-right text-[14px] font-medium text-black outline-none"
             />
             <span className="shrink-0 text-[12px] text-[#787878]">₫</span>
           </div>
@@ -261,13 +259,13 @@ export default function OrderCard({
               onChange={(e) => setNoteText(e.target.value)}
               placeholder="Nhập ghi chú đơn hàng..."
               rows={3}
-              className="w-full resize-none rounded-xl border border-[#e0e0e0] bg-[#fafafa] px-3 pb-10 pt-2.5 text-[14px] leading-5 text-[#2b2b2b] outline-none placeholder:text-[#b0b0b0] focus:border-[#ff6b8a]"
+              className="w-full resize-none rounded-xl border border-[#e0e0e0] bg-[#fafafa] px-3 pt-2.5 pb-10 text-[14px] leading-5 text-[#2b2b2b] outline-none placeholder:text-[#b0b0b0] focus:border-[#ff6b8a]"
             />
             <button
               type="button"
               onClick={() => void handleNoteSave()}
               disabled={noteSaving}
-              className="absolute bottom-2.5 right-2.5 rounded-lg bg-[#ff6b8a] px-3 py-1 text-[12px] font-medium text-white disabled:opacity-60"
+              className="absolute right-2.5 bottom-2.5 rounded-lg bg-[#ff6b8a] px-3 py-1 text-[12px] font-medium text-white disabled:opacity-60"
             >
               {noteSaving ? "Đang lưu..." : "Cập nhật"}
             </button>

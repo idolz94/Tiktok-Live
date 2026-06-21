@@ -89,7 +89,7 @@ export default function CustomersView({
                   >
                     <Avatar uri={item.avatar} username={item.username} size={40} />
                     <div className="min-w-0 flex-1">
-                      <p className="text-[15px] font-medium leading-6 text-[#2b2b2b]">{item.username}</p>
+                      <p className="text-[15px] leading-6 font-medium text-[#2b2b2b]">{item.username}</p>
                       {tiktokUsername && (
                         <div className="mt-0.5 flex items-center gap-1">
                           <TikTokIcon />

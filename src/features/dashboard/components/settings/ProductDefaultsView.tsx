@@ -121,20 +121,20 @@ export function ProductDefaultsSettingsView({ onBack }: { onBack: () => void }) 
   return (
     <>
       <div className="flex h-full flex-col bg-[#f2f2f2]">
-        <div className="shrink-0 flex items-center justify-between bg-white px-4 pt-3 pb-4">
+        <div className="flex shrink-0 items-center justify-between bg-white px-4 pt-3 pb-4">
           <button
             type="button"
             onClick={onBack}
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]"
+            className="flex size-11 items-center justify-center rounded-full bg-[#f2f2f2]"
             aria-label="Quay lại"
           >
             <ChevronLeftSmIcon />
           </button>
-          <p className="text-[18px] font-medium leading-6 text-black">Thông tin sản phẩm</p>
+          <p className="text-[18px] leading-6 font-medium text-black">Thông tin sản phẩm</p>
           <button
             type="button"
             onClick={openAdd}
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-[#ff6b8a] text-white"
+            className="flex size-11 items-center justify-center rounded-full bg-[#ff6b8a] text-white"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -142,7 +142,7 @@ export function ProductDefaultsSettingsView({ onBack }: { onBack: () => void }) 
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-8 [-webkit-overflow-scrolling:touch]">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-8 [-webkit-overflow-scrolling:touch]">
           {loading ? (
             <div className="flex flex-col gap-3">
               {[0, 1, 2].map((i) => (
@@ -170,7 +170,7 @@ export function ProductDefaultsSettingsView({ onBack }: { onBack: () => void }) 
                   key={preset.id}
                   className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-[0_4px_12px_rgba(0,0,0,0.05)]"
                 >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ffe8ef] text-[13px] font-bold text-[#ff6b8a]">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#ffe8ef] text-[13px] font-bold text-[#ff6b8a]">
                     {idx + 1}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -185,7 +185,7 @@ export function ProductDefaultsSettingsView({ onBack }: { onBack: () => void }) 
                   <button
                     type="button"
                     onClick={() => openEdit(preset)}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f2f2f2] text-[#484848]"
+                    className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#f2f2f2] text-[#484848]"
                     aria-label="Sửa"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -196,7 +196,7 @@ export function ProductDefaultsSettingsView({ onBack }: { onBack: () => void }) 
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(preset)}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#fff1f1] text-[#ef4444]"
+                    className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#fff1f1] text-[#ef4444]"
                     aria-label="Xoá"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">

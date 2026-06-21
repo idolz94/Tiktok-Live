@@ -94,7 +94,7 @@ export function DrawlerBase({
                   <Drawer.Close asChild>
                     <button
                       type="button"
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xl font-bold text-slate-500 active:scale-95"
+                      className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xl font-bold text-slate-500 active:scale-95"
                       aria-label="Đóng"
                     >
                       ×

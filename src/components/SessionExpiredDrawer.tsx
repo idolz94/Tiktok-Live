@@ -3,14 +3,17 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DrawlerBase } from "./ui/Drawler";
-import { emitAuthChanged } from "@/lib/request";
+import { emitAuthChanged, isPublicAuthScreen } from "@/lib/request";
 
 export default function SessionExpiredDrawer() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const handleExpired = () => setOpen(true);
+    const handleExpired = () => {
+      if (isPublicAuthScreen()) return;
+      setOpen(true);
+    };
 
     window.addEventListener("lumi-session-expired", handleExpired);
 
@@ -46,7 +49,7 @@ export default function SessionExpiredDrawer() {
       }
     >
       <div className="flex flex-col items-center gap-4 py-4 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#fff0f0]">
+        <div className="flex size-16 items-center justify-center rounded-full bg-[#fff0f0]">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
             <path
               d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"

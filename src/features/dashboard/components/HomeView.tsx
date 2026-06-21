@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
@@ -35,7 +35,6 @@ export default function HomeView({
   filteredOrders,
   orderFilter,
   orderSearchText,
-  buyingCount,
   paidOrders,
   draftOrders,
   confirmedOrders,
@@ -103,6 +102,10 @@ export default function HomeView({
   const router = useRouter();
   const [commentTab, setCommentTab] = useState<CommentTab>("all");
   const [selectedUsername, setSelectedUsername] = useState(tiktokUsername || "");
+
+  useEffect(() => {
+    setSelectedUsername(tiktokUsername || "");
+  }, [tiktokUsername]);
   const [showAddChannel, setShowAddChannel] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -151,7 +154,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
       isDefault: channel.isDefault,
     }));
     return options;
-  }, [tiktokChannels, tiktokUsername]);
+  }, [tiktokChannels]);
 
   const connectSelectedChannel = async () => {
     const nextUsername = normalizeTikTokUsername(selectedUsername);
@@ -184,13 +187,13 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
             <button
               type="button"
               onClick={() => onChangeLiveTab("live")}
-              className="relative flex h-10 flex-1 items-center justify-center gap-2 rounded-full text-[14px] font-semibold bg-[#ff6b8a] text-white shadow-sm"
+              className="relative flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-[#ff6b8a] text-[14px] font-semibold text-white shadow-sm"
             >
               <DotLottieReact
                 data={liveDotAnimationData}
                 loop
                 autoplay
-                className="h-8 w-8 shrink-0"
+                className="size-8 shrink-0"
               />
               Live
             </button>
@@ -254,7 +257,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
                   item={item}
                   onCreateOrder={onCreateOrderFromComment}
                   isOrderCreated={isCommentOrderCreated(item)}
-                  onPrintOrder={(comment, orderId) => {
+                  onPrintComment={(comment, orderId) => {
                     const order = orders.find(
                       (o) => o.id === orderId || o.id === comment.orderId || o.commentId === comment.id,
                     );
@@ -302,12 +305,12 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
                   className="flex w-full items-center gap-4 rounded-2xl bg-[#f2f2f2] p-4 text-left"
                 >
                   {/* Avatar */}
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] text-[16px] font-semibold text-[#ff6b8a]">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] text-[16px] font-semibold text-[#ff6b8a]">
                     {option.username.charAt(0).toUpperCase()}
                   </div>
                   {/* Info */}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14px] font-medium leading-5.5 text-black">
+                    <p className="truncate text-[14px] leading-5.5 font-medium text-black">
                       {option.username}
                     </p>
                     <div className="mt-0.5 flex items-center gap-2">
@@ -351,7 +354,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
               data={liveDotAnimationData}
               autoplay
               loop
-              className="h-10 w-10 shrink-0"
+              className="size-10 shrink-0"
             />
           {/* )} */}
           <span className="-ml-3">Live</span>
@@ -372,10 +375,10 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
       </div>
 
       {liveTab === "live" ? (
-        <div className="overflow-y-auto px-4 pb-24 pt-4 [-webkit-overflow-scrolling:touch]">
+        <div className="overflow-y-auto px-4 pt-4 pb-24 [-webkit-overflow-scrolling:touch]">
           {/* Header */}
           <div className="mb-4 flex flex-col gap-1">
-            <p className="text-[20px] font-semibold leading-6 text-black">Chọn tài khoản</p>
+            <p className="text-[20px] leading-6 font-semibold text-black">Chọn tài khoản</p>
             <p className="text-[14px] leading-[22px] text-[#484848]">
               Chọn kênh tiktok rồi bấm &ldquo;<span className="font-medium text-black">kết nối</span>&rdquo; để bắt đầu nhận bình luận.
             </p>
@@ -389,12 +392,12 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
                   {index > 0 && <div className="mx-4 h-px bg-[#f2f2f2]" />}
                   <div className="flex items-center gap-4 p-4">
                     {/* Avatar */}
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] text-[16px] font-semibold text-[#ff6b8a]">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] text-[16px] font-semibold text-[#ff6b8a]">
                       {option.username.charAt(0).toUpperCase()}
                     </div>
                     {/* Info */}
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[14px] font-medium leading-[22px] text-black">
+                      <p className="truncate text-[14px] leading-[22px] font-medium text-black">
                         {option.username}
                       </p>
                       <p className="text-[12px] leading-[18px] text-[#484848]">
@@ -409,7 +412,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
                         void onConnectTikTokLive(option.username);
                       }}
                       disabled={isConnecting && normalizeTikTokUsername(selectedUsername ?? "") === normalizeTikTokUsername(option.username)}
-                      className="flex h-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] px-4 text-[14px] font-medium leading-[22px] text-[#ff6b8a] disabled:opacity-60"
+                      className="flex h-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] px-4 text-[14px] leading-[22px] font-medium text-[#ff6b8a] disabled:opacity-60"
                     >
                       {isConnecting && normalizeTikTokUsername(selectedUsername ?? "") === normalizeTikTokUsername(option.username) ? "Đang kết nối..." : "Kết nối"}
                     </button>
@@ -486,7 +489,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
             <button
               type="button"
               onClick={() => { setShowAddChannel(false); setNewUsername(""); }}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f2f2f2] text-[18px] text-[#484848]"
+              className="flex size-8 items-center justify-center rounded-full bg-[#f2f2f2] text-[18px] text-[#484848]"
               aria-label="Đóng"
             >
               ×
@@ -523,7 +526,7 @@ const handleCommentListScroll = (event: React.UIEvent<HTMLDivElement>) => {
         }
       >
         <div className="flex flex-col gap-2">
-          <label className="text-[14px] font-medium leading-[22px] text-black">Tiktok ID</label>
+          <label className="text-[14px] leading-[22px] font-medium text-black">Tiktok ID</label>
           <input
             type="text"
             value={newUsername}

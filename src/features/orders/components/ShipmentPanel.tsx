@@ -36,7 +36,7 @@ function ShippingStatusBadge({ status }: { status: ShippingStatus }) {
         ? "text-[#5b8dee]"
         : "text-[#484848]";
 
-  return <span className={`text-[12px] font-medium leading-4.5 ${colorClass}`}>{label}</span>;
+  return <span className={`text-[12px] leading-4.5 font-medium ${colorClass}`}>{label}</span>;
 }
 
 export function ShipmentPanel({
@@ -91,26 +91,26 @@ export function ShipmentPanel({
       <div className="overflow-hidden rounded-xl border border-black/10 bg-white">
         <div className="flex items-center justify-between gap-4 px-4 py-3">
           <span className="text-[12px] leading-4.5 text-[#484848]">Mã vận đơn</span>
-          <span className="truncate text-[12px] font-medium leading-4.5 text-black">
+          <span className="truncate text-[12px] leading-4.5 font-medium text-black">
             {order.trackingCode || order.orderCode || order.id}
           </span>
         </div>
         {order.providerName && (
           <div className="flex items-center justify-between gap-4 border-t border-black/10 px-4 py-3">
             <span className="text-[12px] leading-4.5 text-[#484848]">Đơn vị</span>
-            <span className="text-[12px] font-medium leading-4.5 text-black">{order.providerName}</span>
+            <span className="text-[12px] leading-4.5 font-medium text-black">{order.providerName}</span>
           </div>
         )}
         <div className="flex items-center gap-4 bg-[#f2f2f2] px-4 py-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[14px] font-medium leading-5.5 text-black">Đơn vận chuyển</p>
+              <p className="text-[14px] leading-5.5 font-medium text-black">Đơn vận chuyển</p>
               <ShippingStatusBadge status={shippingStatus} />
             </div>
             {order.shippingFee != null && order.shippingFee > 0 && (
               <div className="mt-1 flex items-center justify-between gap-3">
                 <span className="text-[12px] leading-4.5 text-[#484848]">Phí ship</span>
-                <span className="text-[12px] font-medium leading-4.5 text-black">
+                <span className="text-[12px] leading-4.5 font-medium text-black">
                   {formatMoney(order.shippingFee)}
                 </span>
               </div>

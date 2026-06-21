@@ -54,7 +54,6 @@ export function ShippingConfigView({ onBack }: { onBack: () => void }) {
   const [wards, setWards] = useState<VnWard[]>([]);
   const [selectedProvince, setSelectedProvince] = useState<VnProvince | null>(null);
   const [selectedDistrict, setSelectedDistrict] = useState<VnDistrict | null>(null);
-  const [selectedWard, setSelectedWard] = useState<VnWard | null>(null);
   const [provinceOpen, setProvinceOpen] = useState(false);
   const [districtOpen, setDistrictOpen] = useState(false);
   const [wardOpen, setWardOpen] = useState(false);
@@ -75,7 +74,7 @@ export function ShippingConfigView({ onBack }: { onBack: () => void }) {
     if (drawerMode !== null && provinces.length === 0) {
       fetchVnProvinces().then(setProvinces).catch(() => {});
     }
-  }, [drawerMode]);
+  }, [drawerMode, provinces.length]);
 
   const openAdd = () => {
     setSelectedAddress(null);
@@ -87,7 +86,6 @@ export function ShippingConfigView({ onBack }: { onBack: () => void }) {
     setDraftUseOldFormat(false);
     setSelectedProvince(null);
     setSelectedDistrict(null);
-    setSelectedWard(null);
     setDraftProvince("");
     setDraftDistrict("");
     setDraftWard("");
@@ -110,7 +108,6 @@ export function ShippingConfigView({ onBack }: { onBack: () => void }) {
     setDraftUseOldFormat(false);
     setSelectedProvince(addr.province ? { code: -1, name: addr.province } : null);
     setSelectedDistrict(addr.district ? { code: -1, name: addr.district } : null);
-    setSelectedWard(addr.ward ? { code: -1, name: addr.ward } : null);
     setDraftProvince(addr.province ?? "");
     setDraftDistrict(addr.district ?? "");
     setDraftWard(addr.ward ?? "");
@@ -181,22 +178,22 @@ export function ShippingConfigView({ onBack }: { onBack: () => void }) {
   return (
     <>
       <div className="flex h-full flex-col bg-white">
-        <div className="shrink-0 flex items-center justify-between px-4 pt-3 pb-4">
+        <div className="flex shrink-0 items-center justify-between px-4 pt-3 pb-4">
           <button
             type="button"
             onClick={onBack}
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]"
+            className="flex size-11 items-center justify-center rounded-full bg-[#f2f2f2]"
             aria-label="Quay lại"
           >
             <ChevronLeftSmIcon />
           </button>
-          <p className="text-[18px] font-medium leading-6 text-black">Cấu hình vận chuyển</p>
-          <div className="h-11 w-11" />
+          <p className="text-[18px] leading-6 font-medium text-black">Cấu hình vận chuyển</p>
+          <div className="size-11" />
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto [-webkit-overflow-scrolling:touch]">
           <div className="flex flex-col gap-4 px-4 pt-2 pb-5">
-            <p className="text-[16px] font-medium leading-6 text-black">Địa chỉ kho hàng</p>
+            <p className="text-[16px] leading-6 font-medium text-black">Địa chỉ kho hàng</p>
 
             {loading ? (
               <div className="flex flex-col gap-3">
@@ -212,10 +209,10 @@ export function ShippingConfigView({ onBack }: { onBack: () => void }) {
                     className="flex flex-col gap-4 rounded-[16px] border border-black/10 bg-[#f2f2f2] p-4"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-black">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-black">
                         <UserCircleIcon />
                       </div>
-                      <p className="flex-1 text-[16px] font-medium leading-6 text-black">
+                      <p className="flex-1 text-[16px] leading-6 font-medium text-black">
                         {addr.name ?? "—"}
                         {addr.label ? (
                           <span className="ml-2 text-[12px] font-normal text-[#787878]">({addr.label})</span>
@@ -234,7 +231,7 @@ export function ShippingConfigView({ onBack }: { onBack: () => void }) {
                           aria-label="Sửa địa chỉ"
                         >
                           <PencilIcon />
-                          <span className="text-[14px] font-medium leading-[22px]">Sửa</span>
+                          <span className="text-[14px] leading-[22px] font-medium">Sửa</span>
                         </button>
                       </div>
                     </div>
@@ -281,7 +278,7 @@ export function ShippingConfigView({ onBack }: { onBack: () => void }) {
           <div className="h-2 bg-[#f2f2f2]" />
 
           <div className="flex flex-col gap-5 px-4 py-5">
-            <p className="text-[16px] font-medium leading-6 text-black">Đối tác vận chuyển</p>
+            <p className="text-[16px] leading-6 font-medium text-black">Đối tác vận chuyển</p>
 
             <div className="flex flex-col gap-4">
               <p className="text-[14px] leading-[22px] text-[#2b2b2b]">Đã kết nối</p>
@@ -291,17 +288,17 @@ export function ShippingConfigView({ onBack }: { onBack: () => void }) {
                 ].map((p) => (
                   <div
                     key={p.name}
-                    className="flex items-center gap-4 rounded-[16px] bg-[#f2f2f2] py-4 pl-4 pr-3"
+                    className="flex items-center gap-4 rounded-[16px] bg-[#f2f2f2] py-4 pr-3 pl-4"
                   >
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[12px] text-white text-[16px] font-bold" style={{ background: p.bg }}>
+                    <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-[12px] text-[16px] font-bold text-white" style={{ background: p.bg }}>
                       {p.letter}
                     </div>
-                    <div className="flex flex-1 min-w-0 flex-col gap-1">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
                       <div className="flex items-center gap-2">
-                        <p className="text-[14px] font-medium leading-[22px] text-black">{p.name}</p>
+                        <p className="text-[14px] leading-[22px] font-medium text-black">{p.name}</p>
                         {p.isDefault && (
                           <div className="flex h-6 items-center rounded-[16px] bg-white px-2">
-                            <span className="text-[12px] font-medium leading-[18px] text-[#2b2b2b]">Mặc định</span>
+                            <span className="text-[12px] leading-[18px] font-medium text-[#2b2b2b]">Mặc định</span>
                           </div>
                         )}
                       </div>
@@ -323,13 +320,13 @@ export function ShippingConfigView({ onBack }: { onBack: () => void }) {
                 ].map((p) => (
                   <div
                     key={p.name}
-                    className="flex items-center gap-4 rounded-[16px] bg-[#f2f2f2] py-4 pl-4 pr-3"
+                    className="flex items-center gap-4 rounded-[16px] bg-[#f2f2f2] py-4 pr-3 pl-4"
                   >
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[12px] text-white text-[16px] font-bold" style={{ background: p.bg }}>
+                    <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-[12px] text-[16px] font-bold text-white" style={{ background: p.bg }}>
                       {p.letter}
                     </div>
-                    <div className="flex flex-1 min-w-0 flex-col gap-1">
-                      <p className="text-[14px] font-medium leading-[22px] text-black">{p.name}</p>
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <p className="text-[14px] leading-[22px] font-medium text-black">{p.name}</p>
                       <p className="text-[12px] leading-[18px] text-[#484848]">{p.desc}</p>
                     </div>
                     <ChevronRightIcon />
@@ -355,7 +352,7 @@ export function ShippingConfigView({ onBack }: { onBack: () => void }) {
             type="button"
             onClick={submitForm}
             disabled={saving}
-            className="flex w-full items-center justify-center rounded-[8px] bg-[#ebb140] py-[14px] text-[14px] font-bold uppercase tracking-[0.7px] text-white disabled:opacity-60"
+            className="flex w-full items-center justify-center rounded-[8px] bg-[#ebb140] py-[14px] text-[14px] font-bold tracking-[0.7px] text-white uppercase disabled:opacity-60"
           >
             {saving ? "Đang lưu..." : drawerMode === "add" ? "+ THÊM ĐỊA CHỈ" : "CẬP NHẬT ĐỊA CHỈ"}
           </button>
@@ -392,7 +389,7 @@ export function ShippingConfigView({ onBack }: { onBack: () => void }) {
 
           <div className="flex items-center justify-between gap-3">
             <div className="flex flex-col gap-0.5">
-              <span className="text-[14px] font-semibold leading-[22px] text-[#111827]">Dùng định dạng địa chỉ cũ</span>
+              <span className="text-[14px] leading-[22px] font-semibold text-[#111827]">Dùng định dạng địa chỉ cũ</span>
               <span className="text-[12px] leading-[18px] text-[#9ca3af]">Tỉnh - Phường/Xã (rút gọn)</span>
             </div>
             <button
@@ -404,7 +401,7 @@ export function ShippingConfigView({ onBack }: { onBack: () => void }) {
                 draftUseOldFormat ? "bg-[#ebb140]" : "bg-[#e5e7eb]"
               }`}
             >
-              <span className={`absolute top-[2px] block h-[19px] w-[19px] rounded-full bg-white shadow-sm transition-all ${draftUseOldFormat ? "left-[22px]" : "left-[2px]"}`} />
+              <span className={`absolute top-[2px] block size-[19px] rounded-full bg-white shadow-sm transition-all ${draftUseOldFormat ? "left-[22px]" : "left-[2px]"}`} />
             </button>
           </div>
 
@@ -491,7 +488,7 @@ export function ShippingConfigView({ onBack }: { onBack: () => void }) {
                 draftIsDefault ? "bg-[#ebb140]" : "bg-[#e5e7eb]"
               }`}
             >
-              <span className={`absolute top-[2px] block h-[19px] w-[19px] rounded-full bg-white shadow-sm transition-all ${draftIsDefault ? "left-[22px]" : "left-[2px]"}`} />
+              <span className={`absolute top-[2px] block size-[19px] rounded-full bg-white shadow-sm transition-all ${draftIsDefault ? "left-[22px]" : "left-[2px]"}`} />
             </button>
           </div>
 
@@ -514,8 +511,7 @@ export function ShippingConfigView({ onBack }: { onBack: () => void }) {
           setDraftDistrict("");
           setDraftWard("");
           setSelectedDistrict(null);
-          setSelectedWard(null);
-          setDistricts([]);
+                setDistricts([]);
           setWards([]);
           setProvinceOpen(false);
           fetchVnDistricts(p.code).then(setDistricts).catch(() => {});
@@ -533,8 +529,7 @@ export function ShippingConfigView({ onBack }: { onBack: () => void }) {
           setDraftDistrict(d.name);
           setSelectedDistrict(d);
           setDraftWard("");
-          setSelectedWard(null);
-          setWards([]);
+                setWards([]);
           setDistrictOpen(false);
           fetchVnWards(d.code).then(setWards).catch(() => {});
         }}
@@ -549,7 +544,6 @@ export function ShippingConfigView({ onBack }: { onBack: () => void }) {
         selectedName={draftWard}
         onSelect={(w) => {
           setDraftWard(w.name);
-          setSelectedWard(w);
           setWardOpen(false);
         }}
       />

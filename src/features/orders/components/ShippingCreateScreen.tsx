@@ -28,15 +28,21 @@ type Props = {
   onShippingSubmitted?: () => void;
   productTotal: number;
   userName?: string;
+  initialShippingFee?: number;
 };
 
-export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, productTotal, userName }: Props) {
+export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, productTotal, userName, initialShippingFee }: Props) {
   const totalQuantity = (order.products || []).reduce(
     (sum, product) => sum + Number(product.quantity || 0),
     0,
   );
 
-  const [shippingMode, setShippingMode] = useState<"ghtk" | "manual">("ghtk");
+  const [manualShippingFee, setManualShippingFee] = useState(
+    initialShippingFee !== undefined ? String(initialShippingFee) : order.shippingFee ? String(order.shippingFee) : "",
+  );
+  const shippingFeeLabel = initialShippingFee !== undefined ? "Phí dự kiến từ bên ngoài" : "Phí vận chuyển";
+  const shippingFeeNumber = Number(manualShippingFee || 0);
+  const shippingFeeTotal = productTotal + shippingFeeNumber;
 
   const [dimensionsOpen, setDimensionsOpen] = useState(false);
   const [autoScale, setAutoScale] = useState(true);
@@ -63,7 +69,6 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
 
   const [manualTrackingCode, setManualTrackingCode] = useState("");
   const [manualProviderName, setManualProviderName] = useState("");
-  const [manualShippingFee, setManualShippingFee] = useState("");
   const [manualNote, setManualNote] = useState("");
 
   const [paymentOption, setPaymentOption] = useState<"sender" | "receiver">("sender");
@@ -193,47 +198,6 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
     if (order.customerId) void loadCustomerAddresses();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function handleSubmitToGhtk() {
-    if (!selectedSender) { toast.error("Vui lòng chọn địa chỉ người gửi."); return; }
-    if (!selectedRecipient) { toast.error("Vui lòng chọn địa chỉ người nhận."); return; }
-    if (!selectedRecipient.province || !selectedRecipient.district || !selectedRecipient.ward) {
-      toast.error("Địa chỉ người nhận chưa có đầy đủ tỉnh/huyện/xã.");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await submitOrderToGhtkApi(order.id, {
-        pickName: selectedSender.name ?? "",
-        pickAddress: selectedSender.address ?? "",
-        pickProvince: selectedSender.province ?? "",
-        pickDistrict: selectedSender.district ?? "",
-        pickWard: selectedSender.ward ?? undefined,
-        pickTel: selectedSender.phone ?? "",
-        receiverName: selectedRecipient.name ?? order.customerName ?? "",
-        receiverAddress: selectedRecipient.address ?? "",
-        receiverProvince: selectedRecipient.province,
-        receiverDistrict: selectedRecipient.district,
-        receiverWard: selectedRecipient.ward,
-        receiverTel: selectedRecipient.phone ?? order.customerPhone ?? "",
-        note: note || undefined,
-        isFreeShip: paymentOption === "sender" ? 1 : 0,
-        transport,
-        pickOption: pickupOption === "dropoff" ? "post" : "cod",
-      });
-      toast.success("Đã tạo đơn GHTK thành công!");
-      if (onShippingSubmitted) {
-        onShippingSubmitted();
-      } else {
-        onBack();
-      }
-    } catch (err: any) {
-      toast.error(err?.message ?? "Tạo đơn GHTK thất bại. Vui lòng thử lại.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   async function handleSubmitManual() {
     if (!manualTrackingCode.trim()) {
       toast.warning("Vui lòng nhập mã vận đơn");
@@ -304,36 +268,27 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
   }, [selectedSender?.id, selectedRecipient?.id, transport, dimWeight]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <main className="mx-auto flex h-full w-full flex-col bg-white text-black">
+    <main className="mx-auto flex size-full flex-col bg-white text-black">
       <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between bg-white px-4 pt-3">
-        <button type="button" onClick={onBack} className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]">
+        <button type="button" onClick={onBack} className="flex size-11 items-center justify-center rounded-full bg-[#f2f2f2]">
           <BackIcon />
         </button>
-        <h1 className="min-w-0 flex-1 px-4 text-center text-[20px] font-semibold leading-7 text-black">
+        <h1 className="min-w-0 flex-1 px-4 text-center text-[20px] leading-7 font-semibold text-black">
           Tạo đơn hàng 
         </h1>
-        <button type="button" onClick={() => setDimensionsOpen(true)} className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]">
+        <button type="button" onClick={() => setDimensionsOpen(true)} className="flex size-11 items-center justify-center rounded-full bg-[#f2f2f2]">
           <SettingsIcon />
         </button>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto pb-[124px] [-webkit-overflow-scrolling:touch]">
-        <section className="px-4 py-4">
-          <h2 className="text-[16px] leading-6 text-black">Phương thức vận chuyển</h2>
-          <div className="mt-3 flex flex-col gap-3">
-            <RadioOptionRow label="GHTK" active={shippingMode === "ghtk"} onClick={() => setShippingMode("ghtk")} />
-            <RadioOptionRow label="Thủ công" active={shippingMode === "manual"} onClick={() => setShippingMode("manual")} />
-          </div>
-        </section>
 
-        <Divider />
-
-        <section className="px-4 py-4">
+        <section className="p-4">
           <h2 className="text-[16px] leading-6 text-black">Thông tin người gửi</h2>
           {shopAddressesLoading ? (
             <div className="mt-3 animate-pulse rounded-[16px] bg-[#f2f2f2] p-[16px]">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 shrink-0 rounded-full bg-black/10" />
+                <div className="size-10 shrink-0 rounded-full bg-black/10" />
                 <div className="h-4 flex-1 rounded-md bg-black/10" />
                 <div className="h-4 w-16 rounded-md bg-black/10" />
               </div>
@@ -345,7 +300,7 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
           ) : selectedSender ? (
             <div className="mt-3 flex flex-col gap-[16px] rounded-[16px] border-[0.5px] border-black/10 bg-[#f2f2f2] p-[16px]">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] text-[16px] font-semibold text-[#ff6b8a]">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] text-[16px] font-semibold text-[#ff6b8a]">
                   {selectedSender.name?.[0]?.toUpperCase() ?? "S"}
                 </div>
                 <p className="min-w-0 flex-1 text-[16px] font-medium text-black">{selectedSender.name}</p>
@@ -384,12 +339,12 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
 
         <Divider />
 
-        <section className="px-4 py-4">
+        <section className="p-4">
           <h2 className="text-[16px] leading-6 text-black">Thông tin người nhận</h2>
           {customerAddressesLoading ? (
             <div className="mt-3 animate-pulse rounded-[16px] bg-[#f2f2f2] p-[16px]">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 shrink-0 rounded-full bg-black/10" />
+                <div className="size-10 shrink-0 rounded-full bg-black/10" />
                 <div className="h-4 flex-1 rounded-md bg-black/10" />
                 <div className="h-4 w-16 rounded-md bg-black/10" />
               </div>
@@ -401,7 +356,7 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
           ) : selectedRecipient ? (
             <div className="mt-3 flex flex-col gap-[16px] rounded-[16px] border-[0.5px] border-black/10 bg-[#f2f2f2] p-[16px]">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#e8f0ff] text-[16px] font-semibold text-[#468adf]">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#e8f0ff] text-[16px] font-semibold text-[#468adf]">
                   {selectedRecipient.name?.[0]?.toUpperCase() ?? "?"}
                 </div>
                 <p className="min-w-0 flex-1 text-[16px] font-medium text-black">{selectedRecipient.name}</p>
@@ -444,9 +399,8 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
 
         <Divider />
 
-        {shippingMode === "manual" ? (
-          <>
-            <section className="px-4 py-4">
+        <>
+            <section className="p-4">
               <h2 className="text-[16px] leading-6 text-black">Mã vận đơn</h2>
               <div className="mt-3">
                 <InputField label="Nhập mã vận đơn" placeholder="VD: TK123456789">
@@ -462,7 +416,7 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
 
             <Divider />
 
-            <section className="px-4 py-4">
+            <section className="p-4">
               <h2 className="text-[16px] leading-6 text-black">Tên nhà vận chuyển</h2>
               <div className="mt-3">
                 <InputField label="VD: Thủ công, Ninja Van, AHA" placeholder="Để trống = Thủ công">
@@ -478,7 +432,7 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
 
             <Divider />
 
-            <section className="px-4 py-4">
+            <section className="p-4">
               <h2 className="text-[16px] leading-6 text-black">Phí vận chuyển</h2>
               <div className="mt-3">
                 <InputField label="VD: 25000" placeholder="Để trống = không có phí" suffix={<VndBadge />}>
@@ -495,7 +449,7 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
 
             <Divider />
 
-            <section className="px-4 py-4">
+            <section className="p-4">
               <h2 className="text-[16px] leading-6 text-black">Ghi chú</h2>
               <textarea
                 value={manualNote}
@@ -507,12 +461,12 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
           </>
         ) : (
           <>
-            <section className="px-4 py-4">
+            <section className="p-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-[16px] leading-6 text-black">Thông tin đơn hàng</h2>
                 <button type="button" onClick={() => setDimensionsOpen(true)} className="flex items-center gap-2">
                   <PencilLineIcon />
-                  <span className="text-[14px] font-medium leading-[22px] text-black">Thay đổi</span>
+                  <span className="text-[14px] leading-[22px] font-medium text-black">Thay đổi</span>
                 </button>
               </div>
               <div className="mt-3 flex flex-col gap-[8px] rounded-[16px] border-[0.5px] border-black/10 bg-[#f2f2f2] p-[16px]">
@@ -527,16 +481,16 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
                     <span className="flex-1 text-[14px] leading-[22px] text-[#484848]">
                       {label === "M" ? "Dài" : label === "R" ? "Rộng" : label === "C" ? "Cao" : "Khối lượng"}
                     </span>
-                    <span className="text-[14px] font-medium leading-[22px] text-black">{value}</span>
+                    <span className="text-[14px] leading-[22px] font-medium text-black">{value}</span>
                   </div>
                 ))}
               </div>
               <div className="mt-3 flex h-12 items-center justify-between rounded-full bg-[#f2f2f2] px-1">
-                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black shadow-sm">
+                <button type="button" className="flex size-10 items-center justify-center rounded-full bg-white text-black shadow-sm">
                   <MinusIcon />
                 </button>
                 <span className="text-[16px] font-semibold text-black">{totalQuantity || 2}</span>
-                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black shadow-sm">
+                <button type="button" className="flex size-10 items-center justify-center rounded-full bg-white text-black shadow-sm">
                   <PlusIcon />
                 </button>
               </div>
@@ -544,7 +498,7 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
 
             <Divider />
 
-            <section className="px-4 py-4">
+            <section className="p-4">
               <h2 className="text-[16px] leading-6 text-black">Thông tin thanh toán</h2>
               <div className="mt-3 flex flex-col gap-4">
                 <InputField label="Tiền thu hộ (COD)" suffix={<VndBadge />}>
@@ -558,7 +512,7 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
 
             <Divider />
 
-            <section className="px-4 py-4">
+            <section className="p-4">
               <h2 className="text-[16px] leading-6 text-black">Tùy chọn thanh toán</h2>
               <div className="mt-3 flex flex-col gap-3">
                 <RadioOptionRow label="Bên gửi trả phí" active={paymentOption === "sender"} onClick={() => setPaymentOption("sender")} />
@@ -568,7 +522,7 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
 
             <Divider />
 
-            <section className="px-4 py-4">
+            <section className="p-4">
               <h2 className="text-[16px] leading-6 text-black">Gói dịch vụ</h2>
               <div className="mt-3 flex flex-col gap-3">
                 <RadioOptionRow label="GHTK đường bộ" active={transport === "road"} onClick={() => setTransport("road")} />
@@ -592,7 +546,7 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
 
             <Divider />
 
-            <section className="px-4 py-4">
+            <section className="p-4">
               <h2 className="text-[16px] leading-6 text-black">Lưu ý cho xem hàng</h2>
               <div className="mt-3 flex flex-col gap-3">
                 <RadioOptionRow label="Không cho xem hàng" active={viewCondition === "none"} onClick={() => setViewCondition("none")} />
@@ -603,7 +557,7 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
 
             <Divider />
 
-            <section className="px-4 py-4">
+            <section className="p-4">
               <h2 className="text-[16px] leading-6 text-black">Shipper lấy hàng</h2>
               <div className="mt-3 flex flex-col gap-3">
                 <RadioOptionRow label="Tại cửa hàng" active={pickupOption === "store"} onClick={() => setPickupOption("store")} />
@@ -613,7 +567,7 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
 
             <Divider />
 
-            <section className="px-4 py-4">
+            <section className="p-4">
               <h2 className="text-[16px] leading-6 text-black">Ghi chú</h2>
               <textarea
                 placeholder="Nhập ghi chú"
@@ -623,51 +577,28 @@ export function ShippingCreateScreen({ order, onBack, onShippingSubmitted, produ
               />
             </section>
           </>
-        )}
       </div>
 
-      <div className="fixed bottom-0 left-1/2 w-full -translate-x-1/2 border-t border-black/8 bg-white px-4 pb-[env(safe-area-inset-bottom,32px)] pt-3">
-        {shippingMode === "ghtk" ? (
-          <>
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-[14px] leading-[22px] text-[#484848]">Phí dự kiến</span>
-              <span className="text-[18px] font-semibold text-black">
-                {feeLoading ? "..." : estimatedFee !== null ? `${estimatedFee.toLocaleString("vi-VN")} VNĐ` : "—"}
-              </span>
-            </div>
-            <GradientButton
-              label={submitting ? "Đang tạo đơn..." : "Tạo đơn hàng"}
-              disabled={submitting || !selectedSender || !selectedRecipient}
-              onClick={handleSubmitToGhtk}
-            />
-          </>
-        ) : (
-          <>
-            <div className="space-y-1">
-              <div className="flex justify-between text-sm">
-                <span className="text-[#7a8a99]">Tổng tiền hàng</span>
-                <span className="font-medium text-[#273044]">{productTotal.toLocaleString("vi-VN")} ₫</span>
-              </div>
-              {manualShippingFee.trim() && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#7a8a99]">Phí vận chuyển</span>
-                  <span className="font-medium text-[#273044]">{Number(manualShippingFee).toLocaleString("vi-VN")} ₫</span>
-                </div>
-              )}
-              <div className="flex justify-between border-t border-black/8 pt-1">
-                <span className="font-medium text-[#273044]">Tổng cộng</span>
-                <span className="font-semibold text-[#ff6b8a]">
-                  {(productTotal + (manualShippingFee.trim() ? Number(manualShippingFee) : 0)).toLocaleString("vi-VN")} ₫
-                </span>
-              </div>
-            </div>
-            <GradientButton
-              label={submitting ? "Đang tạo đơn..." : "Tạo đơn hàng"}
-              disabled={submitting || !manualTrackingCode.trim()}
-              onClick={handleSubmitManual}
-            />
-          </>
-        )}
+      <div className="fixed bottom-0 left-1/2 w-full -translate-x-1/2 border-t border-black/8 bg-white px-4 pt-3 pb-[env(safe-area-inset-bottom,32px)]">
+        <div className="space-y-1">
+          <div className="flex justify-between text-sm">
+            <span className="text-[#7a8a99]">Tổng tiền hàng</span>
+            <span className="font-medium text-[#273044]">{productTotal.toLocaleString("vi-VN")} ₫</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-[#7a8a99]">{shippingFeeLabel}</span>
+            <span className="font-medium text-[#273044]">{Number(manualShippingFee || 0).toLocaleString("vi-VN")} ₫</span>
+          </div>
+          <div className="flex justify-between border-t border-black/8 pt-1">
+            <span className="font-medium text-[#273044]">Tổng cộng</span>
+            <span className="font-semibold text-[#ff6b8a]">{(productTotal + Number(manualShippingFee || 0)).toLocaleString("vi-VN")} ₫</span>
+          </div>
+        </div>
+        <GradientButton
+          label={submitting ? "Đang tạo đơn..." : "Tạo đơn hàng"}
+          disabled={submitting || !manualTrackingCode.trim()}
+          onClick={handleSubmitManual}
+        />
       </div>
 
       <DrawlerBase open={dimensionsOpen} onOpenChange={setDimensionsOpen} title="Kích thước sản phẩm (SHIP)" height="auto">

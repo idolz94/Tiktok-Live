@@ -190,20 +190,20 @@ export function LicenseView({
   return (
     <div className="flex h-full flex-col bg-white">
       {/* Header */}
-      <div className="shrink-0 flex items-center justify-between px-4 pt-3 pb-4">
+      <div className="flex shrink-0 items-center justify-between px-4 pt-3 pb-4">
         <button
           type="button"
           onClick={onBack}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]"
+          className="flex size-11 items-center justify-center rounded-full bg-[#f2f2f2]"
           aria-label="Quay lại"
         >
           <ChevronLeftSmIcon />
         </button>
-        <p className="text-[18px] font-medium leading-6 text-black">Gói dịch vụ</p>
+        <p className="text-[18px] leading-6 font-medium text-black">Gói dịch vụ</p>
         <button
           type="button"
           onClick={onRefresh}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]"
+          className="flex size-11 items-center justify-center rounded-full bg-[#f2f2f2]"
           aria-label="Làm mới"
           disabled={isLoading}
         >
@@ -257,7 +257,7 @@ export function LicenseView({
             <div className="px-4 pb-4">
               <div className="flex flex-col gap-4 rounded-2xl border border-black/10 bg-white p-4 shadow-[0px_6px_8px_rgba(17,12,34,0.10)]">
                 <div className="flex items-center gap-4">
-                  <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[12px]">
+                  <div className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-[12px]">
                     <div
                       className="absolute inset-0"
                       style={{ background: "linear-gradient(136deg, #ff6b8a 4%, #ffa66d 63%, #ffc86a 131%)" }}
@@ -291,7 +291,7 @@ export function LicenseView({
 
             {/* Upgrade plans */}
             <div className="flex flex-col gap-3 px-4 py-5">
-              <p className="text-[16px] font-medium leading-6 text-black">Các gói dịch vụ</p>
+              <p className="text-[16px] leading-6 font-medium text-black">Các gói dịch vụ</p>
               {UPGRADE_PLANS.map((code) => (
                 <PlanCard
                   key={code}

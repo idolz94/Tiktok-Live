@@ -160,7 +160,7 @@ export function AddressFormDrawer({ open, onOpenChange, title, initial, saving, 
         title={title}
         height="lg"
         footer={
-          <div className="px-4 pb-2 pt-1">
+          <div className="px-4 pt-1 pb-2">
             <GradientButton
               label={saving ? "Đang lưu..." : "Lưu lại"}
               disabled={!canSave}

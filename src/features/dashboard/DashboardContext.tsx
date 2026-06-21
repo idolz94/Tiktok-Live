@@ -58,13 +58,13 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     reloadShipmentOrdersRef.current = () => { void orderManager.reloadShipmentOrders(); };
-  }, [orderManager.reloadShipmentOrders]);
+  }, [orderManager]);
 
   useEffect(() => {
     if (orderManager.liveTab === "live") {
       setLiveControlsHidden(false);
     }
-  }, [orderManager.liveTab]);
+  }, [orderManager.liveTab, setLiveControlsHidden]);
 
   useEffect(() => {
     if (!live.liveError) return;
@@ -113,7 +113,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
           return next;
         });
 
-        if (process.env.NEXT_PUBLIC_NODE_ENV === "development") console.error("CREATE ORDER ERROR:", error);
         toast.error(error instanceof Error ? error.message : "Tạo đơn thất bại");
 
         return { success: false, orderId: "" };

@@ -9,15 +9,6 @@ export const CARRIERS = [
     isDefault: true,
   },
   {
-    id: "spx",
-    name: "SPX - SPX EXPRESS",
-    shortName: "SPX",
-    description: "Dịch vụ giao hàng toàn quốc, nhanh, rẻ và an toàn.",
-    bgColor: "bg-[#ff3911]",
-    linked: false,
-    isDefault: false,
-  },
-  {
     id: "jt",
     name: "JT - J&T Express",
     shortName: "J&T",

@@ -73,7 +73,7 @@ export function ToggleSwitch({ on, onToggle }: { on: boolean; onToggle: () => vo
       role="switch"
       className={`relative flex h-6 w-11 shrink-0 items-center rounded-full p-[2.4px] transition-colors ${on ? "justify-end bg-[#ff6b8a]" : "justify-start bg-[#dadada]"}`}
     >
-      <span className="block h-[19.2px] w-[19.2px] rounded-full bg-white shadow" />
+      <span className="block size-[19.2px] rounded-full bg-white shadow" />
     </button>
   );
 }

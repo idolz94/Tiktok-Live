@@ -42,7 +42,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="vi" className={plusJakartaSans.variable}>
-      <body className="min-h-dvh bg-[#f4f7f8] text-[#273044] antialiased overflow-hidden font-(family-name:--font-plus-jakarta-sans)">
+      <body className="min-h-dvh overflow-hidden bg-[#f4f7f8] font-(family-name:--font-plus-jakarta-sans) text-[#273044] antialiased">
         {children}
         <SessionExpiredDrawer />
         <SpeedInsights/>

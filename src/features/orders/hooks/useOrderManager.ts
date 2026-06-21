@@ -73,7 +73,6 @@ export function useOrderManager({
       const nextOrders = await getOrdersApi("not_shipped");
       setOrders(nextOrders);
     } catch (error) {
-      if (process.env.NEXT_PUBLIC_NODE_ENV === "development") console.error("LOAD ORDERS ERROR:", error);
       setOrderError(error instanceof Error ? error.message : "Không tải được đơn hàng.");
     } finally {
       setOrderLoading(false);
@@ -87,7 +86,6 @@ export function useOrderManager({
       const nextOrders = await getOrdersApi("submitted");
       setShipmentOrders(nextOrders);
     } catch (error) {
-      if (process.env.NEXT_PUBLIC_NODE_ENV === "development") console.error("LOAD SHIPMENT ORDERS ERROR:", error);
     } finally {
       setShipmentLoading(false);
     }
@@ -95,6 +93,7 @@ export function useOrderManager({
 
   useEffect(() => {
     if (!hasOrders) return;
+    if (liveTab !== "orders") return;
 
     const timer = window.setTimeout(() => {
       void reloadOrders();
@@ -103,7 +102,7 @@ export function useOrderManager({
     return () => {
       window.clearTimeout(timer);
     };
-  }, [hasOrders, reloadOrders]);
+  }, [hasOrders, liveTab, reloadOrders]);
 
   const buyingCount = useMemo(
     () =>
@@ -268,7 +267,6 @@ export function useOrderManager({
 
         return result;
       } catch (error) {
-        if (process.env.NEXT_PUBLIC_NODE_ENV === "development") console.error("CREATE ORDER ERROR:", error);
         setOrderError(error instanceof Error ? error.message : "Tạo đơn thất bại.");
         throw error;
       }

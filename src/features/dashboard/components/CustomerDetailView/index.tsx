@@ -166,14 +166,14 @@ function OrderCard({ order }: { order: OrderWithTikTok }) {
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-4">
-            <div className="min-w-0 flex-1 flex flex-col gap-1">
-              <p className="text-[14px] font-medium leading-[22px] text-black">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <p className="text-[14px] leading-[22px] font-medium text-black">
                 {order.orderCode ? `#${order.orderCode}` : "Đơn hàng"}
               </p>
               <p className="text-[12px] leading-[18px] text-[#787878]">{time}</p>
             </div>
           </div>
-          <div className="flex gap-1 flex-wrap">
+          <div className="flex flex-wrap gap-1">
             <span
               className="flex h-6 items-center rounded-2xl px-2 text-[12px] font-medium"
               style={{ backgroundColor: depositTag.bg, color: depositTag.color }}
@@ -196,15 +196,15 @@ function OrderCard({ order }: { order: OrderWithTikTok }) {
         {order?.products?.map((product, idx) => (
           <div key={product.id ?? idx} className="flex flex-col gap-3 pt-3">
             <div className="flex items-start gap-4">
-              <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <p className="text-[14px] leading-[22px] text-[#2b2b2b]">{product.name || product.code || "Sản phẩm"}</p>
                 <p className="text-[12px] leading-[18px] text-[#787878]">{time}</p>
               </div>
-              <div className="w-[92px] flex flex-col items-end gap-0.5 shrink-0">
-                <p className="text-[14px] font-medium leading-[22px] text-black text-right whitespace-nowrap">
+              <div className="flex w-[92px] shrink-0 flex-col items-end gap-0.5">
+                <p className="text-right text-[14px] leading-[22px] font-medium whitespace-nowrap text-black">
                   {formatMoneyFromK(product.price)}
                 </p>
-                <p className="text-[12px] leading-[18px] text-[#787878] text-right">x{product.quantity}</p>
+                <p className="text-right text-[12px] leading-[18px] text-[#787878]">x{product.quantity}</p>
               </div>
             </div>
             <div className="h-px bg-black/8" />
@@ -215,8 +215,8 @@ function OrderCard({ order }: { order: OrderWithTikTok }) {
           <div className="min-w-0 flex-1">
             <p className="text-[14px] leading-[22px] text-[#2b2b2b]">Tạm tính</p>
           </div>
-          <div className="w-[92px] shrink-0 flex items-end justify-end">
-            <p className="text-[14px] font-medium leading-[22px] text-[#ff6b8a] text-right whitespace-nowrap">
+          <div className="flex w-[92px] shrink-0 items-end justify-end">
+            <p className="text-right text-[14px] leading-[22px] font-medium whitespace-nowrap text-[#ff6b8a]">
               {formatMoneyFromK(subtotal)}
             </p>
           </div>
@@ -226,13 +226,13 @@ function OrderCard({ order }: { order: OrderWithTikTok }) {
       <div className="flex gap-2.5 pt-4">
         <button
           type="button"
-          className="flex flex-1 h-10 items-center justify-center rounded-[40px] bg-[#ffe8e8] text-[14px] font-medium text-[#ff6b8a]"
+          className="flex h-10 flex-1 items-center justify-center rounded-[40px] bg-[#ffe8e8] text-[14px] font-medium text-[#ff6b8a]"
         >
           Gộp đơn
         </button>
         <button
           type="button"
-          className="flex flex-1 h-10 items-center justify-center gap-2 rounded-[40px] border border-[#dadada] text-[14px] font-medium text-black"
+          className="flex h-10 flex-1 items-center justify-center gap-2 rounded-[40px] border border-[#dadada] text-[14px] font-medium text-black"
         >
           <ClipboardIcon />
           Tổng đơn hàng
@@ -386,13 +386,13 @@ export default function CustomerDetailView({
   return (
     <div className="flex h-full flex-col bg-white">
       <div className="min-h-0 flex-1 overflow-y-auto pb-32 [-webkit-overflow-scrolling:touch]">
-        <div className="px-4 pb-5 pt-2">
+        <div className="px-4 pt-2 pb-5">
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={onBack}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                className="flex size-8 shrink-0 items-center justify-center rounded-full"
                 aria-label="Quay lại"
               >
                 <ChevronLeftIcon />
@@ -401,15 +401,15 @@ export default function CustomerDetailView({
                 <img
                   src={customer.avatar}
                   alt={customer.username}
-                  className="h-10 w-10 shrink-0 rounded-full object-cover"
+                  className="size-10 shrink-0 rounded-full object-cover"
                 />
               ) : (
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] text-[15px] font-semibold text-[#ff6b8a]">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] text-[15px] font-semibold text-[#ff6b8a]">
                   {letter}
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <p className="text-[16px] font-medium leading-6 text-black">{customer.username}</p>
+                <p className="text-[16px] leading-6 font-medium text-black">{customer.username}</p>
               </div>
             </div>
 
@@ -544,7 +544,7 @@ export default function CustomerDetailView({
                 return (
                   <div className="flex flex-col gap-3 rounded-xl border border-black/10 bg-[#fafafa] px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8f0ff] text-[15px] font-semibold text-[#468adf]">
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#e8f0ff] text-[15px] font-semibold text-[#468adf]">
                         {def.name?.[0]?.toUpperCase() ?? "?"}
                       </div>
                       <p className="min-w-0 flex-1 text-[15px] font-semibold text-black">{def.name}</p>
@@ -617,44 +617,44 @@ export default function CustomerDetailView({
         ) : (
           <div className="flex flex-col">
             {/* Status summary cards */}
-            <div className="flex flex-col gap-5 px-4 pb-4 pt-3">
+            <div className="flex flex-col gap-5 px-4 pt-3 pb-4">
               <div className="flex flex-col gap-2">
                 <div className="flex gap-2">
                   <div className="flex flex-1 items-start gap-3 rounded-xl border border-black/10 bg-[#edfaf4] p-4">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#2ca87b]">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#2ca87b]">
                       <CheckBadgeIcon />
                     </div>
-                    <div className="flex flex-col gap-1 min-w-0">
-                      <p className="text-[18px] font-semibold leading-6 text-black">{confirmedCount}</p>
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <p className="text-[18px] leading-6 font-semibold text-black">{confirmedCount}</p>
                       <p className="text-[12px] leading-[18px] text-[#484848]">Đã chốt</p>
                     </div>
                   </div>
                   <div className="flex flex-1 items-start gap-3 rounded-xl border border-black/10 bg-[#e9f2ff] p-4">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#468adf]">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#468adf]">
                       <MoneyIcon />
                     </div>
-                    <div className="flex flex-col gap-1 min-w-0">
-                      <p className="text-[18px] font-semibold leading-6 text-black">{paidCount}</p>
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <p className="text-[18px] leading-6 font-semibold text-black">{paidCount}</p>
                       <p className="text-[12px] leading-[18px] text-[#484848]">Đã cọc</p>
                     </div>
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <div className="flex flex-1 items-start gap-3 rounded-xl border border-black/10 bg-[#ffe8e8] p-4">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#ff4242]">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#ff4242]">
                       <XCircleIcon />
                     </div>
-                    <div className="flex flex-col gap-1 min-w-0">
-                      <p className="text-[18px] font-semibold leading-6 text-black">{unpaidCount}</p>
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <p className="text-[18px] leading-6 font-semibold text-black">{unpaidCount}</p>
                       <p className="text-[12px] leading-[18px] text-[#484848]">Chưa cọc</p>
                     </div>
                   </div>
                   <div className="flex flex-1 items-start gap-3 rounded-xl border border-black/10 bg-[#f2f2f2] p-4">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white">
                       <ShoppingBagIcon />
                     </div>
-                    <div className="flex flex-col gap-1 min-w-0">
-                      <p className="text-[18px] font-semibold leading-6 text-black">{draftCount}</p>
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <p className="text-[18px] leading-6 font-semibold text-black">{draftCount}</p>
                       <p className="text-[12px] leading-[18px] text-[#484848]">Đơn nháp</p>
                     </div>
                   </div>
@@ -664,7 +664,7 @@ export default function CustomerDetailView({
 
             {/* Product count + filter */}
             <div className="flex items-center justify-between px-4 py-2">
-              <p className="text-[20px] font-semibold leading-6 text-black">{totalProductCount} sản phẩm</p>
+              <p className="text-[20px] leading-6 font-semibold text-black">{totalProductCount} sản phẩm</p>
               <div className="flex items-center gap-2">
                 <FilterIcon />
                 <span className="text-[14px] font-medium text-black">Filter</span>
@@ -692,7 +692,7 @@ export default function CustomerDetailView({
                   <div key={date} className="flex flex-col gap-2">
                     {groupIdx > 0 && <div className="h-2 bg-[#f2f2f2]" />}
                     <div className="flex items-center gap-2 px-4 py-2">
-                      <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#2b2b2b]" />
+                      <div className="size-1.5 shrink-0 rounded-full bg-[#2b2b2b]" />
                       <p className="text-[14px] leading-[22px] text-[#2b2b2b]">{date}</p>
                     </div>
                     <div className="flex flex-col gap-8">

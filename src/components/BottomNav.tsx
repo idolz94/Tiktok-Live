@@ -105,12 +105,12 @@ export default function BottomNav({
         boxShadow: "-4px -4px 24px 0px rgba(0,0,0,0.10)",
       }}
     >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] text-[16px] font-medium text-[#ff6b8a]">
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#ffe8e8] text-[16px] font-medium text-[#ff6b8a]">
         {normalizeTikTokUsername(liveBar.username).charAt(0).toUpperCase() || "L"}
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[16px] font-medium leading-6 text-black">
+        <p className="truncate text-[16px] leading-6 font-medium text-black">
           {normalizeTikTokUsername(liveBar.username)}
         </p>
         <div className="mt-0.5 flex items-center gap-3">
@@ -139,7 +139,7 @@ export default function BottomNav({
           type="button"
           onClick={liveBar.onSwitchChannel}
           aria-label="Đổi kênh"
-          className="flex h-6 w-6 items-center justify-center"
+          className="flex size-6 items-center justify-center"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M17 1l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -151,7 +151,7 @@ export default function BottomNav({
         <button
           type="button"
           aria-label="Cài đặt"
-          className="flex h-6 w-6 items-center justify-center"
+          className="flex size-6 items-center justify-center"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
@@ -163,7 +163,7 @@ export default function BottomNav({
           onClick={liveBar.onDisconnect}
           disabled={liveBar.isDisconnecting}
           aria-label="Dừng LIVE"
-          className="flex h-6 w-6 items-center justify-center disabled:opacity-50"
+          className="flex size-6 items-center justify-center disabled:opacity-50"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M18.36 6.64a9 9 0 1 1-12.73 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -177,7 +177,7 @@ export default function BottomNav({
   return (
     <footer
       className={`fixed bottom-0 left-1/2 z-30 w-full -translate-x-1/2 rounded-t-[28px] border border-black/10 bg-white shadow-[0_-8px_30px_rgba(0,0,0,0.08)] transition-[transform,opacity] duration-300 ease-out ${
-        footerHidden ? "translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"
+        footerHidden ? "pointer-events-none translate-y-full opacity-0" : "translate-y-0 opacity-100"
       }`}
     >
       {topRow}
@@ -188,7 +188,7 @@ export default function BottomNav({
           return (
             <button
               key={item.key}
-              className="relative flex flex-1 pb-1 flex-col items-center justify-between gap-1"
+              className="relative flex flex-1 flex-col items-center justify-between gap-1 pb-1"
               onPointerEnter={() => prefetchRouteOnce(ROUTES[item.key])}
               onTouchStart={() => prefetchRouteOnce(ROUTES[item.key])}
               onClick={() => {

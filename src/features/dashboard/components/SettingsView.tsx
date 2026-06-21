@@ -10,6 +10,7 @@ import { ProductDefaultsSettingsView } from "./settings/ProductDefaultsView";
 import { ShippingConfigView } from "./settings/ShippingConfigView";
 import { TikTokChannelsView } from "./settings/TikTokChannelsView";
 import { LicenseView, AdminView, useLicense } from "@/features/licenses";
+import { PrinterSettingsScreen } from "@/features/orders/components/PrinterSettingsScreen";
 import {
   ChevronRightIcon,
   IconTikTok,
@@ -37,7 +38,7 @@ function SettingsRow({
       onClick={onClick}
       className="flex w-full items-center gap-4 py-3 text-left"
     >
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center text-black">
+      <div className="flex size-6 shrink-0 items-center justify-center text-black">
         {icon}
       </div>
       <span className="flex-1 text-[14px] leading-[22px] text-black">
@@ -54,7 +55,7 @@ function SocialButton({ label, children }: { label: string; children: React.Reac
       type="button"
       aria-label={label}
       onClick={() => toast.info("Tính năng đang phát triển")}
-      className="flex h-12 w-12 items-center justify-center rounded-[12px] bg-white text-[#111827]"
+      className="flex size-12 items-center justify-center rounded-[12px] bg-white text-[#111827]"
     >
       {children}
     </button>
@@ -78,7 +79,7 @@ export default function SettingsView({
   status: string;
   onLogout: () => void;
 }) {
-  const [subScreen, setSubScreen] = useState<"main" | "tiktokChannels" | "generalSettings" | "productDefaults" | "shippingConfig" | "license" | "admin">("main");
+  const [subScreen, setSubScreen] = useState<"main" | "tiktokChannels" | "generalSettings" | "productDefaults" | "shippingConfig" | "license" | "admin" | "printerSettings">("main");
   const [channels, setChannels] = useState<ShopTikTokChannel[]>(tiktokChannels);
   const [isLoadingChannels, setIsLoadingChannels] = useState(false);
   const licenseData = useLicense();
@@ -101,6 +102,10 @@ export default function SettingsView({
       setIsLoadingChannels(false);
     }
   };
+
+  if (subScreen === "printerSettings") {
+    return <PrinterSettingsScreen onBack={() => setSubScreen("main")} />;
+  }
 
   if (subScreen === "tiktokChannels") {
     return (
@@ -150,12 +155,12 @@ export default function SettingsView({
   }
 
   return (
-    <div className="flex flex-col bg-white mb-14">
+    <div className="mb-14 flex flex-col bg-white">
       {/* Header — h-[400px] fixed per Figma */}
       <section className="relative h-[400px] shrink-0 overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
           <div
-            className="absolute left-1/2 top-0 h-[320px] w-[320px] rounded-full"
+            className="absolute top-0 left-1/2 size-[320px] rounded-full"
             style={{
               background: "linear-gradient(135deg,#ff6b8a 0%,#ffa66d 50%,#ffc86a 100%)",
               filter: "blur(80px)",
@@ -168,13 +173,13 @@ export default function SettingsView({
         <div className="relative z-10 flex h-full flex-col">
           <div className="shrink-0" style={{ height: "env(safe-area-inset-top, 47px)" }} />
 
-          <div className="flex items-center justify-between px-4 pb-4 pt-3">
-            <h1 className="text-[24px] font-semibold leading-7 text-black">Hồ sơ</h1>
+          <div className="flex items-center justify-between px-4 pt-3 pb-4">
+            <h1 className="text-[24px] leading-7 font-semibold text-black">Hồ sơ</h1>
             <div className="flex items-center gap-4">
               <button
                 type="button"
                 aria-label="Tìm kiếm"
-                className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]"
+                className="flex size-11 items-center justify-center rounded-full bg-[#f2f2f2]"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                   <circle cx="11" cy="11" r="7" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -184,7 +189,7 @@ export default function SettingsView({
               <button
                 type="button"
                 aria-label="Tuỳ chọn"
-                className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]"
+                className="flex size-11 items-center justify-center rounded-full bg-[#f2f2f2]"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                   <circle cx="12" cy="12" r="1.7" fill="#111827" />
@@ -195,14 +200,14 @@ export default function SettingsView({
             </div>
           </div>
 
-          <div className="flex flex-col items-center gap-6 px-4 pb-4 pt-2">
-            <div className="flex h-[98px] w-[98px] items-center justify-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#ff6b8a_0%,#ffa66d_48%,#ffc86a_100%)] text-[38px] font-semibold uppercase text-white">
+          <div className="flex flex-col items-center gap-6 px-4 pt-2 pb-4">
+            <div className="flex size-[98px] items-center justify-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#ff6b8a_0%,#ffa66d_48%,#ffc86a_100%)] text-[38px] font-semibold text-white uppercase">
               {(channels[0]?.tiktokUsername?.[0] || tiktokUsername?.[0] || username?.[0] || "L").toUpperCase()}
             </div>
 
             <div className="flex flex-col items-center gap-6">
               <div className="flex w-[273px] flex-col gap-1 text-center">
-                <p className="text-[18px] font-medium leading-6 text-black">
+                <p className="text-[18px] leading-6 font-medium text-black">
                   {username || "User"}
                 </p>
                 <p className="text-[14px] leading-[22px] text-black/60">
@@ -233,14 +238,14 @@ export default function SettingsView({
         </div>
       </section>
 
-      <div className="flex flex-col gap-4 px-4 py-4 pb-8">
+      <div className="flex flex-col gap-4 p-4 pb-8">
         <button
           type="button"
           onClick={() => setSubScreen("license")}
-          className="flex flex-col gap-4 rounded-2xl border border-black/10 bg-white p-4 shadow-[0px_6px_8px_rgba(17,12,34,0.10)] text-left w-full"
+          className="flex w-full flex-col gap-4 rounded-2xl border border-black/10 bg-white p-4 text-left shadow-[0px_6px_8px_rgba(17,12,34,0.10)]"
         >
           <div className="flex items-center gap-4">
-            <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[12px]">
+            <div className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-[12px]">
               <div className="absolute inset-0" style={{ background: "linear-gradient(136deg, #ff6b8a 4%, #ffa66d 63%, #ffc86a 131%)" }} />
               <svg className="relative z-10" width="22" height="22" viewBox="0 0 24 24" fill="none">
                 <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
@@ -254,7 +259,7 @@ export default function SettingsView({
                 </>
               ) : (
                 <>
-                  <p className="text-[14px] font-medium leading-[22px] text-black">
+                  <p className="text-[14px] leading-[22px] font-medium text-black">
                     Gói {licenseData.license?.plan_code === "trial" ? "Dùng thử"
                       : licenseData.license?.plan_code === "basic" ? "Basic"
                       : licenseData.license?.plan_code === "pro" ? "Pro"
@@ -320,7 +325,7 @@ export default function SettingsView({
           <SettingsRow
             label="Cài đặt máy in"
             icon={<IconPrinter />}
-            onClick={() => toast.info("Tính năng đang phát triển")}
+            onClick={() => setSubScreen("printerSettings")}
           />
           <SettingsRow
             label="Cấu hình vận chuyển"

@@ -13,10 +13,10 @@ export default function DashboardSkeleton() {
     <main className="h-dvh overflow-hidden bg-white">
       <div className="mx-auto flex h-full flex-col bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
         {/* Session header skeleton ~76px */}
-        <header className="flex shrink-0 items-center justify-between px-4 pb-3 pt-[47px]">
-          <Bone className="h-10 w-10 rounded-full" />
+        <header className="flex shrink-0 items-center justify-between px-4 pt-[47px] pb-3">
+          <Bone className="size-10 rounded-full" />
           <Bone className="h-5 w-28" />
-          <Bone className="h-9 w-9 rounded-full" />
+          <Bone className="size-9 rounded-full" />
         </header>
 
         {/* Top segment tabs skeleton ~44px */}
@@ -45,10 +45,10 @@ export default function DashboardSkeleton() {
         </section>
 
         {/* Bottom nav skeleton ~80px */}
-        <footer className="flex shrink-0 border-t border-[#f0f0f0] px-4 pb-4 pt-3">
+        <footer className="flex shrink-0 border-t border-[#f0f0f0] px-4 pt-3 pb-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="flex flex-1 flex-col items-center gap-1.5 pt-1">
-              <BoneRect className="h-6 w-6 rounded-md" />
+              <BoneRect className="size-6 rounded-md" />
               <Bone className="h-2.5 w-8" />
             </div>
           ))}

@@ -11,12 +11,12 @@ import { TikTokEmojiText } from "@/components/TikTokEmojiText";
 export default function CommentCard({
   item,
   onCreateOrder,
-  onPrintOrder,
+  onPrintComment,
   isOrderCreated: isOrderCreatedProp,
 }: {
   item: LiveComment;
   onCreateOrder: (item: LiveComment) => Promise<{ success: boolean; orderId: string }>;
-  onPrintOrder?: (item: LiveComment, orderId: string) => void;
+  onPrintComment?: (item: LiveComment, orderId: string) => void;
   isOrderCreated?: boolean;
 }) {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
@@ -29,9 +29,9 @@ export default function CommentCard({
         <div className="h-px flex-1 bg-[#d9d9d9]" />
         <div className="flex shrink-0 items-center gap-2">
           {item.avatarUrl ? (
-            <img src={item.avatarUrl} alt="" className="h-4 w-4 shrink-0 rounded-full object-cover" />
+            <img src={item.avatarUrl} alt="" className="size-4 shrink-0 rounded-full object-cover" />
           ) : (
-            <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#ffe8ee] text-[8px] font-semibold leading-none text-[#ff5f8a]">
+            <div className="flex size-4 shrink-0 items-center justify-center rounded-full bg-[#ffe8ee] text-[8px] leading-none font-semibold text-[#ff5f8a]">
               {initial}
             </div>
           )}
@@ -102,7 +102,7 @@ export default function CommentCard({
             isCreatedOrder ? (
               <button
                 type="button"
-                onClick={() => onPrintOrder?.(item, localOrderId || item.orderId || "")}
+                onClick={() => onPrintComment?.(item, localOrderId || item.orderId || "")}
                 className="shrink-0 rounded-full border border-[#dadada] px-3 py-[5px] text-[12px] font-medium text-[#2b2b2b] transition-all active:scale-95"
               >
                 In lại
@@ -116,7 +116,7 @@ export default function CommentCard({
               >
                 {isCreatingOrder ? (
                   <span className="flex items-center gap-1.5">
-                    <span className="h-3 w-3 animate-spin rounded-full border-2 border-[#FF6B8A] border-t-transparent" />
+                    <span className="size-3 animate-spin rounded-full border-2 border-[#FF6B8A] border-t-transparent" />
                     Đang tạo
                   </span>
                 ) : (
@@ -127,7 +127,7 @@ export default function CommentCard({
           )}
         </div>
 
-        <p className="mt-1.5 wrap-break-word text-[14px] leading-5 text-[#2b2b2b]">
+        <p className="mt-1.5 text-[14px] leading-5 wrap-break-word text-[#2b2b2b]">
           <TikTokEmojiText text={commentText} />
         </p>
 

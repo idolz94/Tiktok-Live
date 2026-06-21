@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { getMeBootstrapApi, MeBootstrapResponse } from "@/api/meApi";
 import { getMemoryToken } from "@/lib/request";
-import { logoutApi, refreshApi, hasSession } from "@/api/authApi";
+import { logoutApi, refreshApi, hasSession, clearHasSession } from "@/api/authApi";
+import { isPublicAuthScreen } from "@/lib/request";
 import type { ShopTikTokChannel } from "@/types/database";
 
 export type AuthUser = {
@@ -66,7 +67,8 @@ export function useAuth(): AuthState {
       if (!isBackground) setIsLoading(true);
       setError(null);
 
-      if (!getMemoryToken()) {
+      const token = getMemoryToken();
+      if (!token) {
         setIsSignedIn(false);
         setAuthUser(null);
         return;
@@ -77,10 +79,8 @@ export function useAuth(): AuthState {
       const mapped = mapProfileToAuthUser(profile);
       setAuthUser(mapped);
       bootstrappedUserIdRef.current = mapped.id;
+
     } catch (err) {
-      if (process.env.NEXT_PUBLIC_NODE_ENV === "development") {
-        console.error("AUTH PROFILE ERROR:", err);
-      }
 
       if (!isBackground) {
         setAuthUser(null);
@@ -120,6 +120,15 @@ export function useAuth(): AuthState {
         return;
       }
 
+      // Do not attempt refresh on public auth screens — there is no session to restore
+      if (isPublicAuthScreen()) {
+        if (cancelled) return;
+        setIsSignedIn(false);
+        setAuthUser(null);
+        setIsLoading(false);
+        return;
+      }
+
       // Chỉ thử refresh khi user đã từng login (có session flag trong localStorage)
       if (!hasSession()) {
         if (cancelled) return;
@@ -138,6 +147,9 @@ export function useAuth(): AuthState {
         await fetchProfile();
       } catch {
         if (cancelled) return;
+        // If refresh fails on the browser while a session flag exists, the cookie is gone.
+        // Clear the stale flag so the next load is clean.
+        clearHasSession();
         setIsSignedIn(false);
         setAuthUser(null);
         setIsLoading(false);

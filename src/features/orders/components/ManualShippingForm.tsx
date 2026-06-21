@@ -124,7 +124,7 @@ export function ManualShippingForm({ onSubmit, submitting, productTotal }: Props
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-1/2 w-full -translate-x-1/2 border-t border-black/8 bg-white px-4 pb-8 pt-3">
+      <div className="fixed bottom-0 left-1/2 w-full -translate-x-1/2 border-t border-black/8 bg-white px-4 pt-3 pb-8">
         <GradientButton
           label={submitting ? "Đang tạo đơn..." : "Tạo đơn hàng"}
           onClick={handleSubmit}

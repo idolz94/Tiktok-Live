@@ -51,7 +51,7 @@ export function ProductDrawer({
       title={mode === "add" ? "Thêm mới" : "Sửa sản phẩm"}
       height="auto"
       footer={
-        <div className="px-4 pb-2 pt-1">
+        <div className="px-4 pt-1 pb-2">
           <GradientButton
             label={loading ? "Đang lưu..." : "Lưu lại"}
             disabled={!canSave || loading}
@@ -91,7 +91,7 @@ export function ProductDrawer({
             <button
               type="button"
               onClick={() => setQty((q) => Math.max(1, q - 1))}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black shadow-sm"
+              className="flex size-10 items-center justify-center rounded-full bg-white text-black shadow-sm"
             >
               <MinusIcon />
             </button>
@@ -99,7 +99,7 @@ export function ProductDrawer({
             <button
               type="button"
               onClick={() => setQty((q) => q + 1)}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black shadow-sm"
+              className="flex size-10 items-center justify-center rounded-full bg-white text-black shadow-sm"
             >
               <PlusIcon />
             </button>

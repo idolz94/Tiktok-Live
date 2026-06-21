@@ -116,21 +116,21 @@ export function TikTokChannelsView({
             <button
               type="button"
               onClick={onBack}
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2] text-[24px] text-[#111827]"
+              className="flex size-11 items-center justify-center rounded-full bg-[#f2f2f2] text-[24px] text-[#111827]"
             >
               ‹
             </button>
             <div className="text-center">
-              <h1 className="text-[18px] font-semibold leading-6 text-[#111827]">Kênh TikTok</h1>
+              <h1 className="text-[18px] leading-6 font-semibold text-[#111827]">Kênh TikTok</h1>
               <p className="text-[12px] leading-[18px] text-[#787878]">
                 {isConnected ? "Đang LIVE" : status}
               </p>
             </div>
-            <div className="h-11 w-11" />
+            <div className="size-11" />
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-28 [-webkit-overflow-scrolling:touch]">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-28 [-webkit-overflow-scrolling:touch]">
           {isLoadingChannels ? (
             <TikTokChannelsLoadingSkeleton />
           ) : (
@@ -143,11 +143,11 @@ export function TikTokChannelsView({
                     className="rounded-3xl border border-black/5 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#ffe8ef] text-[18px] font-semibold text-[#ff6b8a]">
+                      <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#ffe8ef] text-[18px] font-semibold text-[#ff6b8a]">
                         {normalizedUsername.charAt(0).toUpperCase() || "L"}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-[16px] font-semibold leading-6 text-[#111827]">
+                        <p className="truncate text-[16px] leading-6 font-semibold text-[#111827]">
                           {normalizedUsername}
                         </p>
                         <p className="mt-1 text-[12px] leading-[18px] text-[#787878]">
@@ -194,7 +194,7 @@ export function TikTokChannelsView({
       >
         <div className="space-y-4">
           <label className="block">
-            <span className="text-[14px] font-medium leading-[22px] text-[#111827]">TikTok username</span>
+            <span className="text-[14px] leading-[22px] font-medium text-[#111827]">TikTok username</span>
             <div className="mt-2 flex h-12 items-center rounded-2xl border border-black/10 bg-[#f8f8f8] px-4 focus-within:border-[#ff6b8a]">
               <span className="shrink-0 text-[15px] font-medium text-[#787878]">@</span>
               <input

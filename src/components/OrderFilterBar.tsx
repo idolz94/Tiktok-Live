@@ -83,7 +83,7 @@ export default function OrderFilterBar({
   ];
 
   const filterDrawerFooter = (
-    <div className="px-4 pb-2 pt-2">
+    <div className="px-4 py-2">
       <button
         type="button"
         onClick={applyFilter}
@@ -100,7 +100,7 @@ export default function OrderFilterBar({
       <div>
         <h2 className="text-[24px] leading-7 font-semibold text-black">Đơn đã tạo</h2>
         <div className="mt-2 flex items-center gap-2 text-[12px] leading-[18px] text-[#484848]">
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#e9f2ff] text-[10px] font-semibold text-[#468adf]">L</span>
+          <span className="flex size-5 items-center justify-center rounded-full bg-[#e9f2ff] text-[10px] font-semibold text-[#468adf]">L</span>
           <span>Lumi Live</span>
           <span className="h-3 w-px bg-[#dadada]" />
           <span className="inline-flex items-center gap-1">
@@ -120,7 +120,7 @@ export default function OrderFilterBar({
               onClick={() => onChangeFilter(isActive ? "all" : item.key)}
               className={`flex items-center gap-3 rounded-xl border border-black/10 p-4 text-left ${item.cardClassName} ${isActive ? "ring-2 ring-black/15" : ""}`}
             >
-              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${item.iconClassName}`}>{item.icon}</span>
+              <span className={`flex size-8 shrink-0 items-center justify-center rounded-full ${item.iconClassName}`}>{item.icon}</span>
               <span className="min-w-0">
                 <strong className="block text-[18px] leading-6 font-semibold text-black">{item.value}</strong>
                 <span className="block text-[12px] leading-[18px] text-[#484848]">{item.label}</span>

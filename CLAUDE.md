@@ -46,6 +46,7 @@ Quy tắc:
 * Không chứa business logic lớn.
 * Không chứa form dài hoặc JSX hàng trăm dòng.
 * Route nên import screen từ `src/features`.
+* Với task UI, ưu tiên xác minh bằng `npm run typecheck`, `npm run lint`, `npm run build` trong `tiktok-live-nextjs` khi cần.
 
 Ví dụ:
 

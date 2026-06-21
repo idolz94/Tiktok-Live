@@ -34,7 +34,7 @@ export function MoneyInput({
     if (current !== value) {
       setDisplay(value > 0 ? value.toLocaleString("vi-VN") : "");
     }
-  }, [value]);
+  }, [display, value]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatVnd(e.target.value);

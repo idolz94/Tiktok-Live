@@ -59,7 +59,7 @@ function HeaderButton({ children, label }: { children: ReactNode; label: string 
     <button
       type="button"
       aria-label={label}
-      className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#2b2b2b] shadow-[0_8px_24px_rgba(15,23,42,0.08)]"
+      className="flex size-11 items-center justify-center rounded-full bg-white text-[#2b2b2b] shadow-[0_8px_24px_rgba(15,23,42,0.08)]"
     >
       {children}
     </button>
@@ -93,7 +93,7 @@ export default function DashboardHeader({
             type="button"
           >
             Facebook
-            <span className="absolute -right-9 -top-1.5 rounded-full bg-slate-200 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">
+            <span className="absolute -top-1.5 -right-9 rounded-full bg-slate-200 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">
               Soon
             </span>
           </button>
@@ -111,13 +111,13 @@ export default function DashboardHeader({
           type="button"
           aria-label="Quay lại"
           onClick={() => router.back()}
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${isSettings ? "bg-white/18 text-white backdrop-blur-[12px]" : "bg-white text-[#2b2b2b] shadow-[0_8px_24px_rgba(15,23,42,0.08)]"}`}
+          className={`flex size-11 shrink-0 items-center justify-center rounded-full ${isSettings ? "bg-white/18 text-white backdrop-blur-[12px]" : "bg-white text-[#2b2b2b] shadow-[0_8px_24px_rgba(15,23,42,0.08)]"}`}
         >
           <BackIcon />
         </button>
 
         <div className="min-w-0 flex-1 text-center">
-          <h1 className="truncate text-[24px] font-semibold leading-7">{title}</h1>
+          <h1 className="truncate text-[24px] leading-7 font-semibold">{title}</h1>
           {subtitle && <p className={`mt-1 truncate text-[13px] leading-5 ${isSettings ? "text-white/80" : "text-[#787878]"}`}>{subtitle}</p>}
         </div>
     

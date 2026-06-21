@@ -32,7 +32,7 @@ export default function SessionHeader({
           type="button"
         >
           Facebook
-          <span className="absolute -right-9 -top-1.5 rounded-full bg-slate-200 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">
+          <span className="absolute -top-1.5 -right-9 rounded-full bg-slate-200 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">
             Soon
           </span>
         </button>

@@ -29,11 +29,11 @@ function EyeOnIcon() {
 function CheckboxIcon({ checked }: { checked: boolean }) {
   if (!checked) {
     return (
-      <span className="flex size-6 items-center justify-center rounded-[4px] border border-black/20 bg-white shrink-0" />
+      <span className="flex size-6 shrink-0 items-center justify-center rounded-[4px] border border-black/20 bg-white" />
     );
   }
   return (
-    <span className="flex size-6 items-center justify-center rounded-[4px] bg-[#ff6b8a] shrink-0">
+    <span className="flex size-6 shrink-0 items-center justify-center rounded-[4px] bg-[#ff6b8a]">
       <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
         <path d="M2.5 6.5L5.5 9.5L10.5 3.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
@@ -89,36 +89,36 @@ function HeroHeader() {
         background: "linear-gradient(150.59deg, #FF6B8A 5.85%, #FFA66D 45.40%, #FFC86A 84.96%)",
       }}
     >
-      <p className="absolute left-1/2 top-[79px] w-[184px] -translate-x-1/2 text-center text-[20px] font-semibold leading-6 text-black">
+      <p className="absolute top-[79px] left-1/2 w-[184px] -translate-x-1/2 text-center text-[20px] leading-6 font-semibold text-black">
         3 bước đơn giản, chốt đơn dễ dàng
       </p>
 
 
-      <div className="absolute top-[150px] left-0 right-0 flex items-center justify-between gap-0 px-6">
+      <div className="absolute inset-x-0 top-[150px] flex items-center justify-between gap-0 px-6">
         <div className="flex items-center justify-center" style={{ width: 88, height: 88 }}>
           <div className="rotate-15">
             <div className="overflow-hidden rounded-[19.765px] bg-white shadow-[0_3px_7px_rgba(0,0,0,0.05),0_13px_13px_rgba(0,0,0,0.04),0_29px_17px_rgba(0,0,0,0.03)]">
-              <img src="/images/auth/step-1.png" alt="" className="size-full object-cover w-18 h-18" />
+              <img src="/images/auth/step-1.png" alt="" className="size-18 object-cover" />
             </div>
           </div>
         </div>
         <div className="flex items-center justify-center" style={{ width: 88, height: 88 }}>
           <div className="-rotate-15">
             <div className="overflow-hidden rounded-[19.765px] bg-white shadow-[0_3px_7px_rgba(0,0,0,0.05),0_13px_13px_rgba(0,0,0,0.04),0_29px_17px_rgba(0,0,0,0.03)]">
-              <img src="/images/auth/step-2.png" alt="" className="size-full object-cover w-18 h-18" />
+              <img src="/images/auth/step-2.png" alt="" className="size-18 object-cover" />
             </div>
           </div>
         </div>
         <div className="flex items-center justify-center" style={{ width: 88, height: 88 }}>
           <div className="rotate-15">
             <div className="overflow-hidden rounded-[19.765px] bg-white shadow-[0_3px_7px_rgba(0,0,0,0.05),0_13px_13px_rgba(0,0,0,0.04),0_29px_17px_rgba(0,0,0,0.03)]">
-              <img src="/images/auth/step-3.png" alt="" className="size-full object-cover w-18 h-18" />
+              <img src="/images/auth/step-3.png" alt="" className="size-18 object-cover" />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="absolute bottom-[22px] left-0 right-0 flex justify-around px-4 text-center">
+      <div className="absolute inset-x-0 bottom-[22px] flex justify-around px-4 text-center">
         <span className="text-[14px] leading-[22px] text-black">Gom comment</span>
         <span className="text-[14px] leading-[22px] text-black">Xác nhận đơn</span>
         <span className="text-[14px] leading-[22px] text-black">Gửi vận chuyển</span>
@@ -270,19 +270,19 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
 
   return (
     <main className="relative h-dvh overflow-hidden bg-white">
-      <div className="mx-auto h-full w-full overflow-hidden">
+      <div className="mx-auto size-full overflow-hidden">
         <HeroHeader />
 
         <div
           className="relative -mt-10.25 flex flex-col rounded-t-4xl bg-white"
           style={{ height: "calc(100dvh - 309px)" }}
         >
-          <div className="flex-1 overflow-y-auto px-4 pt-6 pb-6 [-webkit-overflow-scrolling:touch]">
+          <div className="flex-1 overflow-y-auto px-4 py-6 [-webkit-overflow-scrolling:touch]">
             <div className="flex flex-col gap-6">
 
               {isLogin ? (
                 <>
-                  <p className="w-full text-center text-[18px] font-medium leading-6 text-black">
+                  <p className="w-full text-center text-[18px] leading-6 font-medium text-black">
                     Đăng nhập
                   </p>
 
@@ -329,16 +329,16 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
 
                   <div className="flex items-center gap-3">
                     <span className="h-px flex-1 bg-[#dadada]" />
-                    <span className="text-[12px] font-medium leading-4.5 text-[#484848]">
+                    <span className="text-[12px] leading-4.5 font-medium text-[#484848]">
                       Tư vấn
                     </span>
                     <span className="h-px flex-1 bg-[#dadada]" />
                   </div>
 
                   <div className="flex items-center justify-center gap-4">
-                    <img src="/assets/icon/fb.png" alt="Phone" className="w-10 h-10" />
-                    <img src="/assets/icon/tiktok.png" alt="tiktok" className="w-10 h-10" />
-                    <img src="/assets/icon/zalo.png" alt="Instagram" className="w-10 h-10" />
+                    <img src="/assets/icon/fb.png" alt="Phone" className="size-10" />
+                    <img src="/assets/icon/tiktok.png" alt="tiktok" className="size-10" />
+                    <img src="/assets/icon/zalo.png" alt="Instagram" className="size-10" />
                   </div>
 
                   <p className="text-center text-[14px] leading-[22px] text-[#484848]">
@@ -355,7 +355,7 @@ export default function AuthScreen({ initialMode = "login" }: { initialMode?: Mo
               ) : (
                 <>
                   <div className="flex flex-col items-center gap-2">
-                    <p className="text-center text-[18px] font-medium leading-6 text-black">
+                    <p className="text-center text-[18px] leading-6 font-medium text-black">
                       Đăng kí
                     </p>
                     <p className="text-center text-[14px] leading-5.5 text-[#484848]">

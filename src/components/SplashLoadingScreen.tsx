@@ -28,7 +28,7 @@ function CameraIcon() {
 function StatusBar() {
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 flex h-[47px] items-center justify-between px-[27px] pt-[13px] text-black">
-      <span className="w-[54px] text-center text-[16px] font-semibold leading-[21px] tracking-[-0.32px]">
+      <span className="w-[54px] text-center text-[16px] leading-[21px] font-semibold tracking-[-0.32px]">
         9:41
       </span>
       <div className="flex items-center gap-[7px]">
@@ -48,7 +48,7 @@ function StatusBar() {
         </svg>
         <div className="relative h-[13px] w-[27px] rounded-[4px] border border-black/35 p-[2px]">
           <div className="h-full w-[13px] rounded-[2px] bg-black" />
-          <span className="absolute -right-[3px] top-1/2 h-[4px] w-[2px] -translate-y-1/2 rounded-r bg-black/35" />
+          <span className="absolute top-1/2 right-[-3px] h-[4px] w-[2px] -translate-y-1/2 rounded-r bg-black/35" />
         </div>
       </div>
     </div>
@@ -58,13 +58,13 @@ function StatusBar() {
 export default function SplashLoadingScreen() {
   return (
     <main className="relative h-dvh overflow-hidden bg-white text-black">
-      <div className="mx-auto relative h-full bg-white">
+      <div className="relative mx-auto h-full bg-white">
 
-        <div className="absolute left-1/2 top-[calc(50%)] flex w-24 -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-6">
-          <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl bg-[linear-gradient(136deg,#ff6b8a_4%,#ffa66d_63%,#ffc86a_131%)] shadow-[0_14px_32px_rgba(255,107,138,0.22)]">
+        <div className="absolute top-[calc(50%)] left-1/2 flex w-24 -translate-1/2 flex-col items-center gap-6">
+          <div className="flex size-20 items-center justify-center overflow-hidden rounded-3xl bg-[linear-gradient(136deg,#ff6b8a_4%,#ffa66d_63%,#ffc86a_131%)] shadow-[0_14px_32px_rgba(255,107,138,0.22)]">
             <CameraIcon />
           </div>
-          <p className="w-full text-center text-[18px] font-medium leading-6 text-black">
+          <p className="w-full text-center text-[18px] leading-6 font-medium text-black">
             Lumi Live
           </p>
         </div>

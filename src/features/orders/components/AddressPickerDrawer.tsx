@@ -39,7 +39,7 @@ export function AddressPickerDrawer<T extends AddressItem>({
       title={title}
       height="auto"
       footer={
-        <div className="px-4 pb-2 pt-1">
+        <div className="px-4 pt-1 pb-2">
           <GradientButton label="Thêm địa chỉ mới" onClick={onAdd} />
         </div>
       }
@@ -78,10 +78,10 @@ export function AddressPickerDrawer<T extends AddressItem>({
               )}
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <button type="button" onClick={() => onEdit(a)} className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f2f2f2] text-[#484848]">
+              <button type="button" onClick={() => onEdit(a)} className="flex size-8 items-center justify-center rounded-full bg-[#f2f2f2] text-[#484848]">
                 <EditIcon />
               </button>
-              <button type="button" onClick={() => onDelete(a)} className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fff0f3] text-[#ff6b8a]">
+              <button type="button" onClick={() => onDelete(a)} className="flex size-8 items-center justify-center rounded-full bg-[#fff0f3] text-[#ff6b8a]">
                 <TrashIcon />
               </button>
             </div>

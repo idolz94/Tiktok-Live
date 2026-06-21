@@ -7,20 +7,17 @@ import { useDashboardContext } from "@/features/dashboard";
 
 export default function DashboardShippingPage() {
   const { orderManager } = useDashboardContext();
+  const { reloadShipmentOrders, shipmentOrders, shipmentLoading, getShippingTracking } = orderManager;
 
   useEffect(() => {
-    void orderManager.reloadShipmentOrders();
-  }, [orderManager.reloadShipmentOrders]);
+    void reloadShipmentOrders();
+  }, [reloadShipmentOrders]);
 
   return (
     <>
       <DashboardHeader kind="sub" title="Vận đơn" />
-      <section className="min-h-0 flex-1 overflow-hidden mb-16">
-        <ShippingView
-          orders={orderManager.shipmentOrders}
-          loading={orderManager.shipmentLoading}
-          getShippingTracking={orderManager.getShippingTracking}
-        />
+      <section className="mb-16 min-h-0 flex-1 overflow-hidden">
+        <ShippingView orders={shipmentOrders} loading={shipmentLoading} getShippingTracking={getShippingTracking} />
       </section>
     </>
   );

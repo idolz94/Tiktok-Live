@@ -11,15 +11,15 @@ export default function WelcomeScreen({
 }) {
   return (
     <main className="relative h-dvh overflow-hidden bg-white text-black">
-      <div className="relative mx-auto h-full w-full overflow-hidden bg-[#ffd8dd]">
+      <div className="relative mx-auto size-full overflow-hidden bg-[#ffd8dd]">
         <img
           src="/images/welcome/background.webp"
           alt=""
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 size-full object-cover"
         />
         <section className="absolute inset-x-0 bottom-0 px-6 pb-2">
           <div className="mx-auto flex w-full flex-col items-center">
-            <h1 className="whitespace-pre-line  font-['Inter_Display'] w-full text-4xl text-left leading-10 font-semibold text-black">
+            <h1 className="w-full  text-left font-['Inter_Display'] text-4xl leading-10 font-semibold whitespace-pre-line text-black">
               {"Comment đến đâu\nĐơn về đến đó!"}
             </h1>
 

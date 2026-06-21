@@ -54,7 +54,7 @@ export default function Radio({
         ].join(" ")}
       >
         {checked && (
-          <span className="h-[10px] w-[10px] rounded-full bg-[#070f66]" />
+          <span className="size-[10px] rounded-full bg-[#070f66]" />
         )}
       </span>
 

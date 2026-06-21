@@ -106,20 +106,20 @@ function SessionRow({ item, isLast, onSelect }: SessionRowProps) {
       <div className="flex flex-col gap-4 pt-4">
         <div className="flex items-center gap-4">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <p className="text-[14px] font-medium leading-5.5 text-black">
+            <p className="text-[14px] leading-5.5 font-medium text-black">
               Phiên {formatTime(item.startedAt)} - {formatTime(item.endedAt)}
             </p>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <UserIcon />
-                <span className="whitespace-nowrap text-[12px] leading-4.5 text-[#787878]">
+                <span className="text-[12px] leading-4.5 whitespace-nowrap text-[#787878]">
                   {removeAt(item.username)}
                 </span>
               </div>
               <div className="h-3 w-px bg-[#dadada]" />
               <div className="flex items-center gap-2">
                 <ClockIcon />
-                <span className="whitespace-nowrap text-[12px] leading-4.5 text-[#787878]">
+                <span className="text-[12px] leading-4.5 whitespace-nowrap text-[#787878]">
                   {durationText}
                 </span>
               </div>
@@ -174,8 +174,8 @@ export default function PlaceholderView({ liveHistory, onSelectSession }: Placeh
 
   if (groups.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#f2f2f2]">
+      <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+        <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-[#f2f2f2]">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="9" stroke="#b0b8c9" strokeWidth="1.5" />
             <path d="M12 7v5l3 3" stroke="#b0b8c9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -196,7 +196,7 @@ export default function PlaceholderView({ liveHistory, onSelectSession }: Placeh
           <div key={group.dateKey}>
             <div className="flex items-center justify-between px-4 pt-4">
               <div className="flex items-center gap-2">
-                <div className="h-1.5 w-1.5 rounded-full bg-[#ff6b8a]" />
+                <div className="size-1.5 rounded-full bg-[#ff6b8a]" />
                 <span className="text-[14px] leading-5.5 text-[#2b2b2b]">
                   {group.dateTitle}
                 </span>
@@ -209,7 +209,7 @@ export default function PlaceholderView({ liveHistory, onSelectSession }: Placeh
                 type="button"
                 onClick={() => toggleGroup(group.dateKey)}
                 aria-label={isCollapsed ? "Mở rộng" : "Thu gọn"}
-                className="flex h-6 w-6 items-center justify-center text-[#484848]"
+                className="flex size-6 items-center justify-center text-[#484848]"
               >
                 <ChevronDownIcon
                   className={`transition-transform duration-200 ${isCollapsed ? "-rotate-90" : ""}`}

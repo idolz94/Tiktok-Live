@@ -47,8 +47,15 @@ export function emitAuthChanged(reason: AuthChangeReason) {
   window.dispatchEvent(new CustomEvent("lumi-auth-change", { detail: { reason } }));
 }
 
+export function isPublicAuthScreen() {
+  if (!isBrowser()) return false;
+  const screen = new URLSearchParams(window.location.search).get("screen");
+  return ["login", "register", "forgot-password", "reset-password"].includes(screen || "");
+}
+
 export function emitSessionExpired() {
   if (!isBrowser()) return;
+  if (isPublicAuthScreen()) return;
   if (hasEmittedSessionExpired) return;
   hasEmittedSessionExpired = true;
   window.dispatchEvent(new Event("lumi-session-expired"));
@@ -56,18 +63,51 @@ export function emitSessionExpired() {
 
 // ─── Auto-refresh on 401 ───────────────────────────────────────────────────────
 
-let isRefreshing = false;
-let refreshQueue: Array<(token: string) => void> = [];
+let refreshPromise: Promise<string> | null = null;
+
+function isAuthRefreshBlockedRequest(config?: { url?: string }) {
+  const url = config?.url || "";
+  return [
+    "/auth/login",
+    "/auth/register",
+    "/auth/refresh",
+    "/auth/logout",
+    "/auth/forgot-password",
+    "/auth/reset-password",
+  ].some((path) => url.includes(path));
+}
 
 async function doRefresh(): Promise<string> {
-  const response = await axios.post<{ data: { accessToken: string } }>(
+  const response = await axios.post<{ accessToken: string }>(
     `${API_BASE_URL}/auth/refresh`,
     {},
     { withCredentials: true },
   );
-  const newToken = response.data?.data?.accessToken ?? "";
+  const newToken = response.data?.accessToken ?? "";
   setMemoryToken(newToken);
   return newToken;
+}
+
+export async function refreshMemoryToken() {
+  return doRefresh();
+}
+
+export function clearAuthSessionState() {
+  clearMemoryToken();
+}
+
+export async function maybeRefreshOn401() {
+  return getSharedRefreshToken();
+}
+
+async function getSharedRefreshToken(): Promise<string> {
+  if (!refreshPromise) {
+    refreshPromise = doRefresh().finally(() => {
+      refreshPromise = null;
+    });
+  }
+
+  return refreshPromise;
 }
 
 apiClient.interceptors.response.use(
@@ -78,36 +118,23 @@ apiClient.interceptors.response.use(
     const status = error.response?.status;
     const skipRefresh = originalRequest?.skipRefresh as boolean | undefined;
 
-    if (status === 401 && !originalRequest._retry && !skipRefresh) {
+    if (
+      status === 401 &&
+      !originalRequest._retry &&
+      !skipRefresh &&
+      !isAuthRefreshBlockedRequest(originalRequest)
+    ) {
       originalRequest._retry = true;
 
-      if (isRefreshing) {
-        // Queue this request until refresh completes
-        return new Promise((resolve, reject) => {
-          refreshQueue.push((token) => {
-            originalRequest.headers["Authorization"] = `Bearer ${token}`;
-            resolve(apiClient(originalRequest));
-          });
-          // Also add a reject path after timeout (safety)
-          setTimeout(() => reject(error), 10_000);
-        });
-      }
-
-      isRefreshing = true;
       try {
-        const newToken = await doRefresh();
-        refreshQueue.forEach((cb) => cb(newToken));
-        refreshQueue = [];
-
+        const newToken = await getSharedRefreshToken();
+        originalRequest.headers = originalRequest.headers || {};
         originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
         return apiClient(originalRequest);
       } catch {
-        refreshQueue = [];
         clearMemoryToken();
         emitSessionExpired();
         return Promise.reject(error);
-      } finally {
-        isRefreshing = false;
       }
     }
 
@@ -250,6 +277,7 @@ export async function getRequest<T>(
       params: cleanParams(params),
       withCredentials: resolveWithCredentials(options),
       headers: await buildHeaders(options),
+      skipRefresh: options?.skipRefresh,
     });
 
     if (response.status === 204) return null as T;
@@ -287,6 +315,7 @@ export async function patchRequest<T>(
     const response = await apiClient.patch<T>(path, data ?? {}, {
       withCredentials: resolveWithCredentials(options),
       headers: await buildHeaders(options, true),
+      skipRefresh: options?.skipRefresh,
     });
 
     if (response.status === 204) return null as T;
@@ -306,6 +335,7 @@ export async function deleteRequest<T>(
       params: cleanParams(params),
       withCredentials: resolveWithCredentials(options),
       headers: await buildHeaders(options),
+      skipRefresh: options?.skipRefresh,
     });
 
     if (response.status === 204) return null as T;

@@ -65,17 +65,17 @@ export function AdminView({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="flex h-full flex-col bg-white">
-      <div className="shrink-0 flex items-center justify-between px-4 pt-3 pb-4">
+      <div className="flex shrink-0 items-center justify-between px-4 pt-3 pb-4">
         <button
           type="button"
           onClick={onBack}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]"
+          className="flex size-11 items-center justify-center rounded-full bg-[#f2f2f2]"
           aria-label="Quay lại"
         >
           <ChevronLeftSmIcon />
         </button>
-        <p className="text-[18px] font-medium leading-6 text-black">Quản lý license</p>
-        <div className="h-11 w-11" />
+        <p className="text-[18px] leading-6 font-medium text-black">Quản lý license</p>
+        <div className="size-11" />
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto [-webkit-overflow-scrolling:touch]">
@@ -116,7 +116,7 @@ export function AdminView({ onBack }: { onBack: () => void }) {
                   </option>
                 ))}
               </select>
-              <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#484848]">
+              <div className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-[#484848]">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>

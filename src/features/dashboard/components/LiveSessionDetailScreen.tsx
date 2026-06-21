@@ -162,7 +162,7 @@ function FilterDrawer({
         onClick={onClose}
       />
       {/* Sheet */}
-      <div className="relative flex flex-col rounded-tl-4xl rounded-tr-4xl bg-white shadow-[0px_15px_75px_0px_rgba(0,0,0,0.18)]">
+      <div className="relative flex flex-col rounded-t-4xl bg-white shadow-[0px_15px_75px_0px_rgba(0,0,0,0.18)]">
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1">
           <div className="h-1.5 w-11 rounded-[99px] bg-[#dadada]" />
@@ -171,7 +171,7 @@ function FilterDrawer({
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3">
           <h2 className="flex-1 text-center text-[18px] font-medium text-[#2b2b2b]">Bộ lọc</h2>
-          <button type="button" onClick={onClose} className="absolute right-4 flex h-9 w-9 items-center justify-center rounded-full bg-[#f2f2f2]">
+          <button type="button" onClick={onClose} className="absolute right-4 flex size-9 items-center justify-center rounded-full bg-[#f2f2f2]">
             <CloseIcon />
           </button>
         </div>
@@ -219,7 +219,7 @@ function FilterDrawer({
         </div>
 
         {/* Apply button */}
-        <div className="border-t border-black/10 px-4 pb-8 pt-5 mt-5">
+        <div className="mt-5 border-t border-black/10 px-4 pt-5 pb-8">
           <button
             type="button"
             onClick={onApply}
@@ -240,8 +240,8 @@ function FilterDrawer({
 
 function StatIcon({ color }: { color: string }) {
   return (
-    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white">
-      <span className="h-4 w-4 rounded-full" style={{ backgroundColor: color }} />
+    <span className="flex size-9 items-center justify-center rounded-full bg-white">
+      <span className="size-4 rounded-full" style={{ backgroundColor: color }} />
     </span>
   );
 }
@@ -259,7 +259,7 @@ function StatCard({ label, value, bg, color }: StatCardProps) {
       <StatIcon color={color} />
       <div className="min-w-0">
         <p className="text-[12px] leading-4.5 text-[#484848]">{label}</p>
-        <p className="mt-0.5 text-[20px] font-semibold leading-7 text-[#2b2b2b]">{value}</p>
+        <p className="mt-0.5 text-[20px] leading-7 font-semibold text-[#2b2b2b]">{value}</p>
       </div>
     </div>
   );
@@ -384,11 +384,11 @@ export default function LiveSessionDetailScreen({
     <main className="h-dvh bg-white">
       <div className="mx-auto flex h-full flex-col bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
         {/* Sticky header */}
-        <div className="shrink-0 flex items-center justify-between px-4 py-3">
-          <button type="button" onClick={onBack} className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]">
+        <div className="flex shrink-0 items-center justify-between px-4 py-3">
+          <button type="button" onClick={onBack} className="flex size-11 items-center justify-center rounded-full bg-[#f2f2f2]">
             <ChevronLeftIcon />
           </button>
-          <button type="button" className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f2f2f2]">
+          <button type="button" className="flex size-11 items-center justify-center rounded-full bg-[#f2f2f2]">
             <MoreIcon />
           </button>
         </div>
@@ -396,7 +396,7 @@ export default function LiveSessionDetailScreen({
         {/* Scrollable content */}
         <div className="min-h-0 flex-1 overflow-y-auto [-webkit-overflow-scrolling:touch]">
           <div className="px-4 pt-1">
-            <h1 className="text-[24px] font-semibold leading-8 text-[#2b2b2b]">
+            <h1 className="text-[24px] leading-8 font-semibold text-[#2b2b2b]">
               Phiên {formatTime(session.startedAt)} - {formatTime(session.endedAt)}
             </h1>
             <div className="mt-2 flex items-center gap-3">
@@ -420,15 +420,15 @@ export default function LiveSessionDetailScreen({
           </div>
 
           <div className="mt-6 flex items-center justify-between px-4">
-            <h2 className="text-[20px] font-semibold leading-7 text-[#2b2b2b]">{productCount} sản phẩm</h2>
+            <h2 className="text-[20px] leading-7 font-semibold text-[#2b2b2b]">{productCount} sản phẩm</h2>
             <button
               type="button"
               onClick={openFilter}
-              className="relative flex h-10 w-10 items-center justify-center rounded-full bg-[#f2f2f2]"
+              className="relative flex size-10 items-center justify-center rounded-full bg-[#f2f2f2]"
             >
               <FilterIcon />
               {activeFilterCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ff6b8a] px-1 text-[10px] font-semibold text-white">
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ff6b8a] px-1 text-[10px] font-semibold text-white">
                   {activeFilterCount}
                 </span>
               )}

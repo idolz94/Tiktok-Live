@@ -213,3 +213,19 @@ export async function deleteTikTokChannelApi(channelId: string): Promise<void> {
 export async function updateDefaultTiktokUsernameApi(tiktokUsername: string): Promise<void> {
   await patchRequest<any>("/me/profile", { defaultTiktokUsername: tiktokUsername });
 }
+
+export type PrinterSettings = {
+  printerIp: string;
+  printerPort: number;
+  printerName: string;
+};
+
+export async function getPrinterSettingsApi(): Promise<PrinterSettings> {
+  const data = await getRequest<any>("/me/shop-settings/printer");
+  return data?.data ?? data;
+}
+
+export async function savePrinterSettingsApi(payload: Partial<PrinterSettings>): Promise<PrinterSettings> {
+  const data = await patchRequest<any>("/me/shop-settings/printer", payload);
+  return data?.data ?? data;
+}

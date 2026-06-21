@@ -59,7 +59,7 @@ export async function registerApi(payload: RegisterPayload): Promise<AuthRespons
 }
 
 export async function refreshApi(): Promise<{ accessToken: string }> {
-  const response = await postRequest<{ accessToken: string }>("/auth/refresh", {}, { skipSessionExpired: true });
+  const response = await postRequest<{ accessToken: string }>("/auth/refresh", {}, { skipSessionExpired: true, skipRefresh: true });
   setMemoryToken(response.accessToken);
   markHasSession();
   return response;
@@ -69,7 +69,7 @@ export async function logoutApi(): Promise<void> {
   clearMemoryToken();
   clearHasSession();
   try {
-    await postRequest("/auth/logout", {});
+    await postRequest("/auth/logout", {}, { skipSessionExpired: true, skipRefresh: true });
   } catch {
     // ignore errors on logout
   }

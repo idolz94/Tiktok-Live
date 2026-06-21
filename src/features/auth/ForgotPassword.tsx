@@ -13,7 +13,7 @@ export function ForgotPasswordDrawer() {
       title="Quên mật khẩu?"
       description="Đừng lo! Hãy liên hệ với chúng tôi, đội ngũ Lumi Live sẽ giúp bạn khôi phục ngay."
       trigger={
-        <button type="button" className="text-[14px] leading-[22px] text-[#484848] font-['Inter_Display',sans-serif]">
+        <button type="button" className="font-['Inter_Display',sans-serif] text-[14px] leading-[22px] text-[#484848]">
           Quên mật khẩu
         </button>
       }

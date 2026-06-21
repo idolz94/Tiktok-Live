@@ -148,7 +148,7 @@ function OrderTrackingCard({
     <div className="flex flex-col gap-0 bg-white">
       {/* User info */}
       <div className="flex items-center gap-4 px-4 pt-4 pb-2">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ff4d6d] text-base font-medium text-white">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#ff4d6d] text-base font-medium text-white">
           {avatarLetter}
         </div>
         <span className="text-base font-medium text-[#1a1a1a]">
@@ -169,7 +169,7 @@ function OrderTrackingCard({
           <div className="flex items-center justify-between gap-2">
             {/* Carrier logo */}
             <div className="flex items-center gap-2">
-              <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg">
+              <div className="relative size-8 shrink-0 overflow-hidden rounded-lg">
                 <Image
                   src="/images/providers/ghtk.png"
                   alt="GHTK"
@@ -241,7 +241,7 @@ function SummarySkeleton() {
   return (
     <div className="flex gap-2 overflow-x-auto px-4 py-3">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="min-w-[110px] flex-1 animate-pulse rounded-xl border border-[rgba(0,0,0,0.1)] bg-gray-100 p-3 h-20" />
+        <div key={i} className="h-20 min-w-[110px] flex-1 animate-pulse rounded-xl border border-[rgba(0,0,0,0.1)] bg-gray-100 p-3" />
       ))}
     </div>
   );
@@ -249,9 +249,9 @@ function SummarySkeleton() {
 
 function OrderCardSkeleton() {
   return (
-    <div className="flex flex-col gap-3 bg-white px-4 pt-4 pb-4">
+    <div className="flex flex-col gap-3 bg-white p-4">
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 animate-pulse rounded-full bg-gray-200" />
+        <div className="size-10 animate-pulse rounded-full bg-gray-200" />
         <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
       </div>
       <div className="h-24 animate-pulse rounded-xl bg-gray-100" />
@@ -289,7 +289,7 @@ export default function ShippingView({ orders, loading, getShippingTracking }: P
   if (orders.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#f2f2f2]">
+        <div className="flex size-16 items-center justify-center rounded-full bg-[#f2f2f2]">
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
             <path
               d="M4 8h24M4 8l2 16h20L28 8M4 8l2-4h20l2 4M12 14v6M16 14v6M20 14v6"
@@ -312,7 +312,7 @@ export default function ShippingView({ orders, loading, getShippingTracking }: P
       <div className="flex gap-2 overflow-x-auto px-4 py-3">
         {/* COD */}
         <div className="flex min-w-[110px] flex-1 flex-col gap-2 rounded-xl border border-[rgba(0,0,0,0.1)] bg-[#edfaf4] p-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#2ca87b]">
+          <div className="flex size-8 items-center justify-center rounded-full bg-[#2ca87b]">
             <CheckIcon />
           </div>
           <div>
@@ -326,7 +326,7 @@ export default function ShippingView({ orders, loading, getShippingTracking }: P
 
         {/* Revenue placeholder */}
         <div className="flex min-w-[110px] flex-1 flex-col gap-2 rounded-xl border border-[rgba(0,0,0,0.1)] bg-[#e9f2ff] p-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#468adf]">
+          <div className="flex size-8 items-center justify-center rounded-full bg-[#468adf]">
             <RevenueIcon />
           </div>
           <div>
@@ -339,7 +339,7 @@ export default function ShippingView({ orders, loading, getShippingTracking }: P
 
         {/* Shipping fee placeholder */}
         <div className="flex min-w-[110px] flex-1 flex-col gap-2 rounded-xl border border-[rgba(0,0,0,0.1)] bg-[#ffe8e8] p-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#ff4242]">
+          <div className="flex size-8 items-center justify-center rounded-full bg-[#ff4242]">
             <ShipFeeIcon />
           </div>
           <div>
